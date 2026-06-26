@@ -1,0 +1,17 @@
+# Pinned commit of github.com/mstan/psxrecomp (the shared framework) used to
+# build this repo. Bumping this is a deliberate, reviewable change — psxrecomp
+# is a separate repo evolving on its own cadence. Update via:
+#   git -C ../psxrecomp rev-parse master > /tmp/sha && \
+#     sed -i "s|^sha=.*|sha=$(cat /tmp/sha)|" psxrecomp-v4.pin
+#
+# NOTE: this repo builds against the `wt/mmx5` framework worktree (junction
+# psxrecomp-v4 -> F:/Projects/psxrecomp/_wt-mmx5/psxrecomp), branched off master
+# so X5 bring-up framework changes stay isolated. The pin records the master
+# commit wt/mmx5 was created from; fold X5-specific framework fixes back to
+# master deliberately.
+branch=wt/mmx5
+sha=80c33a8
+# Created 2026-06-26: wt/mmx5 worktree branched from psxrecomp master 80c33a8
+#   (observability: heartbeat CPU regs + scratchpad + spin-freeze wedge). Initial
+#   X5 scaffold — mirrors the MegaManX6Recomp setup (SLUS-01334, entry 0x8005894C,
+#   load 0x80010000, text 0x82000). Same Capcom 2D engine family as MMX6.

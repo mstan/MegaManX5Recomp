@@ -10,7 +10,15 @@
 # commit wt/mmx5 was created from; fold X5-specific framework fixes back to
 # master deliberately.
 branch=wt/mmx5
-sha=80c33a8
+sha=f2a7187
+# Bumped 2026-06-26 (X5 bring-up framework fixes): wt/mmx5 = 80c33a8 +
+#   (1) game-specific exe name (OUTPUT_NAME from window title) so X5's
+#   MegaManX5Recomp.exe never collides with another title's psx-runtime.exe;
+#   (2) side-effect-free sio_peek_* on the debug path (record_frame/sio_state no
+#   longer perturb the SIO handshake every vblank) + a new fmv_state TCP command.
+#   NOTE: the dev-build (PSX_DEBUG_TOOLS=ON) FMV-skip divergence is NOT fully
+#   fixed — residual is the cycle-timing-faithfulness class (the framework's
+#   precise-irq focus); prod (tools OFF) plays X5's FMVs correctly.
 # Created 2026-06-26: wt/mmx5 worktree branched from psxrecomp master 80c33a8
 #   (observability: heartbeat CPU regs + scratchpad + spin-freeze wedge). Initial
 #   X5 scaffold — mirrors the MegaManX6Recomp setup (SLUS-01334, entry 0x8005894C,

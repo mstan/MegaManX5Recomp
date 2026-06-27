@@ -10,7 +10,11 @@ param(
 )
 $ErrorActionPreference = "Stop"
 $root = "F:\Projects\psxrecomp\MegaManX5Recomp"
-$exe  = Join-Path $root "$BuildDir\psx-runtime.exe"
+# Game-specific exe name (framework sets OUTPUT_NAME from the window title) so an
+# X5 run never collides with another PSX title's process (e.g. Tomba 2). Only ever
+# stop THIS title's process by name, never the generic "psx-runtime".
+$exeName = "MegaManX5Recomp"
+$exe  = Join-Path $root "$BuildDir\$exeName.exe"
 $game = Join-Path $root "game.toml"
 $bios = "F:\Projects\psxrecomp\psxrecomp\bios\SCPH1001.BIN"
 $disc = Join-Path $root "mmx5\Mega Man X5 (USA).cue"
@@ -23,7 +27,7 @@ if (-not (Test-Path $disc)) { throw "disc not found: $disc" }
 Set-Content -Path (Join-Path $root "$BuildDir\bios.cfg") -Value $bios -Encoding utf8 -NoNewline
 Set-Content -Path (Join-Path $root "$BuildDir\disc.cfg") -Value $disc -Encoding utf8 -NoNewline
 
-Get-Process psx-runtime -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process $exeName -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Milliseconds 300
 
 # Build a single arg string with explicit quotes around every path.

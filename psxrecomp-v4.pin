@@ -10,7 +10,18 @@
 # commit wt/mmx5 was created from; fold X5-specific framework fixes back to
 # master deliberately.
 branch=wt/mmx5
-sha=f2a7187
+sha=27e81e3
+# Bumped 2026-07-02 (EXPERIMENT: rebase onto the in-progress co-sim/axes stack):
+#   wt/mmx5 rebased onto fix/tomba-menu-irq-resume 13c5e0c (the _wt-tomba2
+#   worktree tip: cosim oracle + lockstep comparator, cycle-accuracy axes
+#   (load-delay interlock, I-cache Stage 2, MMIO waits, axis-5 faithful
+#   DualShock SIO), precise-slice merge, overlay ABI v9, stale-shard guard).
+#   The two X5 commits replayed clean on top (game-specific exe name, SIO-safe
+#   observability + fmv_state). Old base preserved at
+#   backup/wt-mmx5-prerebase-2026-07-02 (= f2a7187). KNOWN: this stack has
+#   unresolved MMX6/Tomba regressions — X5 on it is deliberately an experiment
+#   to help shake those out before the stack merges to master. Uncommitted
+#   _wt-tomba2 changes were NOT included.
 # Bumped 2026-06-26 (X5 bring-up framework fixes): wt/mmx5 = 80c33a8 +
 #   (1) game-specific exe name (OUTPUT_NAME from window title) so X5's
 #   MegaManX5Recomp.exe never collides with another title's psx-runtime.exe;

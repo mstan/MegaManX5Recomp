@@ -10,7 +10,13 @@
 # commit wt/mmx5 was created from; fold X5-specific framework fixes back to
 # master deliberately.
 branch=wt/mmx5
-sha=27e81e3
+sha=b65dbaf
+# Bumped 2026-07-02 (second rebase + lockstep tooling fix): wt/mmx5 rebased onto
+#   master 4cc757f (loud unknown-dispatch + 30 kernel-table ROM seeds), replaying
+#   the two X5 commits (game-specific exe name c3c0f1a, SIO-safe observability
+#   82254df), then + b65dbaf (lockstep comparator: suppress debug-command observer
+#   reads at the process_command chokepoint — read_ram polls were entering the
+#   record trace as phantom guest ops = false read-addr divergences).
 # Bumped 2026-07-02 (EXPERIMENT: rebase onto the in-progress co-sim/axes stack):
 #   wt/mmx5 rebased onto fix/tomba-menu-irq-resume 13c5e0c (the _wt-tomba2
 #   worktree tip: cosim oracle + lockstep comparator, cycle-accuracy axes

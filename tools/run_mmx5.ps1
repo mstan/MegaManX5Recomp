@@ -16,7 +16,9 @@ $root = "F:\Projects\psxrecomp\MegaManX5Recomp"
 $exeName = "MegaManX5Recomp"
 $exe  = Join-Path $root "$BuildDir\$exeName.exe"
 $game = Join-Path $root "game.toml"
-$bios = "F:\Projects\psxrecomp\psxrecomp\bios\SCPH1001.BIN"
+# The mmx5 framework worktree's copy — the main checkout's bios/ dir lost its
+# SCPH1001.BIN (2026-07-02), and this project builds against the worktree anyway.
+$bios = "F:\Projects\psxrecomp\_wt-mmx5\psxrecomp\bios\SCPH1001.BIN"
 $disc = Join-Path $root "mmx5\Mega Man X5 (USA).cue"
 
 if (-not (Test-Path $exe))  { throw "exe not found: $exe" }

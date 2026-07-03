@@ -24,6 +24,13 @@ memcard_dir = "saves"
 # timing-sensitive Psy-Q titles like the Mega Man X engine.
 disc_speed   = "1x"     # authentic guest CD timing (never breaks game timing)
 turbo_loads  = true     # fast-forward the machine during CD loads (the real speed lever)
+# HLE BIOS tier, DEFAULT-ON for X5 (2026-07-02): kernel B0 event family served
+# host-side + the boot shell-skip — boots straight past the PSX logo into the
+# game (kernel init still runs the real recompiled BIOS; unimplemented services
+# fall through to LLE). The launcher's old "Skip PSX BIOS" fast_boot toggle is
+# retired; boot behavior is this per-game decision now. Set false (or
+# PSX_BIOS_HLE=0) to compare against the authentic LLE boot.
+bios_hle = true
 # Overlay acceleration: compile the dirty-RAM overlay (ROCK_X5.DAT / ROCK_X5.BIN)
 # to native instead of interpreting it. Same pipeline as MMX6: capture overlay
 # candidates -> compile_overlays.py spawns the toolchain -> DLLs in
@@ -48,6 +55,17 @@ aspect_ratio = "4:3"
 # initial bring-up baseline; enabled during the enhancement-porting phase once the
 # X5 MDEC player loop is understood (X5 ships CAPLOGO.STR / X5OP.STR opening movies).
 auto_skip_fmv = false
+
+# Experimental 16:9 for the pure-2D sprite engine — same mechanism as MMX6:
+# full_2d treats every in-game frame as gameplay so the native-wide present path
+# engages when [video] aspect_ratio is flipped to "16:9" by the launcher's
+# Widescreen toggle (settings.toml). Inert at 4:3. Runtime-only (no regen).
+# The true wider-FOV BG tile widen ([widescreen.bg2d]) is NOT wired yet — the
+# X5 hook sites are located and documented in annotations/widescreen_bg2d_sites.md
+# (count site is an inline `sltiu`, a different shape than MMX6's `li`, so the
+# recompiler-side hook needs a variant before the sites can be configured here).
+[widescreen]
+full_2d = true
 
 # Controller defaults. The Mega Man X engine probes the pad with the DualShock
 # config command (0x43) at init; MMX6 will not poll buttons (0x42) until it detects

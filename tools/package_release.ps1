@@ -1,10 +1,10 @@
 param(
-    [string]$Version = "v0.0.2-alpha",
+    [string]$Version = "v0.0.1-alpha",
     [string]$BuildDir = "build-release",
     # Where your accumulated overlay cache lives (the dir compile_overlays.py
     # writes to, per game.toml overlay_autocompile_cmd --out-dir). Bundled as a
-    # head start; optional.
-    [string]$CacheBuildDir = "build-modern"
+    # head start; optional. X5's cache lives at build-release/cache/SLUS-01334.
+    [string]$CacheBuildDir = "build-release"
 )
 
 $ErrorActionPreference = "Stop"
@@ -12,15 +12,14 @@ $ErrorActionPreference = "Stop"
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
 $BuildPath = Join-Path $Root $BuildDir
 $StageRoot = Join-Path $Root "release-stage"
-$Stage = Join-Path $StageRoot "MegaManX6Recomp-windows-x64"
-$ZipPath = Join-Path $Root ("MegaManX6Recomp-{0}-windows-x64.zip" -f $Version)
+$Stage = Join-Path $StageRoot "MegaManX5Recomp-windows-x64"
+$ZipPath = Join-Path $Root ("MegaManX5Recomp-{0}-windows-x64.zip" -f $Version)
 $MingwBin = "C:\msys64\mingw64\bin"
 
 $env:PATH = "$MingwBin;$env:PATH"
 
-# Regenerate the game's C BEFORE building. The recompiler emits the widescreen
-# sites (2D true-FOV + background streamer) at regen time; the runtime build
-# below just compiles generated/*.c. A stale generated/ would ship without those.
+# Regenerate the game's C BEFORE building. The runtime build below just compiles
+# generated/*.c, so a stale generated/ would ship the wrong code.
 # cmake writes benign warnings (e.g. freetype's cmake_minimum_required
 # deprecation) to STDERR. Under $ErrorActionPreference='Stop', PowerShell 5.1
 # promotes a native command's stderr write to a TERMINATING error, aborting the
@@ -36,7 +35,10 @@ function Invoke-Native {
     if ($code -ne 0) { throw "$What failed (exit $code)" }
 }
 
-$RecompDir = Resolve-Path (Join-Path $Root "..\psxrecomp\recompiler\build")
+# X5 builds against its psxrecomp-v4 junction (-> the wt/mmx5 framework
+# worktree), NOT the master ..\psxrecomp checkout. All framework paths go
+# through the junction at $Root so this game's framework pin is honored.
+$RecompDir = Resolve-Path (Join-Path $Root "psxrecomp-v4\recompiler\build")
 Invoke-Native { cmake --build $RecompDir --target psxrecomp-game -j $env:NUMBER_OF_PROCESSORS } "recompiler build"
 & (Join-Path $RecompDir "psxrecomp-game.exe") --config (Join-Path $Root "game.toml")
 if ($LASTEXITCODE -ne 0) { throw "game regen failed" }
@@ -50,7 +52,12 @@ if (Test-Path $StageRoot) {
 New-Item -ItemType Directory -Force $Stage | Out-Null
 New-Item -ItemType Directory -Force (Join-Path $Stage "saves") | Out-Null
 
-Copy-Item (Join-Path $BuildPath "psx-runtime.exe") (Join-Path $Stage "MegaManX6Recomp.exe")
+# The CMake OUTPUT_NAME may already be MegaManX5Recomp.exe; accept the pre-rename
+# per-game name (mmx5-runtime.exe) and the generic psx-runtime.exe too.
+$DevExe = Join-Path $BuildPath "MegaManX5Recomp.exe"
+if (-not (Test-Path $DevExe)) { $DevExe = Join-Path $BuildPath "mmx5-runtime.exe" }
+if (-not (Test-Path $DevExe)) { $DevExe = Join-Path $BuildPath "psx-runtime.exe" }
+Copy-Item $DevExe (Join-Path $Stage "MegaManX5Recomp.exe")
 Copy-Item (Join-Path $Root "README.md") $Stage
 Copy-Item (Join-Path $Root "LICENSE") $Stage
 if (Test-Path (Join-Path $Root "RELEASE_NOTES.md")) {
@@ -59,7 +66,7 @@ if (Test-Path (Join-Path $Root "RELEASE_NOTES.md")) {
 
 # Launcher assets (RML + fonts + images). The PSX_LAUNCHER build stages these
 # next to the exe via a cmake POST_BUILD copy of the framework's launcher assets,
-# then this repo's launcher_art/ is copied on top (MMX6 disc art). They live flat
+# then this repo's launcher_art/ is copied on top (X5 disc art). They live flat
 # under $BuildPath (launcher.rml, fonts/, img/). A release without them shows a
 # blank/broken launcher. Assert + copy.
 $LauncherRml = Join-Path $BuildPath "launcher.rml"
@@ -84,13 +91,13 @@ Write-Host "Bundled launcher assets: launcher.rml + $fontCount font(s) + $imgCou
 # python or gcc needed). Players can edit [runtime]/[video] post-install.
 @"
 [game]
-name = "Mega Man X6"
-id = "SLUS-01395"
-exe = "mmx6/SLUS_013.95"
-disc = "mmx6/Mega Man X6 (USA) (v1.1).cue"
+name = "Mega Man X5"
+id = "SLUS-01334"
+exe = "mmx5/SLUS_013.34"
+disc = "mmx5/Mega Man X5 (USA).cue"
 load_address = "0x80010000"
-entry_pc = "0x80054AD8"
-text_size = "0x0007F000"
+entry_pc = "0x8005894C"
+text_size = "0x00082000"
 stack_base = "0x801FFFF0"
 
 # Required block; used only by the developer recompiler tool, not at runtime.
@@ -99,20 +106,17 @@ seeds = "seeds/ghidra_funcs.txt"
 out_dir = "generated"
 
 # ---- Player-adjustable options ------------------------------------------
-# Edit, save, and restart MegaManX6Recomp.exe to apply.
+# Edit, save, and restart MegaManX5Recomp.exe to apply.
 [runtime]
-window_title = "Mega Man X6 Recompiled"
+window_title = "Mega Man X5 Recompiled"
 memcard_dir = "saves"
 
 # Disc read speed. "1x" is authentic PlayStation timing and is the safe default:
 # speeding up the emulated CD device changes how many frames pass between the
-# game's internal steps, which desyncs streamed audio and (for MMX6) wedges the
-# boot. Fast loads instead come from turbo_loads below (which fast-forwards the
-# whole machine during a load, preserving timing).
+# game's internal steps, which desyncs streamed audio and wedges timing-sensitive
+# Mega Man X engine loops. Fast loads instead come from turbo_loads below (which
+# fast-forwards the whole machine during a load, preserving timing).
 disc_speed = "1x"
-
-# Skip the PlayStation BIOS boot logos (true) or watch them (false).
-fast_boot  = false
 
 # Turbo loads: while a load is in progress, run the machine at full host speed so
 # loading finishes much faster, with all game timing preserved. Audio plays
@@ -139,45 +143,35 @@ texture_filtering = "nearest"
 # renderer: "software" = CPU renderer (this release's default). "opengl" =
 # hardware GPU renderer. Software is shipped as the default because the OpenGL
 # backend exhibits intermittent black-frame flicker in this build (see ISSUES.md
-# #7); software is clean. OpenGL is still selectable in the launcher for anyone
+# #2); software is clean. OpenGL is still selectable in the launcher for anyone
 # who prefers it. Also set in the launcher (Settings -> Renderer).
 renderer = "software"
-# auto_skip_fmv: skip full-motion videos (e.g. the X-vs-Zero opening). When on, a
-# video is skipped the instant it starts. On by default for MMX6; toggleable in
-# the launcher (Settings -> "Skip FMVs").
-auto_skip_fmv = true
-# aspect_ratio: "4:3" (native, default) or "16:9" (EXPERIMENTAL widescreen). Also
-# toggleable in the launcher (Settings -> Widescreen), which overrides this.
+# auto_skip_fmv: skip full-motion videos (the CAPLOGO / X5OP opening movies).
+# Off by default so you see the now-working intro cutscene. When on, a video is
+# skipped the instant it starts. Toggleable in the launcher (Settings -> "Skip
+# FMVs").
+auto_skip_fmv = false
+# aspect_ratio: "4:3" (native). X5 ships 4:3 only this release; true 16:9
+# widescreen is not wired up yet (see ISSUES.md #3).
 aspect_ratio = "4:3"
 
 # ---- Controller ---------------------------------------------------------
-# default_analog: MMX6 will not poll buttons until it detects an analog pad, so
+# default_analog: MMX5 will not poll buttons until it detects an analog pad, so
 # present a DualShock by default. Per-player toggle in the launcher. deadzone:
 # analog stick dead-band (0..32767; ~12000 = 37%), also adjustable in the launcher.
 [controller]
 default_analog = true
 deadzone = 12000
-# MMX6 requires a DualShock, so the launcher hides the "Hybrid" pad mode and
+# MMX5 requires a DualShock, so the launcher hides the "Hybrid" pad mode and
 # offers only Analog / D-Pad.
 allow_hybrid = false
 
-# ---- Widescreen (experimental 16:9, 2D engine) --------------------------
-# full_2d treats every in-game frame as gameplay so the wide present path engages
-# (MMX6 never emits the 3D sprite-tag the gameplay detector keys on). The bg2d
-# hooks widen the per-layer 2D background renderer for a true wider field of view.
-# All inert at 4:3. Addresses are specific to MMX6 (USA, v1.1, SLUS-01395) and
-# must match the build the cache was made for.
+# ---- Widescreen ---------------------------------------------------------
+# full_2d treats every in-game frame as gameplay so the wide present path could
+# engage, but the true wider-FOV 2D background widen is NOT wired for X5 this
+# release (no [widescreen.bg2d] block). Inert at 4:3, which is what X5 ships.
 [widescreen]
 full_2d = true
-
-[widescreen.bg2d]
-count_site        = "0x800271d4"
-startcol_site     = "0x80027188"
-startx_site       = "0x800271a0"
-stream_left_site  = "0x80027424"
-stream_right_site = "0x80027444"
-bufbase_site      = "0x80026dc4"
-cap_site          = "0x80027278"
 "@ | Set-Content -Encoding ASCII (Join-Path $Stage "game.toml")
 
 # Prebuilt overlay cache: native code for the game areas contributed so far.
@@ -187,8 +181,8 @@ cap_site          = "0x80027278"
 # Ship .dll + .ranges only (skip the _patched.c intermediates and the reserved
 # sljit/ namespace, which has no on-disk blobs), and ONLY the dir matching THIS
 # build's codegen tag -- a stale-hash dir is dead weight the runtime never loads.
-$RecompTools = Resolve-Path (Join-Path $Root "..\psxrecomp\tools")
-$RecompInc   = Resolve-Path (Join-Path $Root "..\psxrecomp\runtime\include")
+$RecompTools = Resolve-Path (Join-Path $Root "psxrecomp-v4\tools")
+$RecompInc   = Resolve-Path (Join-Path $Root "psxrecomp-v4\runtime\include")
 $tagScript = Join-Path $env:TEMP ("psx_cgtag_{0}.py" -f $PID)
 @"
 import importlib.util
@@ -200,9 +194,9 @@ print('cg%d_%08x' % (m.codegen_ver(inc), m.codegen_hash(inc)))
 $CgTag = (& python $tagScript).Trim()
 Remove-Item -Force $tagScript
 Write-Host "Release codegen tag: $CgTag (only this cache namespace is shipped)"
-$CacheSrc = Join-Path $Root "$CacheBuildDir/cache/SLUS-01395"
+$CacheSrc = Join-Path $Root "$CacheBuildDir/cache/SLUS-01334"
 if (Test-Path $CacheSrc) {
-    $CacheDst = Join-Path $Stage "cache/SLUS-01395"
+    $CacheDst = Join-Path $Stage "cache/SLUS-01334"
     $cacheFiles = Get-ChildItem $CacheSrc -Recurse -File -Include *.dll,*.ranges |
         Where-Object { $_.FullName -notmatch '[\\/]sljit[\\/]' -and $_.FullName -match "[\\/]$CgTag[\\/]" }
     foreach ($f in $cacheFiles) {
@@ -211,8 +205,16 @@ if (Test-Path $CacheSrc) {
         New-Item -ItemType Directory -Force (Split-Path $dest) | Out-Null
         Copy-Item $f.FullName $dest
     }
-    $dllCount = (Get-ChildItem $CacheDst -Recurse -Filter *.dll).Count
-    Write-Host "Bundled overlay cache: $dllCount native overlay DLL(s)"
+    # Only files under THIS build's codegen tag are ABI-compatible; if none match
+    # (e.g. the tag moved after a framework change and no area has been re-JITed
+    # under the new tag yet), ship cache-less rather than aborting -- the bundled
+    # tcc toolchain JIT-compiles overlays at runtime on first visit.
+    if (Test-Path $CacheDst) {
+        $dllCount = (Get-ChildItem $CacheDst -Recurse -Filter *.dll).Count
+        Write-Host "Bundled overlay cache: $dllCount native overlay DLL(s)"
+    } else {
+        Write-Warning "No overlay cache matching codegen tag $CgTag under $CacheSrc - releasing without a head-start cache (overlays JIT-compile at runtime via the bundled tcc toolchain)"
+    }
 } else {
     Write-Warning "No overlay cache found at $CacheSrc - releasing without bundled cache"
 }
@@ -255,10 +257,10 @@ Copy-Item (Join-Path $RecompDir "psxrecomp-game.exe") $Toolchain
 foreach ($d in @("libgcc_s_seh-1.dll","libstdc++-6.dll","libwinpthread-1.dll")) {
     Copy-Item (Join-Path $MingwBin $d) $Toolchain
 }
-Copy-Item (Resolve-Path (Join-Path $Root "..\psxrecomp\tools\compile_overlays.py")) $Toolchain
+Copy-Item (Resolve-Path (Join-Path $Root "psxrecomp-v4\tools\compile_overlays.py")) $Toolchain
 $ToolInc = Join-Path $Toolchain "include"
 New-Item -ItemType Directory -Force $ToolInc | Out-Null
-Copy-Item (Join-Path (Resolve-Path (Join-Path $Root "..\psxrecomp\runtime\include")) "*.h") $ToolInc
+Copy-Item (Join-Path (Resolve-Path (Join-Path $Root "psxrecomp-v4\runtime\include")) "*.h") $ToolInc
 $tcMB = "{0:N0}" -f ((Get-ChildItem $Toolchain -Recurse -File | Measure-Object Length -Sum).Sum / 1MB)
 Write-Host "Bundled overlay toolchain (embedded python + tcc + recompiler): ~$tcMB MB"
 
@@ -267,7 +269,7 @@ Write-Host "Bundled overlay toolchain (embedded python + tcc + recompiler): ~$tc
 # bundle. Assert self-containment rather than trust it (mismatched side-by-side
 # DLLs were the cause of the 0xc000007b launch crash on other projects).
 $objdump = Join-Path $MingwBin "objdump.exe"
-$imports = & $objdump -p (Join-Path $Stage "MegaManX6Recomp.exe") |
+$imports = & $objdump -p (Join-Path $Stage "MegaManX5Recomp.exe") |
     Select-String "DLL Name: (.+)" | ForEach-Object { $_.Matches[0].Groups[1].Value.Trim() }
 $systemDlls = @("kernel32.dll","user32.dll","gdi32.dll","shell32.dll","msvcrt.dll",
                 "advapi32.dll","ws2_32.dll","comdlg32.dll","dbghelp.dll","ole32.dll",
@@ -307,40 +309,41 @@ select = back
 "@ | Set-Content -Encoding ASCII (Join-Path $Stage "input.ini")
 
 @"
-MegaManX6Recomp $Version
+MegaManX5Recomp $Version
 
-Mega Man X6 boots from the PlayStation BIOS and plays - through the opening, into
-stages, with working controller input and memory-card save/load, and no known
-crashes. It has not yet been verified all the way to the end, so treat this first
-release as a very playable preview rather than a certified full playthrough.
+Mega Man X5 boots from the PlayStation BIOS and plays - through the opening
+(including the intro cutscenes, which now decode and play), into stages, with
+working controller input and memory-card save/load, and no known crashes. It has
+not yet been verified all the way to the end, so treat this first release as a
+very playable preview rather than a certified full playthrough.
 
-This package does not include the Mega Man X6 disc, the PlayStation BIOS, save
+This package does not include the Mega Man X5 disc, the PlayStation BIOS, save
 data, or any game assets - you supply those from your own collection, and
-MegaManX6Recomp asks for them one at a time (each dialog says which one it
+MegaManX5Recomp asks for them one at a time (each dialog says which one it
 wants). The executable and the cache folder contain statically recompiled
 (machine-translated) builds of the game's code, the same distribution model
 used by other static recompilation projects such as N64: Recompiled.
 
 First launch:
-1. Run MegaManX6Recomp.exe. A launcher window opens.
+1. Run MegaManX5Recomp.exe. A launcher window opens.
 2. In the launcher, set your PlayStation BIOS: select your legally obtained
    SCPH1001.BIN (a 512 KB file dumped from your own console).
-3. Set the game disc: select your legally obtained Mega Man X6 (USA) (v1.1,
-   SLUS-01395) disc image.
+3. Set the game disc: select your legally obtained Mega Man X5 (USA,
+   SLUS-01334) disc image.
 4. Adjust any options you like (renderer, supersampling, screen look,
    controller), then press Launch. Your choices are remembered next time.
 
 Disc image formats:
 - .cue + .bin (preferred - pick the .cue)
 - .bin
-Do NOT convert to a 2048-byte "cooked" .iso - it discards the XA sectors MMX6
+Do NOT convert to a 2048-byte "cooked" .iso - it discards the XA sectors MMX5
 streams its FMV/audio from.
 
 The selected BIOS path is saved in bios.cfg and the selected disc path is saved
 in disc.cfg next to the executable. Delete those files to pick different files.
 
-Options such as turbo loads, FMV skip, widescreen, and disc speed can be changed
-in the launcher Settings or in game.toml ([runtime]/[video]) with any text editor.
+Options such as turbo loads, FMV skip, and disc speed can be changed in the
+launcher Settings or in game.toml ([runtime]/[video]) with any text editor.
 
 The cache folder contains pre-converted native code for game areas covered so
 far; those run at full speed from your first visit. As you play, newly visited

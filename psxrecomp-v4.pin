@@ -4,13 +4,19 @@
 #   git -C ../psxrecomp rev-parse master > /tmp/sha && \
 #     sed -i "s|^sha=.*|sha=$(cat /tmp/sha)|" psxrecomp-v4.pin
 #
-# NOTE: this repo builds against the `wt/mmx5` framework worktree (junction
-# psxrecomp-v4 -> F:/Projects/psxrecomp/_wt-mmx5/psxrecomp), branched off master
-# so X5 bring-up framework changes stay isolated. The pin records the master
-# commit wt/mmx5 was created from; fold X5-specific framework fixes back to
-# master deliberately.
-branch=wt/mmx5
-sha=b65dbaf
+# NOTE: X5 bring-up is COMPLETE and its framework work has been folded back to
+# master. This repo now builds against the shared master checkout (junction
+# psxrecomp-v4 -> F:/Projects/psxrecomp/psxrecomp), same as TombaRecomp/MMX6.
+# The dedicated `wt/mmx5` worktree has been removed. History of the isolated
+# dev branch is kept below for reference.
+branch=master
+sha=db4016b
+# Folded 2026-07-05: the full wt/mmx5 delta (9 commits — the faithful CD
+#   read/seek-timing FMV fix that makes X5's intro cutscenes decode, the
+#   guest-cycle IRQ-cooldown fix, + observability) was cherry-picked onto master
+#   (tip db4016b). Regression-validated by rebuilding TombaRecomp + MegaManX6Recomp
+#   from master (both PASS). junction repointed wt/mmx5 -> master; worktree removed.
+#   Shipped in MegaManX5Recomp v0.0.1-alpha.
 # Bumped 2026-07-02 (second rebase + lockstep tooling fix): wt/mmx5 rebased onto
 #   master 4cc757f (loud unknown-dispatch + 30 kernel-table ROM seeds), replaying
 #   the two X5 commits (game-specific exe name c3c0f1a, SIO-safe observability

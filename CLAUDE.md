@@ -17,7 +17,7 @@ This project inherits, in order:
    `F:/Projects/recomp-template/ENHANCEMENTS.md` (default = byte-identical with
    the option off).
 2. The framework constitution at `psxrecomp-v4/CLAUDE.md` — a junction →
-   `F:/Projects/psxrecomp/_wt-mmx5/psxrecomp` (the `wt/mmx5` worktree). Read it
+   `F:/Projects/psxrecomp/psxrecomp` (the shared `master` checkout). Read it
    first: no MIPS interpreter, no HLE BIOS shims, no stubs, recompiled-BIOS-first,
    fix the framework/runtime/config and **regenerate** — never hand-edit
    `generated/`.
@@ -34,7 +34,8 @@ This project inherits, in order:
   game needs is a smell; prefer a class fix that the next title inherits.
 - After every run, resolve all dispatch misses before any other debugging.
 - The framework version this project builds against is pinned in
-  `psxrecomp-v4.pin`. Dev happens on the `wt/mmx5` framework worktree so X5
-  framework changes don't disturb master / other titles' pins.
+  `psxrecomp-v4.pin`. This repo builds against the shared `master` checkout
+  (junction `psxrecomp-v4` → `F:/Projects/psxrecomp/psxrecomp`), same as
+  TombaRecomp / MMX4 / MMX6.
 - The source disc is the Redump USA dump — hashes recorded in `DISC.md`; verify
   a future dump is byte-identical before blaming a regression.

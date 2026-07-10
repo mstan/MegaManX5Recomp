@@ -46,7 +46,7 @@ preview rather than a certified full playthrough.
 | Stage gameplay | Works (not yet verified all the way to the end) |
 | Memory-card save / load | Works (standard PS1 `.mcd`, emulator-compatible) |
 | Renderers | Software **and** OpenGL (GPU); Software is the default this release (see ISSUES.md #2), OpenGL selectable |
-| Widescreen 16:9 | Not in this release (4:3 only) |
+| Widescreen 16:9 | Experimental opt-in; expands backgrounds and gameplay object activation/culling |
 
 See `ISSUES.md` for notes and the remaining enhancement follow-ups.
 
@@ -73,6 +73,9 @@ These are the framework features that are already working in this build:
   Adjustable stick deadzone; per-player override in the launcher.
 - **Supersampling + anti-aliasing.** Internal-resolution SSAA (1×–4×) with
   optional linear present filtering for clean edges.
+- **Opt-in 16:9 widescreen.** Expands the Capcom 2D background tile window and
+  widens enemy activation and primitive culling to the visible 16:9 bounds.
+  Authentic 4:3 remains the default.
 - **Graphical launcher.** Pick your BIOS, disc, and memory cards; verify the
   disc; configure renderer / supersampling / controller, with live settings
   persistence — then press Launch.
@@ -142,7 +145,7 @@ Most options are exposed in the launcher and persist to `settings.toml`. The
 underlying defaults live in `game.toml`:
 
 - `[video]` — `renderer` (`opengl` / `software`), `supersampling` (1–4),
-  `antialiasing`, `texture_filtering`, `aspect_ratio` (`4:3`),
+  `antialiasing`, `texture_filtering`, `aspect_ratio` (`4:3` / `16:9`),
   `auto_skip_fmv`.
 - `[controller]` — `default_analog` (DualShock on by default), `deadzone`.
 - `[runtime]` — `disc_speed` (kept at `1x`), `turbo_loads`, `bios_hle`,

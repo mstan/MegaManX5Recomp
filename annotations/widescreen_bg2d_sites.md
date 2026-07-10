@@ -1,8 +1,8 @@
-# MMX5 [widescreen.bg2d] hook sites (Ghidra recon 2026-07-02)
+# MMX5 [widescreen.bg2d] hook sites (static recon 2026-07-09)
 
 Structural analogues of MMX6's 2D-background widescreen hook sites
-(MegaManX6Recomp/game.toml lines ~117-148), verified by disassembly in the
-`SLUS_013.34_no_header.bin` Ghidra program. Same Capcom engine,
+(MegaManX6Recomp/game.toml lines ~117-148), verified against the generated
+instruction listing for `SLUS_013.34`. Same Capcom engine,
 instruction-for-instruction, shifted addresses + two constant deltas.
 
 ## BG per-layer tile renderer: FUN_80027f88  (X6: FUN_800270d0)
@@ -50,4 +50,35 @@ variable involved.
 Confidence: high — single BG renderer in the binary (unique `sltiu ..,0x15`
 loop; unique caller `jal 0x80027f88` @ 0x80027ca0); driver/streamer/renderer
 call-chain shape identical to X6 (slot table 0x80091D60 +0x198 parity).
-Ghidra program has bodies unanalyzed — use disassemble_at, not get_code.
+
+## Freshness-refill layout (FUN_80028328)
+
+Instruction-for-instruction comparison with X6's FUN_800274A0 proves the
+runtime refill inputs used by `[widescreen.bg2d]`:
+
+| field | X5 value | evidence |
+|---|---:|---|
+| layer structs | `0x8009A1F8`, stride `0x54`, count 3 | `lui/addiu` + multiply-by-0x54 sequence |
+| tile ring | `0x800A51A8` | `lui/addiu` at `0x80028514..51c` |
+| ring geometry | 32 cols x 32 rows | world-X wrap `0x200`; row shift 6; layer shift 11 |
+| map width/height | `0x800D1DBC/BD` | `lbu` at `0x80028490/a4` |
+| map layer stride | `0x80091D58` | `lhu` at `0x800284C0` / `0x80028510` |
+| map/metatile pointers | `0x1F800004/008` | same scratchpad ABI as X6 |
+
+## Object activation and render culls
+
+The object classifiers use unsigned bias/range windows around each layer's
+camera. Widening the bias by one reveal margin and the range by two preserves
+the original offscreen lead while covering both 16:9 edges.
+
+| function | X bias site | X range site | native window |
+|---|---:|---:|---:|
+| `FUN_8002D800` | `0x8002D86C` (`+0x40`) | `0x8002D874` (`<0x1C0`) | `[-64,384)` |
+| `FUN_8002D89C` | `0x8002D908` (`+0x20`) | `0x8002D910` (`<0x180`) | `[-32,352)` |
+| `FUN_8002DAA0` | `0x8002DB0C` (`+0x60`) | `0x8002DB14` (`<0x200`) | `[-96,416)` |
+
+`FUN_80032CEC` is the sole 320x240 primitive quad reject in the main EXE: four
+`sltiu SX,0x140` tests paired with four vertical tests. Codegen splits its
+control flow, so the four X tests are listed explicitly in `screen_x_sites`;
+`auto_screen_x` remains enabled for any structurally complete variants.
+Vertical bounds remain unchanged.

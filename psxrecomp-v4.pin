@@ -5,10 +5,10 @@
 #     sed -i "s|^sha=.*|sha=$(cat /tmp/sha)|" psxrecomp-v4.pin
 #
 # MMX5's opt-in widescreen support extends the shared Capcom 2D hooks with the
-# game's 32-column ring layout and explicit X-cull sites. Keep this feature pin
-# isolated until the framework branch is reviewed and merged.
-branch=feat/mmx5-widescreen-fw
-sha=d9dae48c8e1144102f4e4dc449914df3b0d5b9fe
+# game's 32-column ring layout, explicit X-cull sites, targeted HUD anchoring,
+# and full-frame filter handling. Merged into framework master on 2026-07-10.
+branch=master
+sha=ab54eac07ee217bf9b64e6ea53c877853f50b190
 # Folded 2026-07-05: the full wt/mmx5 delta (9 commits — the faithful CD
 #   read/seek-timing FMV fix that makes X5's intro cutscenes decode, the
 #   guest-cycle IRQ-cooldown fix, + observability) was cherry-picked onto master

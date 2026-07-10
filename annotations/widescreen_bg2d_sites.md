@@ -47,6 +47,11 @@ variable involved.
   @ 0x80027c84) — exact match of X6's 0x80026dc4.
 - cap_site = 0x8002810c `slti v0,v1,0x3e8` (1000-tile/frame cap; X6: 0x80027278).
 
+X5's packet buffer contains 1024 slots per parity half. Widescreen uses the
+otherwise-reserved final 24 slots (`packet_cap = 1024`) so dense foreground
+layers are not truncated just above the native 1000-tile guard; it does not
+write into the adjacent parity buffer.
+
 Confidence: high — single BG renderer in the binary (unique `sltiu ..,0x15`
 loop; unique caller `jal 0x80027f88` @ 0x80027ca0); driver/streamer/renderer
 call-chain shape identical to X6 (slot table 0x80091D60 +0x198 parity).
@@ -77,8 +82,22 @@ the original offscreen lead while covering both 16:9 edges.
 | `FUN_8002D89C` | `0x8002D908` (`+0x20`) | `0x8002D910` (`<0x180`) | `[-32,352)` |
 | `FUN_8002DAA0` | `0x8002DB0C` (`+0x60`) | `0x8002DB14` (`<0x200`) | `[-96,416)` |
 
+The two caller-margin variants are also widened at the point where they copy
+`a1` into `t0`: `FUN_8002D938` at `0x8002D948` and `FUN_8002D9EC` at
+`0x8002D9F4`. These are the dominant classifier paths used by stage enemy
+routines; leaving them native was the remaining 4:3 enemy activation boundary.
+
 `FUN_80032CEC` is the sole 320x240 primitive quad reject in the main EXE: four
 `sltiu SX,0x140` tests paired with four vertical tests. Codegen splits its
 control flow, so the four X tests are listed explicitly in `screen_x_sites`;
 `auto_screen_x` remains enabled for any structurally complete variants.
 Vertical bounds remain unchanged.
+
+## HUD packet arena
+
+The gameplay HUD is built in a dedicated double-buffered packet arena. A GP0
+trace identifies the player meter's textured pieces at `0x000E858C..0x000E8A0C`
+and its fill quads at `0x000E918C..0x000E9264`; no world primitives occur in
+the enclosing `0x000E8500..0x000E9300` range. The configured packet range lets
+the runtime anchor left-side player health/ammo and right-side boss health to
+the corresponding 16:9 edges without moving world sprites.

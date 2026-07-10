@@ -62,6 +62,8 @@ auto_skip_fmv = false
 # so the launcher aspect toggle remains the single opt-in control.
 [widescreen]
 full_2d = true
+nw_left_hud_packet_lo = "0x000E8500"
+nw_left_hud_packet_hi = "0x000E9300"
 
 # True wider FOV for the Capcom 2D background engine. X5 draws 21 tile columns
 # into a 32x32 ring. Widescreen prepends/appends four columns, moves the start X
@@ -74,6 +76,7 @@ startcol_site     = "0x80028040" # andi v1,v1,0x1f
 startx_site       = "0x80028058" # sra s6,v0,0x10
 stream_left_site  = "0x800282B8" # addiu a1,s0,-0x10
 stream_right_site = "0x800282CC" # addiu a1,s0,0x150 (320+16)
+cap_site          = "0x8002810C" # slti v0,v1,0x3e8
 layer_base        = "0x8009A1F8"
 ring_base         = "0x800A51A8"
 map_size_addr     = "0x800D1DBC"
@@ -81,6 +84,7 @@ layer_stride_addr = "0x80091D58"
 ring_cols          = 32
 layer_count        = 3
 layer_struct_stride = 84
+packet_cap         = 1024
 
 # Expand both object activation windows and qualified primitive render culls by
 # the per-side 16:9 reveal margin. The explicit pairs keep their original
@@ -103,6 +107,10 @@ range_sites = [
   "0x8002D874",
   "0x8002D910",
   "0x8002DB14",
+]
+a1_sites = [
+  "0x8002D948", # FUN_8002D938: move t0,a1
+  "0x8002D9F4", # FUN_8002D9EC: move t0,a1
 ]
 
 # Controller defaults. The Mega Man X engine probes the pad with the DualShock

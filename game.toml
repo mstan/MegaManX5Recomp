@@ -45,10 +45,8 @@ overlay_backend = "auto"
 overlay_autocompile_cmd = "python ../psxrecomp/tools/compile_overlays.py --game-toml game.toml --recompiler ../psxrecomp/recompiler/build/psxrecomp-game.exe --runtime-include ../psxrecomp/runtime/include --gcc C:/msys64/mingw64/bin/gcc.exe --cps"
 
 [video]
-# Native presentation. X5 ships 4:3 (authentic). Experimental 16:9 widescreen for
-# the 2D engine is an opt-in porting effort (see WIDESCREEN once the X5 BG renderer
-# is RE'd); the launcher's "Widescreen (EXPERIMENTAL)" toggle flips this to "16:9"
-# in settings.toml. Off by default.
+# Native presentation. X5 ships 4:3 (authentic). The launcher's experimental
+# widescreen toggle flips this to "16:9" in settings.toml. Off by default.
 aspect_ratio = "4:3"
 
 # auto_skip_fmv: auto-skip full-motion videos (XA audio + MDEC). Off for the
@@ -57,15 +55,63 @@ aspect_ratio = "4:3"
 auto_skip_fmv = false
 
 # Experimental 16:9 for the pure-2D sprite engine — same mechanism as MMX6:
-# full_2d treats every in-game frame as gameplay so the native-wide present path
+# full_2d treats every game frame as gameplay so the native-wide present path
 # engages when [video] aspect_ratio is flipped to "16:9" by the launcher's
-# Widescreen toggle (settings.toml). Inert at 4:3. Runtime-only (no regen).
-# The true wider-FOV BG tile widen ([widescreen.bg2d]) is NOT wired yet — the
-# X5 hook sites are located and documented in annotations/widescreen_bg2d_sites.md
-# (count site is an inline `sltiu`, a different shape than MMX6's `li`, so the
-# recompiler-side hook needs a variant before the sites can be configured here).
+# Widescreen toggle (settings.toml). Inert at 4:3.
+# The background and object-cull hooks below are identity transforms at 4:3,
+# so the launcher aspect toggle remains the single opt-in control.
 [widescreen]
 full_2d = true
+nw_left_hud_packet_lo = "0x000E8500"
+nw_left_hud_packet_hi = "0x000E9300"
+
+# True wider FOV for the Capcom 2D background engine. X5 draws 21 tile columns
+# into a 32x32 ring. Widescreen prepends/appends four columns, moves the start X
+# left by 64 pixels, widens both streamer edges, and refreshes the full widened
+# ring window once per frame. The RAM layout values are verified against
+# FUN_80028328; see annotations/widescreen_bg2d_sites.md. Regen required.
+[widescreen.bg2d]
+count_site        = "0x80028218" # sltiu v0,t7,0x15
+startcol_site     = "0x80028040" # andi v1,v1,0x1f
+startx_site       = "0x80028058" # sra s6,v0,0x10
+stream_left_site  = "0x800282B8" # addiu a1,s0,-0x10
+stream_right_site = "0x800282CC" # addiu a1,s0,0x150 (320+16)
+cap_site          = "0x8002810C" # slti v0,v1,0x3e8
+layer_base        = "0x8009A1F8"
+ring_base         = "0x800A51A8"
+map_size_addr     = "0x800D1DBC"
+layer_stride_addr = "0x80091D58"
+ring_cols          = 32
+layer_count        = 3
+layer_struct_stride = 84
+packet_cap         = 1024
+
+# Expand both object activation windows and qualified primitive render culls by
+# the per-side 16:9 reveal margin. The explicit pairs keep their original
+# offscreen lead while making enemies activate before entering either wide edge.
+# auto_screen_x covers FUN_80032CEC's four 320x240 quad tests.
+[widescreen.cull]
+auto_screen_x = true
+screen_x_sites = [
+  "0x80032D90",
+  "0x80032E20",
+  "0x80032EB4",
+  "0x80032F48",
+]
+bias_sites = [
+  "0x8002D86C",
+  "0x8002D908",
+  "0x8002DB0C",
+]
+range_sites = [
+  "0x8002D874",
+  "0x8002D910",
+  "0x8002DB14",
+]
+a1_sites = [
+  "0x8002D948", # FUN_8002D938: move t0,a1
+  "0x8002D9F4", # FUN_8002D9EC: move t0,a1
+]
 
 # Controller defaults. The Mega Man X engine probes the pad with the DualShock
 # config command (0x43) at init; MMX6 will not poll buttons (0x42) until it detects

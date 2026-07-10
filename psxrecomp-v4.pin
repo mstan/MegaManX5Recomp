@@ -4,13 +4,11 @@
 #   git -C ../psxrecomp rev-parse master > /tmp/sha && \
 #     sed -i "s|^sha=.*|sha=$(cat /tmp/sha)|" psxrecomp-v4.pin
 #
-# NOTE: X5 bring-up is COMPLETE and its framework work has been folded back to
-# master. This repo now builds against the shared master checkout (junction
-# psxrecomp-v4 -> F:/Projects/psxrecomp/psxrecomp), same as TombaRecomp/MMX6.
-# The dedicated `wt/mmx5` worktree has been removed. History of the isolated
-# dev branch is kept below for reference.
+# MMX5's opt-in widescreen support extends the shared Capcom 2D hooks with the
+# game's 32-column ring layout, explicit X-cull sites, targeted HUD anchoring,
+# and full-frame filter handling. Merged into framework master on 2026-07-10.
 branch=master
-sha=db4016b
+sha=ab54eac07ee217bf9b64e6ea53c877853f50b190
 # Folded 2026-07-05: the full wt/mmx5 delta (9 commits — the faithful CD
 #   read/seek-timing FMV fix that makes X5's intro cutscenes decode, the
 #   guest-cycle IRQ-cooldown fix, + observability) was cherry-picked onto master

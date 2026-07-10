@@ -9,7 +9,7 @@ param(
     [switch]$NoLauncher   # boot straight into the game (skip the RmlUi launcher) for scripted/debug runs
 )
 $ErrorActionPreference = "Stop"
-$root = "F:\Projects\psxrecomp\MegaManX5Recomp"
+$root = Split-Path -Parent $PSScriptRoot
 # Game-specific exe name (framework sets OUTPUT_NAME from the window title) so an
 # X5 run never collides with another PSX title's process (e.g. Tomba 2). Only ever
 # stop THIS title's process by name, never the generic "psx-runtime".
@@ -18,7 +18,7 @@ $exe  = Join-Path $root "$BuildDir\$exeName.exe"
 $game = Join-Path $root "game.toml"
 # The mmx5 framework worktree's copy — the main checkout's bios/ dir lost its
 # SCPH1001.BIN (2026-07-02), and this project builds against the worktree anyway.
-$bios = "F:\Projects\psxrecomp\_wt-mmx5\psxrecomp\bios\SCPH1001.BIN"
+$bios = Join-Path $root "psxrecomp-v4\bios\SCPH1001.BIN"
 $disc = Join-Path $root "mmx5\Mega Man X5 (USA).cue"
 
 if (-not (Test-Path $exe))  { throw "exe not found: $exe" }

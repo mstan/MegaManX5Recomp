@@ -6,7 +6,7 @@
 # Usage:  powershell -File tools\run_mmx5.ps1 [-BuildDir build-master]
 param(
     [string]$BuildDir = "build-master",
-    [switch]$NoLauncher   # boot straight into the game (skip the RmlUi launcher) for scripted/debug runs
+    [switch]$NoLauncher   # boot straight into the game for scripted/debug runs
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot

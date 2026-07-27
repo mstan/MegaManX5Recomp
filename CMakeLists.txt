@@ -9,8 +9,23 @@ set(PSXRECOMP_V4_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/psxrecomp-v4" CACHE PATH
 
 include("${PSXRECOMP_V4_ROOT}/runtime/runtime.cmake")
 
-set(GAME_GENERATED_FULL
-    "${CMAKE_CURRENT_SOURCE_DIR}/generated/SLUS_013.34_full.c")
+# The recompiler emits the game body as SHARDS (SLUS_013.34_full_00.c ...) --
+# a single SLUS_013.34_full.c has not been produced for some time. This file
+# only knew the monolithic name, so a fresh regen built nothing and the
+# require-generated guard reported the game C as MISSING even though 31 shards
+# were sitting in generated/. Prefer shards, fall back to the old single file.
+# Same shape MegaManX6Recomp already uses.
+file(GLOB GAME_GENERATED_FULL_SHARDS CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/generated/SLUS_013.34_full_*.c")
+if(GAME_GENERATED_FULL_SHARDS)
+    set(GAME_GENERATED_FULL ${GAME_GENERATED_FULL_SHARDS})
+    list(POP_FRONT GAME_GENERATED_FULL GAME_GENERATED_PRIMARY)
+    set(GAME_GENERATED_EXTRAS ${GAME_GENERATED_FULL})
+    set(GAME_GENERATED_FULL ${GAME_GENERATED_PRIMARY})
+else()
+    set(GAME_GENERATED_FULL
+        "${CMAKE_CURRENT_SOURCE_DIR}/generated/SLUS_013.34_full.c")
+endif()
 set(GAME_GENERATED_DISPATCH
     "${CMAKE_CURRENT_SOURCE_DIR}/generated/SLUS_013.34_dispatch.c")
 
@@ -22,6 +37,7 @@ psxrecomp_v4_add_runtime_target(psx-runtime
     DEFAULT_BIOS_PATH "${PSXRECOMP_V4_ROOT}/bios/SCPH1001.BIN"
     DEFAULT_GAME_CONFIG_PATH "game.toml"
     LAUNCHER_BOXART "${CMAKE_SOURCE_DIR}/recomp/launcher/boxart.tga"
+    EXTRAS_SOURCES ${GAME_GENERATED_EXTRAS}
 )
 
 # First-divergence co-sim oracle build (COSIM_ORACLE.md): clean, deterministic,

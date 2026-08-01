@@ -1,0 +1,56 @@
+format_version = 5
+id = "mmx5.enhancement.frame-interpolation"
+version = "1.0.0"
+name = "Mega Man X5 Frame Interpolation"
+author = "mstan"
+description = "Presents blended intermediate frames above the game's 60Hz output while guest VBlank, logic, timers, and audio remain at stock cadence."
+resolver = "declarative"
+save_compatibility = "shared"
+
+[[target]]
+game_id = "SLUS-01334"
+disc_sha256 = "be731bc4b9d3211b9267a34b8a68c769199a15479b14004ff25b67cdfebe8af4"
+
+[[feature]]
+id = "frame-interpolation"
+name = "Frame Interpolation"
+description = "Blend between completed guest frames to present above 60Hz. Presentation only: this changes smoothness, not game speed or timing. Requires the OpenGL renderer, which it selects, and runs without vsync."
+group = "Display"
+default_enabled = false
+
+[[option]]
+feature = "frame-interpolation"
+id = "rate"
+label = "Output rate"
+description = "Follow the measured display refresh or select a fixed presentation rate."
+group = "Display"
+type = "choice"
+default = "display"
+
+[[option.choice]]
+value = "display"
+label = "Display refresh"
+
+[[option.choice]]
+value = "90"
+label = "90 FPS"
+
+[[option.choice]]
+value = "120"
+label = "120 FPS"
+
+[[option.choice]]
+value = "144"
+label = "144 FPS"
+
+[[option.choice]]
+value = "165"
+label = "165 FPS"
+
+[[option.choice]]
+value = "240"
+label = "240 FPS"
+
+[[plugin]]
+feature = "frame-interpolation"
+id = "mmx5.frame-interpolation"

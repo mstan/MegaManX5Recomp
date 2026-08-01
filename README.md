@@ -39,7 +39,7 @@ Important files:
 
 ## Status
 
-**Playable preview — `v0.0.1-alpha`.** This is the *first* public cut. Mega Man
+**Playable preview — `v0.0.2-alpha`.** Mega Man
 X5 **boots from the PS1 BIOS and plays** — through the opening (including the
 intro cutscenes, which now decode and play), into stages, with working
 controller input and memory-card **save/load**, and **no known crashes**. It has
@@ -54,8 +54,8 @@ preview rather than a certified full playthrough.
 | Controller | Works; DualShock/analog presented by default (required by MMX5) |
 | Stage gameplay | Works (not yet verified all the way to the end) |
 | Memory-card save / load | Works (standard PS1 `.mcd`, emulator-compatible) |
-| Renderers | Software **and** OpenGL (GPU); Software is the default this release (see ISSUES.md #2), OpenGL selectable |
-| Widescreen 16:9 | Experimental opt-in; expands backgrounds and gameplay object activation/culling |
+| Renderers | Software, OpenGL, and Vulkan; OpenGL is the validated default |
+| Mods | Widescreen 16:9 and frame interpolation; both default-disabled |
 
 See `ISSUES.md` for notes and the remaining enhancement follow-ups.
 
@@ -63,10 +63,8 @@ See `ISSUES.md` for notes and the remaining enhancement follow-ups.
 
 These are the framework features that are already working in this build:
 
-- **Two renderers.** A CPU software rasterizer (this release's default) and a
-  GPU-authoritative OpenGL backend, both selectable in the launcher. Software is
-  the default here because OpenGL shows intermittent flicker in this build (see
-  ISSUES.md #2); OpenGL also serves as the automatic fallback path.
+- **Modern renderers.** CPU software, OpenGL, and Vulkan backends are available.
+  OpenGL is the validated default for this release.
 - **Fast loading (turbo loads).** While a load is in progress the whole machine
   fast-forwards at your PC's full speed, then drops back to normal the instant
   it finishes — so disc loads complete far faster while all of the game's
@@ -82,9 +80,11 @@ These are the framework features that are already working in this build:
   Adjustable stick deadzone; per-player override in the launcher.
 - **Supersampling + anti-aliasing.** Internal-resolution SSAA (1×–4×) with
   optional linear present filtering for clean edges.
-- **Opt-in 16:9 widescreen.** Expands the Capcom 2D background tile window and
-  widens enemy activation and primitive culling to the visible 16:9 bounds.
-  Authentic 4:3 remains the default.
+- **Mods view.** Two reviewed, game-owned enhancements are available:
+  default-disabled 16:9 widescreen and presentation-only frame interpolation.
+  Widescreen expands the Capcom 2D background tile window and widens enemy
+  activation and primitive culling; interpolation preserves the game's stock
+  logic, audio, and VBlank cadence.
 - **Graphical launcher.** Pick your BIOS, disc, and memory cards; verify the
   disc; configure renderer / supersampling / controller, with live settings
   persistence — then press Launch.
@@ -95,8 +95,8 @@ These are the framework features that are already working in this build:
 
 1. Download `MegaManX5Recomp-v*-windows-x64.zip` from Releases and extract it.
 2. Run `MegaManX5Recomp.exe`. A **launcher window** opens.
-3. Set your PlayStation **BIOS**: select your legally obtained `SCPH1001.BIN`
-   (a 512 KB file dumped from your own console).
+3. OpenBIOS is included and selected automatically. You may optionally choose
+   a legally obtained retail PlayStation BIOS.
 4. Set the game **disc**: select your legally obtained Mega Man X5 (USA,
    SLUS-01334) disc image. The launcher verifies the ISO9660 header, region, and
    serial.
@@ -108,8 +108,8 @@ Accepted disc formats: `.cue` + `.bin` (preferred — pick the `.cue`) and `.bin
 Mode-2 Form-2 XA sectors MMX5 streams its FMV/audio from. If the header or game
 ID does not match `SLUS-01334`, the launcher warns and tries to run it anyway.
 
-Selected paths persist next to the executable (`bios.cfg` / `disc.cfg` and
-`settings.toml`). Delete those to pick different files or reset settings.
+Selected paths and settings persist next to the executable. Clearing the BIOS
+row returns to OpenBIOS.
 
 ### Building From Source
 
@@ -120,7 +120,7 @@ Requirements:
 - A C/C++ toolchain (MSYS2 `mingw-w64-x86_64`) and CMake 3.20+.
 - Mega Man X5 (USA, SLUS-01334) disc image (`.cue` + `.bin` or `.bin`). Not
   included. Verify it against `DISC.md` before reporting regressions.
-- Sony SCPH1001 BIOS ROM (`SCPH1001.BIN`). Not included.
+- A retail Sony BIOS is optional; redistributable OpenBIOS is included.
 - The `psxrecomp` framework available at the sibling path `../psxrecomp` (linked
   in as the `psxrecomp-v4` junction at the `psxrecomp-v4.pin` SHA), plus a
   recompiled BIOS in `psxrecomp/generated/` (see the framework README).
@@ -153,9 +153,9 @@ bundles assets + cache, and zips it): `pwsh tools/package_release.ps1`.
 Most options are exposed in the launcher and persist to `settings.toml`. The
 underlying defaults live in `game.toml`:
 
-- `[video]` — `renderer` (`opengl` / `software`), `supersampling` (1–4),
-  `antialiasing`, `texture_filtering`, `aspect_ratio` (`4:3` / `16:9`),
-  `auto_skip_fmv`.
+- `[video]` — `renderer`, `supersampling` (1–4), `antialiasing`,
+  `texture_filtering`, and `auto_skip_fmv`. Widescreen and frame interpolation
+  are owned by the two packages in the Mods view.
 - `[controller]` — `default_analog` (DualShock on by default), `deadzone`.
 - `[runtime]` — `disc_speed` (kept at `1x`), `turbo_loads`, `bios_hle`,
   `overlay_cache`.
@@ -237,8 +237,9 @@ keep it on your own machine, alongside your disc image.
 PolyForm Noncommercial 1.0.0. See `LICENSE`.
 
 Mega Man X5 is copyright Capcom. This repository contains none of the game's
-original binaries or assets. Release packages contain no game assets, no disc
-data, and no BIOS image — those are always read from files you supply. The
+original binaries or assets. Release packages contain no game assets or disc
+data. They include the MIT-licensed OpenBIOS; a retail BIOS is never included.
+The
 release executable and the bundled `cache` folder do contain statically
 recompiled (machine-translated) builds of the game's code, the same distribution
 model used by other static recompilation projects such as N64: Recompiled.

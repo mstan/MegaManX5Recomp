@@ -1,10 +1,11 @@
 param(
-    [string]$Version = "v0.0.1-alpha",
+    [string]$Version = "v0.0.2-alpha",
     [string]$BuildDir = "build-release",
     # Where your accumulated overlay cache lives (the dir compile_overlays.py
     # writes to, per game.toml overlay_autocompile_cmd --out-dir). Bundled as a
     # head start; optional. X5's cache lives at build-release/cache/SLUS-01334.
-    [string]$CacheBuildDir = "build-release"
+    [string]$CacheBuildDir = "build-release",
+    [switch]$SkipRegen
 )
 
 $ErrorActionPreference = "Stop"
@@ -39,9 +40,13 @@ function Invoke-Native {
 # worktree), NOT the master ..\psxrecomp checkout. All framework paths go
 # through the junction at $Root so this game's framework pin is honored.
 $RecompDir = Resolve-Path (Join-Path $Root "psxrecomp-v4\recompiler\build")
-Invoke-Native { cmake --build $RecompDir --target psxrecomp-game -j $env:NUMBER_OF_PROCESSORS } "recompiler build"
-& (Join-Path $RecompDir "psxrecomp-game.exe") --config (Join-Path $Root "game.toml")
-if ($LASTEXITCODE -ne 0) { throw "game regen failed" }
+if (-not $SkipRegen) {
+    Invoke-Native { cmake --build $RecompDir --target psxrecomp-game -j $env:NUMBER_OF_PROCESSORS } "recompiler build"
+    & (Join-Path $RecompDir "psxrecomp-game.exe") --config (Join-Path $Root "game.toml")
+    if ($LASTEXITCODE -ne 0) { throw "game regen failed" }
+} else {
+    Write-Host "Skipping game C regeneration; packaging the existing generated sources"
+}
 
 Invoke-Native { cmake -S $Root -B $BuildPath -G Ninja -DCMAKE_BUILD_TYPE=Release -DPSX_DEBUG_TOOLS=OFF } "cmake configure"
 Invoke-Native { cmake --build $BuildPath -j $env:NUMBER_OF_PROCESSORS } "cmake build"
@@ -60,6 +65,20 @@ if (-not (Test-Path $DevExe)) { $DevExe = Join-Path $BuildPath "psx-runtime.exe"
 Copy-Item $DevExe (Join-Path $Stage "MegaManX5Recomp.exe")
 Copy-Item (Join-Path $Root "README.md") $Stage
 Copy-Item (Join-Path $Root "LICENSE") $Stage
+$PreloadedMods = Join-Path $Root "mods/preloaded"
+Copy-Item -Recurse -Force $PreloadedMods (Join-Path $Stage "mods")
+$preloadedCount = (Get-ChildItem (Join-Path $Stage "mods/packages") -Directory).Count
+Write-Host "Bundled preloaded mod catalog: $preloadedCount package family/families"
+$BundledBiosSrc = Join-Path $BuildPath "bios"
+if (!(Test-Path (Join-Path $BundledBiosSrc "openbios.bin")) -or
+    (Get-Item (Join-Path $BundledBiosSrc "openbios.bin")).Length -ne 524288 -or
+    !(Test-Path (Join-Path $BundledBiosSrc "OpenBIOS.LICENSE"))) {
+    throw "Runtime build did not stage OpenBIOS and its MIT notice"
+}
+$BundledBiosDst = Join-Path $Stage "bios"
+New-Item -ItemType Directory -Force $BundledBiosDst | Out-Null
+Copy-Item (Join-Path $BundledBiosSrc "openbios.bin") $BundledBiosDst
+Copy-Item (Join-Path $BundledBiosSrc "OpenBIOS.LICENSE") $BundledBiosDst
 if (Test-Path (Join-Path $Root "RELEASE_NOTES.md")) {
     Copy-Item (Join-Path $Root "RELEASE_NOTES.md") $Stage
 }
@@ -112,6 +131,10 @@ memcard_dir = "saves"
 # fast-forwards the whole machine during a load, preserving timing).
 disc_speed = "1x"
 
+# Skip the BIOS shell animation after OpenBIOS initializes and proceed directly
+# to the game. This does not replace the BIOS kernel or hardware simulation.
+bios_hle = true
+
 # Turbo loads: while a load is in progress, run the machine at full host speed so
 # loading finishes much faster, with all game timing preserved. Audio plays
 # through normally. On by default. Toggleable in the launcher (Settings -> Turbo
@@ -134,20 +157,20 @@ supersampling = 2
 antialiasing  = true
 # texture_filtering: "nearest" = native PSX look; "bilinear" = smooths textures.
 texture_filtering = "nearest"
-# renderer: "software" = CPU renderer (this release's default). "opengl" =
-# hardware GPU renderer. Software is shipped as the default because the OpenGL
-# backend exhibits intermittent black-frame flicker in this build (see ISSUES.md
-# #2); software is clean. OpenGL is still selectable in the launcher for anyone
-# who prefers it. Also set in the launcher (Settings -> Renderer).
-renderer = "software"
+# renderer: "opengl" = validated hardware renderer and release default.
+# "software" remains available for the native CPU-rendered look; the current
+# framework also exposes Vulkan.
+renderer = "opengl"
 # auto_skip_fmv: skip full-motion videos (the CAPLOGO / X5OP opening movies).
 # Off by default so you see the now-working intro cutscene. When on, a video is
 # skipped the instant it starts. Toggleable in the launcher (Settings -> "Skip
 # FMVs").
 auto_skip_fmv = false
-# aspect_ratio: "4:3" (native). X5 ships 4:3 only this release; true 16:9
-# widescreen is not wired up yet (see ISSUES.md #3).
+# Widescreen and frame interpolation are game-owned Mods rather than generic
+# display preferences. Their activation plugins apply values after the mod plan
+# commits; old persisted display values are ignored.
 aspect_ratio = "4:3"
+offer_frame_interpolation = false
 
 # ---- Controller ---------------------------------------------------------
 # default_analog: MMX5 will not poll buttons until it detects an analog pad, so
@@ -161,11 +184,53 @@ deadzone = 12000
 allow_hybrid = false
 
 # ---- Widescreen ---------------------------------------------------------
-# full_2d treats every in-game frame as gameplay so the wide present path could
-# engage, but the true wider-FOV 2D background widen is NOT wired for X5 this
-# release (no [widescreen.bg2d] block). Inert at 4:3, which is what X5 ships.
+# The hooks are compiled in but identity at 4:3. The default-off widescreen mod
+# activates 16:9; generic launcher aspect controls stay hidden.
 [widescreen]
 full_2d = true
+offer = false
+offer_ultrawide = false
+nw_left_hud_packet_lo = "0x000E8500"
+nw_left_hud_packet_hi = "0x000E9300"
+
+[widescreen.bg2d]
+count_site        = "0x80028218"
+startcol_site     = "0x80028040"
+startx_site       = "0x80028058"
+stream_left_site  = "0x800282B8"
+stream_right_site = "0x800282CC"
+cap_site          = "0x8002810C"
+layer_base        = "0x8009A1F8"
+ring_base         = "0x800A51A8"
+map_size_addr     = "0x800D1DBC"
+layer_stride_addr = "0x80091D58"
+ring_cols = 32
+layer_count = 3
+layer_struct_stride = 84
+packet_cap = 1024
+
+[widescreen.cull]
+auto_screen_x = true
+screen_x_sites = [
+  "0x80032D90",
+  "0x80032E20",
+  "0x80032EB4",
+  "0x80032F48",
+]
+bias_sites = [
+  "0x8002D86C",
+  "0x8002D908",
+  "0x8002DB0C",
+]
+range_sites = [
+  "0x8002D874",
+  "0x8002D910",
+  "0x8002DB14",
+]
+a1_sites = [
+  "0x8002D948",
+  "0x8002D9F4",
+]
 "@ | Set-Content -Encoding ASCII (Join-Path $Stage "game.toml")
 
 # Prebuilt overlay cache: native code for the game areas contributed so far.
@@ -188,7 +253,12 @@ print('cg%d_%08x' % (m.codegen_ver(inc), m.codegen_hash(inc)))
 $CgTag = (& python $tagScript).Trim()
 Remove-Item -Force $tagScript
 Write-Host "Release codegen tag: $CgTag (only this cache namespace is shipped)"
-$CacheSrc = Join-Path $Root "$CacheBuildDir/cache/SLUS-01334"
+$CacheBuildPath = if ([System.IO.Path]::IsPathRooted($CacheBuildDir)) {
+    $CacheBuildDir
+} else {
+    Join-Path $Root $CacheBuildDir
+}
+$CacheSrc = Join-Path $CacheBuildPath "cache/SLUS-01334"
 if (Test-Path $CacheSrc) {
     $CacheDst = Join-Path $Stage "cache/SLUS-01334"
     $cacheFiles = Get-ChildItem $CacheSrc -Recurse -File -Include *.dll,*.ranges |
@@ -305,23 +375,21 @@ select = back
 @"
 MegaManX5Recomp $Version
 
-Mega Man X5 boots from the PlayStation BIOS and plays - through the opening
+Mega Man X5 boots through the bundled OpenBIOS and plays through the opening
 (including the intro cutscenes, which now decode and play), into stages, with
-working controller input and memory-card save/load, and no known crashes. It has
-not yet been verified all the way to the end, so treat this first release as a
-very playable preview rather than a certified full playthrough.
+working controller input and memory-card save/load. End-to-end completion has
+not yet been recertified for this build, so please report regressions.
 
-This package does not include the Mega Man X5 disc, the PlayStation BIOS, save
-data, or any game assets - you supply those from your own collection, and
-MegaManX5Recomp asks for them one at a time (each dialog says which one it
-wants). The executable and the cache folder contain statically recompiled
+This package includes the MIT-licensed OpenBIOS from PCSX-Redux and its notice
+in bios/OpenBIOS.LICENSE. It does not include the Mega Man X5 disc, a retail
+PlayStation BIOS, save data, or game assets. The executable contains recompiled
 (machine-translated) builds of the game's code, the same distribution model
 used by other static recompilation projects such as N64: Recompiled.
 
 First launch:
 1. Run MegaManX5Recomp.exe. A launcher window opens.
-2. In the launcher, set your PlayStation BIOS: select your legally obtained
-   SCPH1001.BIN (a 512 KB file dumped from your own console).
+2. OpenBIOS is selected automatically. You may optionally browse for your
+   legally obtained retail PlayStation BIOS.
 3. Set the game disc: select your legally obtained Mega Man X5 (USA,
    SLUS-01334) disc image.
 4. Adjust any options you like (renderer, supersampling, screen look,
@@ -333,11 +401,11 @@ Disc image formats:
 Do NOT convert to a 2048-byte "cooked" .iso - it discards the XA sectors MMX5
 streams its FMV/audio from.
 
-The selected BIOS path is saved in bios.cfg and the selected disc path is saved
-in disc.cfg next to the executable. Delete those files to pick different files.
+Your selections are saved next to the executable. Clearing the BIOS row returns
+to OpenBIOS.
 
-Options such as turbo loads, FMV skip, and disc speed can be changed in the
-launcher Settings or in game.toml ([runtime]/[video]) with any text editor.
+Turbo loads, FMV skip, and disc speed live in Settings. Widescreen and frame
+interpolation live in the launcher's Mods view.
 
 The cache folder contains pre-converted native code for game areas covered so
 far; those run at full speed from your first visit. As you play, newly visited

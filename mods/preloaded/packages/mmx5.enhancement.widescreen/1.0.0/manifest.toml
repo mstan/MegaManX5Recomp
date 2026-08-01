@@ -1,0 +1,23 @@
+format_version = 5
+id = "mmx5.enhancement.widescreen"
+version = "1.0.0"
+name = "Mega Man X5 Widescreen"
+author = "mstan"
+description = "Renders Mega Man X5 with a wider 16:9 field of view using its game-specific 2D background, HUD, activation, and cull hooks."
+resolver = "declarative"
+save_compatibility = "shared"
+
+[[target]]
+game_id = "SLUS-01334"
+disc_sha256 = "be731bc4b9d3211b9267a34b8a68c769199a15479b14004ff25b67cdfebe8af4"
+
+[[feature]]
+id = "widescreen"
+name = "Widescreen"
+description = "Enable Mega Man X5's experimental game-specific 16:9 field of view. The extra width is reconstructed by widening background rendering and relaxing object activation and primitive culling."
+group = "Display"
+default_enabled = false
+
+[[plugin]]
+feature = "widescreen"
+id = "mmx5.widescreen"

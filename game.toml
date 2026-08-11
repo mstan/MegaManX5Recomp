@@ -23,7 +23,14 @@ memcard_dir = "saves"
 # during loads (turbo_loads). Speeding the guest-visible CD device is unsafe for
 # timing-sensitive Psy-Q titles like the Mega Man X engine.
 disc_speed   = "1x"     # authentic guest CD timing (never breaks game timing)
-turbo_loads  = true     # fast-forward the machine during CD loads (the real speed lever)
+turbo_loads  = false    # keep the guest timeline at normal speed by default
+# Load acceleration is mod-owned: players use "Fast Loading (host pacing)" /
+# "CD Speed" under Mods -> Quality of Life, both default-off. The generic switch
+# is retired in the framework, but this title still pins a framework that
+# predates that, where offer_turbo_loads IS honoured — without it, a turbo value
+# left in a stale settings.toml is restored on every launch and cannot be turned
+# off from any UI (the launcher draws no Turbo row). Remove once the pin moves.
+offer_turbo_loads = false
 # HLE BIOS tier, DEFAULT-ON for X5 (2026-07-02): kernel B0 event family served
 # host-side + the boot shell-skip — boots straight past the PSX logo into the
 # game (kernel init still runs the real recompiled BIOS; unimplemented services

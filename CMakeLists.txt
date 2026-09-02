@@ -35,6 +35,21 @@ set(GAME_GENERATED_DISPATCH
 file(GLOB MMX5_MOD_PLUGIN_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/*.c")
 
+# X5's two game-owned presentation mods.
+#
+# The FRAMEWORK stages them: PRELOADED_MODS_DIR below hands the directory to
+# psxrecomp_add_runtime_target(), which wipes <exe-dir>/mods/bundled and copies
+# both its own mods/builtin/packages and these packages into it, plus
+# mods/preloaded/README.md -> mods/README.md. This repo must NOT copy the tree
+# itself. It used to, with a hand-written POST_BUILD copy_directory into
+# <exe-dir>/mods, and because that named the destination as a STRING, framework
+# commit 4cc04be3's rename of the staged catalog from mods/packages to
+# mods/bundled broke it silently -- nothing a configure, compile or link step
+# can see. The two mmx5.* packages went on landing in mods/packages, which
+# neither the launcher nor the release packager's Add-ModCatalog reads.
+# Bead beads-eio.3.101.
+set(MMX5_PRELOADED_MODS "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded")
+
 psxrecomp_v4_add_runtime_target(psx-runtime
     GAME_GENERATED_FULL_C "${GAME_GENERATED_FULL}"
     GAME_GENERATED_DISPATCH_C "${GAME_GENERATED_DISPATCH}"
@@ -43,18 +58,11 @@ psxrecomp_v4_add_runtime_target(psx-runtime
     DEFAULT_GAME_CONFIG_PATH "game.toml"
     EXE_NAME "mmx5-runtime"
     LAUNCHER_BOXART "${CMAKE_SOURCE_DIR}/recomp/launcher/boxart.tga"
+    PRELOADED_MODS_DIR "${MMX5_PRELOADED_MODS}"
     EXTRAS_SOURCES
         ${GAME_GENERATED_EXTRAS}
         ${MMX5_MOD_PLUGIN_SOURCES}
 )
-
-# Ship exactly the two game-owned presentation mods beside the executable.
-set(MMX5_PRELOADED_MODS "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded")
-add_custom_command(TARGET psx-runtime POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${MMX5_PRELOADED_MODS}"
-        "$<TARGET_FILE_DIR:psx-runtime>/mods"
-    COMMENT "Preloading the Mega Man X5 mod catalog")
 
 if(BUILD_TESTING)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)

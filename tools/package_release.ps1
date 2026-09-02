@@ -11,6 +11,14 @@ param(
 $ErrorActionPreference = "Stop"
 
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
+# All framework paths go through the psxrecomp-v4 junction at $Root so this
+# game's framework pin is honored (see the regen note below).
+$FrameworkRoot = Join-Path $Root "psxrecomp-v4"
+if (-not (Test-Path -LiteralPath (Join-Path $FrameworkRoot "tools\release_overlay_stage.ps1"))) {
+    throw ("No psxrecomp framework checkout at $FrameworkRoot " +
+           "(expected tools\release_overlay_stage.ps1). Run " +
+           "'git submodule update --init psxrecomp-v4'.")
+}
 $BuildPath = Join-Path $Root $BuildDir
 $StageRoot = Join-Path $Root "release-stage"
 $Stage = Join-Path $StageRoot "MegaManX5Recomp-windows-x64"
@@ -65,10 +73,31 @@ if (-not (Test-Path $DevExe)) { $DevExe = Join-Path $BuildPath "psx-runtime.exe"
 Copy-Item $DevExe (Join-Path $Stage "MegaManX5Recomp.exe")
 Copy-Item (Join-Path $Root "README.md") $Stage
 Copy-Item (Join-Path $Root "LICENSE") $Stage
-$PreloadedMods = Join-Path $Root "mods/preloaded"
-Copy-Item -Recurse -Force $PreloadedMods (Join-Path $Stage "mods")
-$preloadedCount = (Get-ChildItem (Join-Path $Stage "mods/packages") -Directory).Count
-Write-Host "Bundled preloaded mod catalog: $preloadedCount package family/families"
+# Mod catalog: staged from the BUILD OUTPUT via the framework's shared
+# Add-ModCatalog, not copied out of the source tree.
+#
+# What used to be here copied <repo>/mods/preloaded straight into the stage.
+# Two defects, one of them silent since the catalog existed:
+#
+#   * the source tree holds only THIS repo's two packages. The framework stages
+#     four more (psx.enhancement.cd-speed / fast-loading / pgxp,
+#     psx.presentation.bezel) into the build output for every game, so copying
+#     the source tree shipped a Mods page missing four entries the dev build
+#     shows -- the exact failure MegaManX6's packager comment warns about.
+#   * it produced a mods/packages tree, the PRE-SPLIT layout. Framework
+#     4cc04be3 moved the staged catalog to mods/bundled, which is what the
+#     launcher and every other packager now read (bead beads-eio.3.101).
+#
+# Add-ModCatalog copies <build>/mods, asserts that every package the SOURCES
+# define -- this repo's mods/preloaded/packages and the framework's
+# mods/builtin/packages -- survived into mods/bundled, and strips the two
+# things under mods/ that belong to this machine (installed/ and state.toml).
+# It asserts that invariant rather than a count, which cannot go stale when
+# either side gains a mod.
+. (Join-Path $FrameworkRoot "tools\release_overlay_stage.ps1")
+Add-ModCatalog -BuildPath $BuildPath -Stage $Stage `
+               -GameModSource (Join-Path $Root "mods\preloaded") `
+               -FrameworkModSource (Join-Path $FrameworkRoot "mods\builtin") | Out-Null
 $BundledBiosSrc = Join-Path $BuildPath "bios"
 if (!(Test-Path (Join-Path $BundledBiosSrc "openbios.bin")) -or
     (Get-Item (Join-Path $BundledBiosSrc "openbios.bin")).Length -ne 524288 -or

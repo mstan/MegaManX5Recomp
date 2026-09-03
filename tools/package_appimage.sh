@@ -109,7 +109,7 @@ fi
 if [ "$skip_build" = 0 ]; then
     generator=Ninja; command -v ninja >/dev/null 2>&1 || generator="Unix Makefiles"
     cmake -S "$root" -B "$build_dir" -G "$generator" \
-        -DCMAKE_BUILD_TYPE=Release -DPSX_DEBUG_TOOLS=OFF \
+        -DCMAKE_BUILD_TYPE=Release -DPSX_SDL_BACKEND=SDL2 -DPSX_DEBUG_TOOLS=OFF \
         -DCMAKE_EXE_LINKER_FLAGS="-Wl,--build-id=none"
     cmake --build "$build_dir" --target psx-runtime -j "$jobs"
 fi
@@ -136,7 +136,13 @@ game_id=$(sed -n 's/^[[:space:]]*id[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' 
 [ "$game_id" = "SLUS-01334" ] || { echo "expected SLUS-01334, got '${game_id:-none}'" >&2; exit 1; }
 recompiler_bin=$fw/$bios_build/psxrecomp-game
 [ -x "$recompiler_bin" ] || recompiler_bin=$fw/recompiler/build-linux/psxrecomp-game
-[ -x "$recompiler_bin" ] || { echo "missing Linux psxrecomp-game; build it before packaging cache" >&2; exit 1; }
+if [ ! -x "$recompiler_bin" ]; then
+    recompiler_build=$(dirname -- "$recompiler_bin")
+    gen=Ninja
+    command -v ninja >/dev/null 2>&1 || gen="Unix Makefiles"
+    cmake -S "$fw/recompiler" -B "$recompiler_build" -G "$gen" -DCMAKE_BUILD_TYPE=Release
+    cmake --build "$recompiler_build" --target psxrecomp-game -j "$jobs"
+fi
 cg_tag=$(psx_overlay_cg_tag \
     --runtime-include "$fw/runtime/include" \
     --recompiler "$recompiler_bin" \

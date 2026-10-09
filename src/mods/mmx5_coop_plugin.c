@@ -10,6 +10,7 @@
 #include "sio.h"
 #include "gpu.h"
 #include "mmx5_coop_assets.h"
+#include "mmx5_coop_memory.h"
 #include "mmx5_coop_sprite_packet.h"
 #include "mmx5_coop_lifecycle.h"
 #include "mmx5_coop_views.h"
@@ -143,14 +144,8 @@ static void enforce_roster(void) {
 static uint32_t le32(const uint8_t *p) {
     return (uint32_t)p[0]|(uint32_t)p[1]<<8|(uint32_t)p[2]<<16|(uint32_t)p[3]<<24;
 }
-static void capture(uint32_t address,void *data,size_t bytes) {
-    uint8_t *p=data;
-    for(size_t i=0;i<bytes;++i)p[i]=psx_mod_read_byte(address+(uint32_t)i);
-}
-static void project(uint32_t address,const void *data,size_t bytes) {
-    const uint8_t *p=data;
-    for(size_t i=0;i<bytes;++i)psx_mod_write_byte(address+(uint32_t)i,p[i]);
-}
+static void capture(uint32_t address,void *data,size_t bytes) {mmx5_coop_capture(address,data,bytes);}
+static void project(uint32_t address,const void *data,size_t bytes) {mmx5_coop_project(address,data,bytes);}
 static void capture_player(PlayerContext *p) {
     capture(PLAYER,p->body,sizeof p->body);
     capture(SHOTS,p->shots,sizeof p->shots);

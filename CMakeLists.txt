@@ -97,6 +97,9 @@ psxrecomp_v4_add_runtime_target(psx-runtime
 )
 
 if(BUILD_TESTING)
+    add_executable(mmx5_coop_memory_test tests/test_mmx5_coop_memory.c src/mods/mmx5_coop_memory.c)
+    target_include_directories(mmx5_coop_memory_test PRIVATE src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")
+    add_test(NAME mmx5_coop_memory_test COMMAND mmx5_coop_memory_test)
     add_executable(mmx5_coop_views_test tests/test_mmx5_coop_views.c src/mods/mmx5_coop_views.c)
     target_include_directories(mmx5_coop_views_test PRIVATE src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")
     add_test(NAME mmx5_coop_views_test COMMAND mmx5_coop_views_test)

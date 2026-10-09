@@ -429,3 +429,75 @@ and enters one selected boss stage with both actors. Original selector
 `800EF858` owns PLAY+28; original BIN20 `800F5050` maps those eight portraits
 to stages1..8. A load-mode transition alone is not this validation. Native
 briefing/dialogue still runs when the card is loaded.
+
+
+## Performance follow-up
+
+Tracking: central Beads `beads-eio.10.4`. Owner reports independent X5 plays
+well, with substantial slowdown in Izzy Glow's fortress (third left portrait,
+native stage6), especially as the players separate. Audio was not observed.
+
+The original paired launcher inherited `PSX_RENDER_PASS_VERIFY=1` and
+`bios_hle=false` from the qualification harness. Full restoration hashing
+costs about 17ms per local view. Human launches now disable that optional
+verification and preserve the staged title's normal BIOS HLE setting. The
+restoration sandbox, device guards and peer state checks remain active;
+qualification still enables the expensive hashes by default.
+
+Player/camera/pool projections also used one runtime call per byte, including
+every nearest-player scope. `mmx5_coop_memory` copies aligned sections through
+runtime word reads/stores, retaining byte prefixes/tails and the normal host
+store/invalidation path. A native camera now uses63 accesses rather than252.
+The memory test checks every host/guest alignment, lengths0..513, adjacent
+bytes and the complete payload, with assertions enabled in Release builds.
+Guest clock, timers, DMA, CD, SPU and the native update rules are unchanged.
+
+Native fortress entry samples use original Continue/selector input and private
+matched cards, never online RAM writes or savestates. On the previous9a88
+runtime, QA verification gives about26Hz and17ms local passes. Without that
+verification, the LLE sample gives46.5Hz; the normal HLE byte-copy sample gives
+39.8-40.1Hz and96-98% CPU per peer. The word-copy candidate47c52e26 gives
+59.8-60.1Hz and70-74% CPU, with local passes around1.1-1.25ms. Each window has
+both participants alive and matching peer core/mod samples. These numbers
+qualify the entry window, not a full fortress traversal.
+
+Ape Escape and X4 use the shared gameplay-gated `guest_cycle_scale=2`.
+X5's diagnostic scale2 overlap sample did not improve the measured rate
+(about44.4-44.9Hz with LLE and byte copies). No cycle scaling is enabled here.
+The measured host costs offer a fix while retaining original guest timing.
+
+`tools/measure_mmx5_coop_performance.py --overlap-only` measures a selected
+native Maverick entry; its default portrait2 is the fortress. Automated
+fortress traversal attempts hit the authored overhang/crusher, stalled or
+killed P2 and are retained as failures. They do not qualify distant fortress
+performance. Native intro separation/rejoin remains the controlled distant
+view fixture, with original input, enemies, both menus and peer digests.
+
+`tools/launch_mmx5_coop_netplay.py --build <staged-directory>` starts a fresh
+visible LAN pair with Split selected, matching stage-access cards, P1's Sony
+controller and P2's keyboard. It navigates the original Continue/DATA1/Yes
+menus to the interactive eight-boss selector, validates the staged hashes and
+releases its temporary host overrides before handing over. The companion
+handoff verifies the owned executables before arranging/focusing the windows.
+It preserves prior playtest directories and cards.
+
+
+The same controlled intro trip passes on the previous byte-copy executable and
+the word-copy candidate: overlap stays about60Hz in both; distant views improve
+from49.9-50.0Hz to59.9-60.1Hz. Candidate camera origins1/501 retain distinct
+native art/HUD/enemies, rejoin normally and pass both menu-owner checks. Core
+and mod digests match through8272 (`qa-perf-intro-word`), compared the retained
+byte baseline through8391 (`qa-perf-intro-byte`). These measured runs use paced
+hidden SDL windows and no restoration hashing, matching human performance
+settings. The verifier-on Zero/jitter regression separately qualifies sandbox
+restoration and inventory/lifecycle behavior.
+
+
+Final `qa-word-zero-verify-jitter` passes actual Zero selection, native P2
+absence/spectator/return with unchanged HP/all16 ammo, both menus, distant
+native cameras/enemies and rejoin with25ms +/-10ms jitter. Core/mod samples
+match through6451. Restoration checks are active and mismatch, watchdog,
+device-read, VRAM-leak and private host-state leak counters remain zero.
+All8 CTests, strict debug/release-guard C and modified Python checks pass.
+Human fortress separation and wider stage/room/actor-family performance
+remain for owner review; no full campaign performance guarantee is inferred.

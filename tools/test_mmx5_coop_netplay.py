@@ -239,7 +239,7 @@ def prepare_peer(args, case: Path, seat: int, ports: list[int], jitter: bool,
         ("runtime", "overlay_cache", False),
         ("runtime", "overlay_autocompile_cmd", ""),
         ("runtime", "turbo_loads", False),
-        ("runtime", "bios_hle", False),
+        ("runtime", "bios_hle", bool(getattr(args, 'bios_hle', False))),
         # Disagree offline preferences deliberately. The trusted session must
         # force 4:3; explicit CLI OpenGL chooses the supported presentation
         # backend while unequal quality settings leave guest VRAM unchanged.
@@ -257,7 +257,9 @@ def prepare_peer(args, case: Path, seat: int, ports: list[int], jitter: bool,
     environment = {key: value for key, value in os.environ.items()
                    if not key.upper().startswith(("PSX_", "RNET_"))}
     environment.update(PSX_NET_TRANSPORT="lan", PSX_NET_MODE="delay",
-                       PSX_RENDER_PASS_VERIFY="1",
+                       # Expensive restoration hashing belongs to QA. Human
+                       # launchers explicitly opt out while retaining the sandbox.
+                       PSX_RENDER_PASS_VERIFY="1" if getattr(args, 'render_verify', True) else "0",
                        RNET_SIM_LATENCY_MS=str(args.latency if jitter else 0),
                        RNET_SIM_JITTER_MS=str(args.jitter if jitter else 0),
                        RNET_SIM_SEED=str(args.seed + seat), RNET_SIM_LOSS_PCT="0")
@@ -285,7 +287,11 @@ def main():
     parser.add_argument('--latency', type=int, default=0)
     parser.add_argument('--jitter', type=int, default=0)
     parser.add_argument('--delay', type=int, default=3)
+    parser.add_argument('--perf-window',type=float,default=0,help='Seconds per stationary performance sample')
+    parser.add_argument('--no-render-verify',action='store_true',help='Measure without QA restoration hashing')
+    parser.add_argument('--bios-hle',action='store_true',help='Use the normal title BIOS HLE mode instead of QA LLE')
     args = parser.parse_args()
+    args.render_verify=not args.no_render_verify
     require(not args.split_separation or args.cameras=='split','Separation requires Split')
     require(not args.split_withdrawal or args.cameras=='split','Withdrawal view test requires Split')
     for key in ('exe', 'disc', 'bios', 'out'):
@@ -321,6 +327,20 @@ def main():
         states = both('observe')
         report['observations'].append(states)
         return states
+
+    def performance(label):
+        if not args.perf_window:return
+        before=both('observe');frames=both('request','frame');net=both('status')
+        start=time.perf_counter();time.sleep(args.perf_window)
+        after=both('observe');finish=both('request','frame');status=both('status')
+        duration=time.perf_counter()-start
+        rows=[dict(seat=i,world_hz=(b['world']-a['world'])/duration,
+                   vblank_hz=(f['frame']-s['frame'])/duration,
+                   net_hz=(n['tick']-p['tick'])/duration,lifecycle=b['lifecycle'],
+                   stats=peer.request('render_pass_stats'))
+              for i,(peer,a,b,s,f,p,n) in enumerate(zip(peers,before,after,frames,finish,net,status))]
+        report.setdefault('performance',[]).append(dict(name=label,duration=duration,peers=rows))
+        print(label,'performance',json.dumps([{k:r[k] for k in ('seat','world_hz','vblank_hz','net_hz','lifecycle')} for r in rows]),flush=True)
 
     def checkpoint(name, after=0):
         deadline = time.monotonic()+45
@@ -395,6 +415,7 @@ def main():
         require(all(s['p1']['character']==expected and s['p2']['character']==(expected^1) for s in state),
                 'Wrong native character pair')
         last=checkpoint('intro')
+        performance('overlap')
         if args.cameras=='split':
             ticks(20)
             probes=[]
@@ -405,7 +426,8 @@ def main():
                 report['view_probes']=probes
                 require(counters.get('mmx5.coop.local-view-committed',0)>0,'No committed local camera view')
                 require(counters.get('mmx5.coop.local-view-state-leak',0)==0,'Local draw changed canonical host state')
-                require(stats.get('verify_checks',0)>0,'No sandbox restoration checks')
+                if args.render_verify:
+                    require(stats.get('verify_checks',0)>0,'No sandbox restoration checks')
                 require(all(stats.get(key,0)==0 for key in ('verify_mismatch','watchdog','vram_leaks','device_reads')),
                         f'Own-view sandbox fault: {stats}')
                 peer.request('screenshot_hires',path=str(peer.directory/'own-intro.png'))
@@ -495,6 +517,7 @@ def main():
                     pulse(RIGHT|CROSS,1,45)  # Original jump over an authored truck/obstacle.
                 if all(s['p2']['x']-s['p1']['x']>480 for s in observe()):break
             separated=split_observe('separated')
+            performance('separated')
             require(all(abs(row['cameras'][1]['x']-row['cameras'][0]['x'])>416 for row in separated),
                     'Native cameras did not separate beyond two disjoint activation windows')
             require(all(row['counters'].get('mmx5.coop.split-placement-scans',0)>0 for row in separated),

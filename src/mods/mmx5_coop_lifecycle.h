@@ -26,4 +26,7 @@ void mmx5_coop_teleport_done(Mmx5CoopLifecycle *s);
 int32_t mmx5_coop_limit_x(int32_t x, int32_t other, unsigned viewport_width);
 /* Original BIN member 20, 800EEE90..800EEED4: roster entry 5 is Zero. */
 int mmx5_coop_zero_available(unsigned campaign_phase,unsigned zero_flags,int keep_playable);
+/* Native stage5/checkpoint0 forces the Ride Chaser sequence (80020968..84).
+ * Keep voluntary departure locked through rider death/mount transitions. */
+int mmx5_coop_car_sequence(unsigned stage,unsigned checkpoint,int chaser_active);
 #endif

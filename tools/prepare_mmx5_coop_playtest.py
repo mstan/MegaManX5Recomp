@@ -80,6 +80,10 @@ P2 is the counterpart (base X when P1 is Zero). Each seat opens its own
 native menu with Start. P2 holds Select for 90 gameplay updates to leave,
 then taps Select near a grounded living P1 to return. A fallen actor stays
 out until a team retry/new stage. Shared retry count and stored tanks.
+Life meters are stacked on the left. Ride Armor belongs to P1; P2 stays
+on foot. Both players use Ride Chasers in the forced car sequence. Select
+departure is locked there; one death leaves the survivor playing, and two
+deaths consume one shared retry. Full road traversal still needs playtesting.
 
 This directory owns its settings and memory cards. The original disc/exe
 remain in the worktree. Keep other enhancement mods off for this baseline.

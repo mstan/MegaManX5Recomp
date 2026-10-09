@@ -16,6 +16,7 @@ PLAY = 0x800D1C00
 class Runtime:
     def __init__(self, port):
         self.port = port
+        self._diagnostic = None
 
     def request(self, command, **fields):
         with socket.create_connection(('127.0.0.1', self.port), timeout=10) as sock:
@@ -76,20 +77,36 @@ class Runtime:
             time.sleep(.03)
 
     def screenshot(self, path):
-        gpu = self.request('gpu_state')
-        command = 'screenshot' if gpu.get('depth24') else 'screenshot_hires'
-        return self.request(command, path=str(Path(path).resolve()))
+        deadline = time.monotonic()+3
+        while True:
+            gpu = self.request('gpu_state')
+            command = 'screenshot' if gpu.get('depth24') else 'screenshot_hires'
+            try:
+                return self.request(command, path=str(Path(path).resolve()))
+            except RuntimeError as error:
+                # Original menu/stage fades can briefly disable the display.
+                # Wait for an actual frame without changing input or game state.
+                if 'display disabled' not in str(error) or time.monotonic()>deadline:
+                    raise
+                time.sleep(.03)
 
     def diagnostic(self):
+        if self._diagnostic is not None:
+            return self._diagnostic
         counters = self.request('mod_counters')['counters']
         for counter in counters:
             if counter['name'] == 'mmx5.coop.diagnostic-address':
-                return counter['count']
+                self._diagnostic = counter['count']
+                return self._diagnostic
         raise RuntimeError('X5 co-op is inactive')
 
     def players(self):
         data = self.read(self.diagnostic(), 0x458)
         return data[0x300:0x458], data[0x100:0x258]
+
+    def cars(self):
+        data = self.read(self.diagnostic()+0x480, 0x170)
+        return data[:0xB0], data[0xC0:0x170]
 
     def state(self):
         data = self.read(self.diagnostic(), 32)

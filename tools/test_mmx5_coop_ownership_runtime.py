@@ -38,7 +38,7 @@ def main():
         r.fixture(4,hp=16)
         r.tap(8,.05,1)
         wait_for(r,lambda:r.read(PLAY+1,1)==b'\x02')
-        time.sleep(.3)
+        wait_for(r,lambda:r.read(0x800D4F44,1)==b'\x01')  # Native opening fade completed.
         before=r.state()
         r.tap(8,.05,0)
         require(r.read(PLAY+1,1)==b'\x02','Other seat closed the owner menu')

@@ -50,6 +50,17 @@ int main(void) {
     CHECK(!mmx5_coop_zero_available(5,0,0));
     CHECK(mmx5_coop_zero_available(5,0x80,0));
     CHECK(mmx5_coop_zero_available(5,0,1));
+    CHECK(mmx5_coop_car_sequence(5,0,0)); /* No car yet: still the forced sequence. */
+    CHECK(mmx5_coop_car_sequence(5,1,1)); /* Checkpoint advanced while still riding. */
+    CHECK(!mmx5_coop_car_sequence(5,1,0));
+    CHECK(!mmx5_coop_car_sequence(4,0,1));
+    mmx5_coop_lifecycle_respawn(&s);
+    mmx5_coop_join_input(&s,0,1,1);
+    for(int n=0;n<180;++n)
+        CHECK(mmx5_coop_join_input(&s,1,!mmx5_coop_car_sequence(5,0,0),1)==MMX5_COOP_NO_ACTION);
+    CHECK(s.status[1]==MMX5_COOP_ALIVE && !s.select_frames);
+    mmx5_coop_fatal(&s,0);CHECK(!s.wipe && mmx5_coop_living(&s,1));
+    mmx5_coop_fatal(&s,1);CHECK(s.wipe==2);
     mmx5_coop_lifecycle_respawn(&s);s.status[1]=MMX5_COOP_UNAVAILABLE;
     mmx5_coop_join_input(&s,0,1,1);
     CHECK(!mmx5_coop_living(&s,1));

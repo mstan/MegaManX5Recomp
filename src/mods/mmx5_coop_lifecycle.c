@@ -56,3 +56,6 @@ int32_t mmx5_coop_limit_x(int32_t x, int32_t other, unsigned width) {
 int mmx5_coop_zero_available(unsigned phase,unsigned flags,int keep_playable) {
     return keep_playable || phase<5 || (flags&0x80);
 }
+int mmx5_coop_car_sequence(unsigned stage,unsigned checkpoint,int chaser_active) {
+    return stage==5 && (!checkpoint || chaser_active);
+}

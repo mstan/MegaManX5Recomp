@@ -21,11 +21,15 @@
 #define SHOTS 0x80098120u
 #define TRAILS 0x8009A2F8u
 #define CAMERA 0x8009A1F8u
+#define CAR 0x800D1DC0u
 #define SCRATCH 0x1F800000u
 #define FRAME_BYTES 0x40000u
+/* Native meter/icon blocks end at Y116. Stack P2 below that block while
+ * retaining the original life/ammo geometry, badges, colors and animation. */
+#define SECOND_HUD_Y 104
 
 typedef struct {
-    uint8_t body[0x158], shots[0x1380], trails[0x120];
+    uint8_t body[0x158], shots[0x1380], trails[0x120], car[0xB0];
 } PlayerContext;
 typedef struct {
     uint8_t *graphics;
@@ -66,7 +70,7 @@ static int32_t join_y;
 static unsigned join_phase;
 typedef struct {uint16_t page,clut,uv,id;uint16_t colors[16];unsigned character;} UiBank;
 static UiBank ui_banks[4096];
-static unsigned ui_bank_count,hud_call,hud_seat,hud_fade=128;
+static unsigned ui_bank_count,hud_call,hud_seat,hud_icon_call,hud_fade=128;
 static uint32_t hud_arena;
 typedef struct {unsigned x,y,w,h;uint16_t *pixels;} MenuBackup;
 static MenuBackup menu_backups[32];
@@ -77,7 +81,7 @@ static unsigned ever_enrolled,last_stage,section_pending,stage_departed;
 typedef struct {uint32_t actor;uint8_t token[2];} HitHistory;
 static HitHistory hit_history[256];
 static unsigned hit_count,allocation_call,solid_call,contact_call;
-typedef struct {uint8_t sides,carried;} SolidHistory;
+typedef struct {uint8_t sides,carried,car_sides,car_carried;} SolidHistory;
 static SolidHistory solid_history[64];
 typedef struct {uint32_t actor;uint8_t seat;} PickupOwner;
 static PickupOwner pickup_owners[128];
@@ -86,6 +90,26 @@ static unsigned scene_owner,scene_phase,scene_call,door_call;
 static uint8_t scene_body[0x158];
 static int32_t scene_y;
 static unsigned keep_zero;
+static unsigned ride_call;
+static int native_armor_overlay(void);
+static uint32_t car_mirror[2];
+static uint8_t car_source_owner[272];
+static int car_context(void) {
+    return psx_mod_read_byte(PLAY+0x0C)==5 && psx_mod_read_word(0x800EE970)==11 &&
+        (!psx_mod_read_byte(PLAY+0x1D) || psx_mod_read_byte(PLAYER+0xD5)==0xFF ||
+         first.body[0xD5]==0xFF || second.body[0xD5]==0xFF ||
+         (psx_mod_read_byte(CAR) && !psx_mod_read_byte(CAR+1)));
+}
+static int car_source_index(uint32_t actor) {
+    if(actor>=0x80092090u && actor<0x80093DD0u && !((actor-0x80092090u)%0x9C))
+        return (int)((actor-0x80092090u)/0x9C);
+    if(actor>=0x80094398u && actor<0x80096D98u && !((actor-0x80094398u)%0x70))
+        return 48+(int)((actor-0x80094398u)/0x70);
+    if(actor>=0x800D1F40u && actor<0x800D4F40u && !((actor-0x800D1F40u)%0x60))
+        return 144+(int)((actor-0x800D1F40u)/0x60);
+    return -1;
+}
+static void cars_refresh(unsigned default_seat);
 static void scene_tick(CPUState *cpu);
 static void scene_begin(unsigned seat);
 static int scene_passenger(unsigned seat) {return scene_owner && scene_owner!=seat+1;}
@@ -112,11 +136,29 @@ static void capture_player(PlayerContext *p) {
     capture(PLAYER,p->body,sizeof p->body);
     capture(SHOTS,p->shots,sizeof p->shots);
     capture(TRAILS,p->trails,sizeof p->trails);
+    if(car_context())capture(CAR,p->car,sizeof p->car);
+    else memset(p->car,0,sizeof p->car);
 }
 static void project_player(const PlayerContext *p) {
     project(PLAYER,p->body,sizeof p->body);
     project(SHOTS,p->shots,sizeof p->shots);
     project(TRAILS,p->trails,sizeof p->trails);
+    if(car_context())project(CAR,p->car,sizeof p->car);
+}
+static void cars_refresh(unsigned default_seat) {
+    if(!car_context())return;
+    project(car_mirror[0],first.car,sizeof first.car);project(car_mirror[1],second.car,sizeof second.car);
+    for(unsigned i=0;i<272;++i) {
+        uint32_t actor=i<48?0x80092090u+i*0x9Cu:i<144?0x80094398u+(i-48)*0x70u:
+            0x800D1F40u+(i-144)*0x60u;
+        if(!psx_mod_read_byte(actor)) {car_source_owner[i]=0;continue;}
+        /* Original BIN7 vehicle effects/projectiles store their following
+         * actor at +50. Replace only that exact source, preserving hitboxes,
+         * assembly, terrain data and unrelated native pointers. */
+        if(psx_mod_read_word(actor+0x50)!=CAR)continue;
+        if(!car_source_owner[i])car_source_owner[i]=(uint8_t)(default_seat+1);
+        psx_mod_write_word(actor+0x50,car_mirror[car_source_owner[i]-1]);
+    }
 }
 static uint32_t guest(CPUState *cpu,uint32_t address,uint32_t a0,uint32_t a1) {
     uint32_t regs[32],data[32],ctrl[32];
@@ -206,7 +248,7 @@ static int load_assets(void) {
     free(dat);return 1;
 }
 static void enter_second(void) {
-    projected=1;capture_player(&first);capture(PLAY,saved_play,sizeof saved_play);
+    capture_player(&first);cars_refresh(0);projected=1;capture(PLAY,saved_play,sizeof saved_play);
     capture(CAMERA,saved_camera,sizeof saved_camera);
     project_player(&second);
     const uint32_t values[6]={assets[counterpart].sprites,assets[counterpart].assembly,
@@ -221,7 +263,7 @@ static void enter_second(void) {
     psx_mod_write_byte(PLAY+0x49,(uint8_t)(counterpart?5:0));
 }
 static void leave_second_context(int shared_world) {
-    capture_player(&second);project_player(&first);
+    capture_player(&second);cars_refresh(1);project_player(&first);
     if(shared_world) {
         psx_mod_write_byte(PLAY+0x44,saved_play[0x44]);psx_mod_write_byte(PLAY+0x49,saved_play[0x49]);
     }
@@ -254,13 +296,14 @@ static void diagnostics(void) {
     project(diagnostic+0x100,second.body,sizeof second.body);
     if(!projected)capture(PLAYER,first.body,sizeof first.body);
     project(diagnostic+0x300,first.body,sizeof first.body);
+    project(diagnostic+0x480,first.car,sizeof first.car);project(diagnostic+0x540,second.car,sizeof second.car);
 }
 static void reset(CPUState *cpu,uint32_t address) {
     (void)cpu;(void)address;if(busy || projected)return;
-    /* Original 3BBC8..3BCE8 uses PLAY+1E == 1 for saved HP/ammo/weapon
+    /* Original 3BBA8/3BBC8..3BCE8 uses signed PLAY+1E == -1 for saved HP/ammo/weapon
      * continuation. A team wipe or campaign departure starts a fresh team. */
     section_pending=ever_enrolled && !stage_departed && !life.wipe &&
-        last_stage==psx_mod_read_byte(PLAY+0x0C) && psx_mod_read_byte(PLAY+0x1E)==1;
+        last_stage==psx_mod_read_byte(PLAY+0x0C) && psx_mod_read_byte(PLAY+0x1E)==0xFF;
     enrolled=0;previous_input=0;
     if(!section_pending) {memset(&second,0,sizeof second);mmx5_coop_lifecycle_respawn(&life);}
     else {
@@ -273,10 +316,12 @@ static void reset(CPUState *cpu,uint32_t address) {
     memset(hit_history,0,sizeof hit_history);hit_count=0;
     memset(solid_history,0,sizeof solid_history);
     memset(pickup_owners,0,sizeof pickup_owners);
+    memset(car_source_owner,0,sizeof car_source_owner);
     ++asset_generation;
     join_phase=0;
     scene_owner=scene_phase=0;
     pause_owner=-1;p2_start_previous=0;
+    diagnostics();
 }
 static void observe_stage(void) {
     unsigned mode=psx_mod_read_byte(PLAY);
@@ -298,6 +343,12 @@ static void world_tick(CPUState *cpu,uint32_t address) {
                  * death poses, effects, retry and reload stay native. */
                 if(seat==resident)psx_mod_write_byte(PLAYER+0x5C,0x80);
                 else (seat?second.body:first.body)[0x5C]=0x80;
+                if(car_context()) {
+                    /* Original BIN7 EEF98..EEFD8 treats zero car HP as fatal
+                     * for that rider. The other seat's car remains native. */
+                    if(seat==resident)psx_mod_write_byte(CAR+0x5C,0);
+                    else (seat?second.car:first.car)[0x5C]=0;
+                }
             }
             if(command==2) {
                 unsigned hp=psx_mod_read_byte(diagnostic+0x56);
@@ -335,6 +386,32 @@ static void world_tick(CPUState *cpu,uint32_t address) {
                  * campaign/room selection or forcing a destination. */
                 guest(cpu,command==5?0x8003D29C:0x8003D2C4,0x14,0x40);
             }
+            if(command==7 && native_armor_overlay()) {
+                /* Offline controlled mount scenario: place a seat beside an
+                 * existing native Armor. Never allocate/clone a vehicle, load
+                 * code, alter story flags, or override native mount gates. */
+                uint32_t ride=0x800D1DC0u+(psx_mod_read_half(diagnostic+0x58)&1u)*0xB0u;
+                if(psx_mod_read_byte(ride) && psx_mod_read_byte(ride+1)==1) {
+                    uint32_t x=psx_mod_read_word(ride+8),y=psx_mod_read_word(ride+12)-16*65536u;
+                    if(seat==resident) {
+                        psx_mod_write_word(PLAYER+8,x);psx_mod_write_word(PLAYER+12,y);
+                        psx_mod_write_word(PLAYER+0x18,x);psx_mod_write_word(PLAYER+0x1C,y);
+                    } else {
+                        uint8_t *body=seat?second.body:first.body;
+                        for(unsigned i=0;i<4;++i) {
+                            body[8+i]=body[0x18+i]=(uint8_t)(x>>(i*8));
+                            body[12+i]=body[0x1C+i]=(uint8_t)(y>>(i*8));
+                        }
+                    }
+                }
+            }
+            if(command==8) {
+                /* Controlled continuation, through the ORIGINAL controller's
+                 * negative-exit path (20794..20818). It saves the singleton
+                 * native inventory and selects loader mode9 with 1E = FF.
+                 * No room/story destination or inventory cache is fabricated. */
+                psx_mod_write_byte(PLAY+0x0F,0xFF);guest(cpu,0x800205AC,PLAY,0);
+            }
             fixture_sequence=sequence;
             psx_mod_write_word(diagnostic+0x60,sequence);
         }
@@ -366,7 +443,21 @@ static int enroll(CPUState *cpu) {
     psx_mod_write_byte(PLAYER+3,1);psx_mod_write_byte(PLAYER+4,1);
     /* Original arrival at 3553C/35570 initializes roster parts before the
      * movement constants and idle pose; 3BAC8 alone does not do that. */
-    guest(cpu,0x8003D5E0,PLAYER,0);guest(cpu,0x8003B65C,PLAYER,0);guest(cpu,0x8003A670,PLAYER,0);
+    if(car_context() && first.car[0] && !first.car[1] && first.car[4]==1) {
+        /* Native arrival selector 3C188..198 uses 3D784 for stage5/checkpoint0.
+         * Reuse the already initialized original vehicle without duplicating
+         * its global arrival effect or camera setup (BIN7 EEC50..EEE60). */
+        project(CAR,first.car,sizeof first.car);
+        uint16_t clut=psx_mod_read_half(CAR+0x42);
+        psx_mod_write_half(CAR+0x42,(uint16_t)(clut+(counterpart?2:-2)));
+        psx_mod_write_word(CAR+8,x+(24u<<16));psx_mod_write_word(CAR+0x18,x+(24u<<16));
+        psx_mod_write_byte(CAR+0x5C,psx_mod_read_byte(PLAYER+0x5C));
+        uint8_t active=psx_mod_read_byte(CAR);
+        guest(cpu,0x8003D784,PLAYER,0);psx_mod_write_byte(CAR,active);
+        psx_mod_counter_add("mmx5.coop.chaser-enrolled",1);
+    } else {
+        guest(cpu,0x8003D5E0,PLAYER,0);guest(cpu,0x8003B65C,PLAYER,0);guest(cpu,0x8003A670,PLAYER,0);
+    }
     guest(cpu,0x8002FB58,PLAYER,0);leave_second();
     if(counterpart && !mmx5_coop_zero_available(psx_mod_read_byte(PLAY+0x79),psx_mod_read_byte(PLAY+0xCB),keep_zero))
         life.status[1]=MMX5_COOP_UNAVAILABLE;
@@ -383,6 +474,43 @@ static int enroll(CPUState *cpu) {
 static uint16_t input(unsigned seat) {
     uint16_t raw=(uint16_t)~sio_get_pad_buttons_slot((int)seat);
     return (uint16_t)((raw<<8)|(raw>>8));
+}
+static int native_armor_overlay(void) {
+    /* BIN member 6 (logical ID 10), stage 4/section 1. These VMAs contain
+     * unrelated code in other overlays. Never call them on address alone. */
+    return psx_mod_read_word(0x800EE970)==10 &&
+        psx_mod_read_word(0x800F2A4C)==0x27BDFFE8u &&
+        psx_mod_read_word(0x800F2A58)==0x3C02800Au &&
+        psx_mod_read_word(0x800EF170)==0x27BDFFE0u;
+}
+static int ride_tick(CPUState *cpu,uint32_t address) {
+    /* Baseline policy: original Ride Armor belongs to P1. Usually the
+     * native world already runs under P1 and needs no interception. */
+    if(ride_call || busy || !enrolled || failed || !projected || !world_owner || !native_armor_overlay())return 0;
+    ride_call=1;
+    /* During P2 survivor/script ownership, keep both original world vehicles
+     * under P1's body. No clone, alternate mount probe or private vehicle
+     * tick: native effects and moving solids retain their stable slot pointers. */
+    capture_player(&second);project_player(&first);
+    uint32_t pointers[6];
+    uint8_t character=psx_mod_read_byte(PLAY+0x44),roster=psx_mod_read_byte(PLAY+0x49);
+    psx_mod_write_byte(PLAY+0x44,saved_play[0x44]);psx_mod_write_byte(PLAY+0x49,saved_play[0x49]);
+    for(unsigned i=0;i<6;++i) {
+        pointers[i]=psx_mod_read_word(SCRATCH+resource_offsets[i]);
+        psx_mod_write_word(SCRATCH+resource_offsets[i],resources[i]);
+    }
+    if(life.status[0]!=MMX5_COOP_ALIVE || scene_passenger(0))
+        for(unsigned i=0x7C;i<0x82;++i)psx_mod_write_byte(PLAYER+i,0);
+    /* Nested native contacts/scripts must see this as P1's private scope;
+     * the outer projected context still belongs to P2 after this call. */
+    world_owner=0;
+    uint32_t result=guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);
+    world_owner=1;
+    capture_player(&first);project_player(&second);
+    for(unsigned i=0;i<6;++i)psx_mod_write_word(SCRATCH+resource_offsets[i],pointers[i]);
+    psx_mod_write_byte(PLAY+0x44,character);psx_mod_write_byte(PLAY+0x49,roster);
+    ride_call=0;psx_mod_counter_add("mmx5.coop.p1-armor-world-projections",1);
+    cpu->gpr[2]=result;return 1;
 }
 static void put32(uint8_t *p,uint32_t value) {
     for(unsigned i=0;i<4;++i)p[i]=(uint8_t)(value>>(i*8));
@@ -429,15 +557,28 @@ static void second_tick(CPUState *cpu,uint32_t address) {
     (void)address;
     if(busy || projected || failed || cpu->gpr[31]!=0x80022DC8u)return;
     if(psx_mod_read_byte(PLAY)!=10 || !psx_mod_read_byte(PLAYER)) {enrolled=0;return;}
-    if(scene_owner || psx_mod_read_byte(PLAY+0x10) || psx_mod_read_byte(PLAY+0x1C)) {life.select_frames=0;return;}
-    if(!enrolled && (psx_mod_read_byte(PLAYER+4)!=1 || psx_mod_read_byte(PLAYER+5)!=2))return;
+    /* The native car arrival drives its rider while PLAY+1C is set. Enroll
+     * and advance the second car during that arrival too, so it shares the
+     * authored opening instead of joining after the first drop. */
+    if(psx_mod_read_byte(PLAY+0x10) ||
+       (!car_context() && (scene_owner || psx_mod_read_byte(PLAY+0x1C)))) {life.select_frames=0;return;}
+    if(!enrolled && (psx_mod_read_byte(PLAYER+4)!=1 ||
+       (psx_mod_read_byte(PLAYER+5)!=2 && !(car_context() && psx_mod_read_byte(PLAYER+5)==0x12))))return;
+    /* 3D784 activates the original slot during the player pass, AFTER that
+     * frame's vehicle dispatcher. Wait for its next native initialization
+     * before copying a car; pose12 alone can still have a zero vehicle body. */
+    if(!enrolled && car_context() && psx_mod_read_byte(PLAYER+5)==0x12 &&
+       (!psx_mod_read_byte(CAR) || psx_mod_read_byte(CAR+1) || psx_mod_read_byte(CAR+4)!=1))return;
     busy=1;
     if(!ready) {ready=load_assets();if(!ready)failed=1;}
     if(ready && !enrolled && !enroll(cpu))failed=1;
     if(enrolled && !failed) {
         uint16_t raw=input(1);
         int safe=!psx_mod_read_byte(PLAYER+0x67) && (psx_mod_read_byte(PLAYER+0x70)&8);
-        int gameplay=!psx_mod_read_byte(PLAYER+0xD5) && !second.body[0xD5];
+        int car=mmx5_coop_car_sequence(psx_mod_read_byte(PLAY+0x0C),psx_mod_read_byte(PLAY+0x1D),
+            psx_mod_read_byte(0x800D1DC0) && !psx_mod_read_byte(0x800D1DC1));
+        if(car && (raw&0x100))psx_mod_counter_add("mmx5.coop.car-departure-blocked",1);
+        int gameplay=!car && !psx_mod_read_byte(PLAYER+0xD5) && !second.body[0xD5];
         Mmx5CoopJoinAction action=mmx5_coop_join_input(&life,raw&0x100,gameplay,safe);
         if(action==MMX5_COOP_LEAVE)start_leave(cpu);
         else if(action==MMX5_COOP_JOIN)start_join(cpu);
@@ -451,7 +592,12 @@ static void second_tick(CPUState *cpu,uint32_t address) {
         uint16_t raw=input(1);enter_second();
         psx_mod_write_half(PAD,life.status[1]==MMX5_COOP_LEAVING?0:raw);psx_mod_write_half(PAD+2,previous_input);
         psx_mod_write_half(PAD+4,(uint16_t)(raw&~previous_input));previous_input=raw;
-        guest(cpu,0x8003CDB8,0,0);guest(cpu,0x80035040,0,0);
+        guest(cpu,0x8003CDB8,0,0);
+        if(car_context()) {
+            uint8_t other=psx_mod_read_byte(CAR+0xB0);psx_mod_write_byte(CAR+0xB0,0);
+            guest(cpu,0x80022960,0,0);psx_mod_write_byte(CAR+0xB0,other);
+        }
+        guest(cpu,0x80035040,0,0);
         guest(cpu,0x80022084,0,0);guest(cpu,0x8002FB58,PLAYER,0);
         leave_second();project(PAD,saved_input,sizeof saved_input);++ticks;
         if(life.status[1]==MMX5_COOP_LEAVING && second.body[4]==3)mmx5_coop_teleport_done(&life);
@@ -462,7 +608,16 @@ static void second_tick(CPUState *cpu,uint32_t address) {
     diagnostics();busy=0;
 }
 static int player_tick(CPUState *cpu,uint32_t address) {
-    if(player_call || busy || projected || !enrolled || failed)return 0;
+    if(player_call || busy || !enrolled || failed)return 0;
+    if(projected) {
+        if(!world_owner)return 0;
+        /* SCRATCH+28 is the entire native stage palette, not just the rider's
+         * colors. Keep P2's color changes private during its body pass. */
+        uint32_t palette=psx_mod_read_word(SCRATCH+0x28);
+        psx_mod_write_word(SCRATCH+0x28,assets[counterpart].palette);
+        player_call=1;uint32_t result=guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);player_call=0;
+        psx_mod_write_word(SCRATCH+0x28,palette);cpu->gpr[2]=result;return 1;
+    }
     psx_mod_counter_add("mmx5.coop.primary-player-calls",1);
     uint8_t freeze[9];capture(PLAY+0x12,freeze,sizeof freeze);
     player_call=1;uint32_t result=guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);player_call=0;
@@ -473,6 +628,15 @@ static int player_tick(CPUState *cpu,uint32_t address) {
         if(psx_mod_read_byte(PLAYER+4)==3)life.status[0]=MMX5_COOP_FALLEN;
     }
     cpu->gpr[2]=result;return 1;
+}
+static int attacks_tick(CPUState *cpu,uint32_t address) {
+    if(!busy && projected && world_owner && enrolled && !failed) {
+        uint32_t palette=psx_mod_read_word(SCRATCH+0x28);
+        psx_mod_write_word(SCRATCH+0x28,assets[counterpart].palette);
+        busy=1;uint32_t result=guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);busy=0;
+        psx_mod_write_word(SCRATCH+0x28,palette);cpu->gpr[2]=result;return 1;
+    }
+    second_tick(cpu,address);return 0;
 }
 static int stage_tick(CPUState *cpu,uint32_t address) {
     if(stage_call || busy || projected || !enrolled || failed)return 0;
@@ -497,6 +661,7 @@ static int stage_tick(CPUState *cpu,uint32_t address) {
         mmx5_coop_living(&life,1));
     if(!survivor && pause_owner!=1 && scene_owner!=2) {
         stage_call=1;uint32_t result=guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);
+        if(car_context()) {capture_player(&first);cars_refresh(0);}
         enforce_roster();
         if(!psx_mod_read_byte(PLAY+1))scene_tick(cpu);
         if(menu_active && psx_mod_read_byte(PLAY+1)!=2)menu_vram(cpu,0);
@@ -512,6 +677,7 @@ static int stage_tick(CPUState *cpu,uint32_t address) {
     if(psx_mod_read_byte(PLAY+1)==0 && psx_mod_read_byte(PLAYER+4)==2 && !life.wipe) {
         uint8_t freeze[9];capture(PLAY+0x12,freeze,sizeof freeze);
         uint32_t timer=psx_mod_read_word(PLAY+0x1B4),countdown=psx_mod_read_word(PLAY+0xAC);
+        if(car_context())guest(cpu,0x80022960,0,0);
         player_call=1;guest(cpu,0x80035040,0,0);player_call=0;
         project(PLAY+0x12,freeze,sizeof freeze);
         psx_mod_write_word(PLAY+0x1B4,timer);psx_mod_write_word(PLAY+0xAC,countdown);
@@ -522,6 +688,11 @@ static int stage_tick(CPUState *cpu,uint32_t address) {
     /* Native story and stage selection remain P1's. Menus alone select the
      * requesting actor's character identity. Player routines use PLAYER+2. */
     if(pause_owner!=1)psx_mod_write_byte(PLAY+0x44,saved_play[0x44]);
+    /* Original 56514 caches stage palette pointers in world actors; 2BD8C
+     * builds the shared fade from the whole 4000-byte buffer, and 17484
+     * uploads it. P2's character-only palette must never own those passes.
+     * Body/attack filters above temporarily select its private colors. */
+    if(pause_owner!=1)psx_mod_write_word(SCRATCH+0x28,resources[3]);
     psx_mod_write_half(PAD,raw);psx_mod_write_half(PAD+2,previous_input);
     psx_mod_write_half(PAD+4,(uint16_t)(raw&~previous_input));previous_input=raw;
     world_owner=1;world_packets=arena+(psx_mod_read_word(SCRATCH)&1u)*FRAME_BYTES;
@@ -545,6 +716,8 @@ static int effect_allocate(CPUState *cpu,uint32_t address) {
     if(effect_allocate_call || !enrolled || failed)return 0;
     uint32_t caller=cpu->gpr[31];effect_allocate_call=1;
     uint32_t actor=guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);effect_allocate_call=0;
+    int source=car_source_index(actor);
+    if(source>=0)car_source_owner[source]=(uint8_t)(car_context()?(projected?2:1):0);
     DeathOrigin *origin=death_origin(actor);
     if(origin) {
         memset(origin,0,sizeof *origin);
@@ -582,6 +755,8 @@ static SolidHistory *solid_record(uint32_t actor) {
     return &solid_history[(actor-0x800C6A10u)/0xA4];
 }
 static void forget_actor(uint32_t actor) {
+    int source=car_source_index(actor);
+    if(source>=0)car_source_owner[source]=(uint8_t)(car_context()?(projected?2:1):0);
     HitHistory *h=hit_record(actor,0);
     if(h) {unsigned i=(unsigned)(h-hit_history);--hit_count;
         memmove(h,h+1,(hit_count-i)*sizeof *h);memset(hit_history+hit_count,0,sizeof *h);}
@@ -622,9 +797,17 @@ static int contact(CPUState *cpu,uint32_t address) {
 }
 static uint32_t solid_as_second(CPUState *cpu,uint32_t address,uint32_t actor,SolidHistory *h) {
     uint8_t sides=psx_mod_read_byte(actor+0x72),carried=psx_mod_read_byte(actor+0x76);
+    uint8_t car_sides=psx_mod_read_byte(actor+0x73),car_carried=psx_mod_read_byte(actor+0x77);
     psx_mod_write_byte(actor+0x72,h->sides);psx_mod_write_byte(actor+0x76,h->carried);
+    if(car_context()) {
+        psx_mod_write_byte(actor+0x73,h->car_sides);psx_mod_write_byte(actor+0x77,h->car_carried);
+    }
     uint32_t result=guest(cpu,address,actor,cpu->gpr[5]);
     h->sides=psx_mod_read_byte(actor+0x72);h->carried=psx_mod_read_byte(actor+0x76);
+    if(car_context()) {
+        h->car_sides=psx_mod_read_byte(actor+0x73);h->car_carried=psx_mod_read_byte(actor+0x77);
+        psx_mod_write_byte(actor+0x73,car_sides);psx_mod_write_byte(actor+0x77,car_carried);
+    }
     psx_mod_write_byte(actor+0x72,sides);psx_mod_write_byte(actor+0x76,carried);return result;
 }
 static int solid_contact(CPUState *cpu,uint32_t address) {
@@ -639,9 +822,14 @@ static int solid_contact(CPUState *cpu,uint32_t address) {
              * Their pass ran above; the extra pass handles only P2. */
             uint8_t body[0x158];capture(PLAYER,body,sizeof body);project(PLAYER,second.body,sizeof body);
             uint8_t rides[2]={psx_mod_read_byte(0x800D1DC0),psx_mod_read_byte(0x800D1E70)};
-            psx_mod_write_byte(0x800D1DC0,0);psx_mod_write_byte(0x800D1E70,0);
+            uint8_t car[0xB0];int private_car=car_context();
+            if(private_car) {capture(CAR,car,sizeof car);project(CAR,second.car,sizeof second.car);}
+            else psx_mod_write_byte(CAR,0);
+            psx_mod_write_byte(CAR+0xB0,0);
             solid_as_second(cpu,address,actor,h);
-            psx_mod_write_byte(0x800D1DC0,rides[0]);psx_mod_write_byte(0x800D1E70,rides[1]);
+            if(private_car) {capture(CAR,second.car,sizeof second.car);project(CAR,car,sizeof car);}
+            else psx_mod_write_byte(CAR,rides[0]);
+            psx_mod_write_byte(CAR+0xB0,rides[1]);
             capture(PLAYER,second.body,sizeof body);project(PLAYER,body,sizeof body);
         } else memset(h,0,sizeof *h);
     }
@@ -685,6 +873,9 @@ static int pickup_tick(CPUState *cpu,uint32_t address) {
     return 0;
 }
 static void scene_begin(unsigned seat) {
+    /* Both native cars stop with the one world/script lock. A rider cannot
+     * use the ordinary passenger beam while its vehicle remains behind. */
+    if(car_context())return;
     if(!enrolled || failed || scene_owner)return;
     scene_owner=seat+1;scene_phase=life.status[seat^1]==MMX5_COOP_ALIVE?1:0;
     life.select_frames=life.select_armed=0;
@@ -771,7 +962,10 @@ static int door_tick(CPUState *cpu,uint32_t address) {
     door_call=0;cpu->gpr[2]=result;return 1;
 }
 static int camera_target(CPUState *cpu,uint32_t address) {
-    if(camera_call || busy || projected || !enrolled || failed || scene_owner ||
+    /* BIN7 EF05C..EF098 carries a car with the authored camera delta. A
+     * midpoint target adds feedback into that forced scroll; keep its original
+     * controller while both riders are present and let a survivor own it. */
+    if(camera_call || busy || projected || !enrolled || failed || scene_owner || car_context() ||
        psx_mod_read_byte(PLAY)!=10 || psx_mod_read_byte(PLAY+0x10) ||
        psx_mod_read_byte(PLAY+0x1C) || life.status[1]!=MMX5_COOP_ALIVE ||
        second.body[4]!=1 || psx_mod_read_byte(PLAYER+4)!=1)return 0;
@@ -962,6 +1156,9 @@ static void render(CPUState *cpu,uint32_t address) {
     for(unsigned i=0;i<32 && !failed;++i) {
         uint32_t actor=SHOTS+i*0x9Cu;if(psx_mod_read_byte(actor+3))render_actor(cpu,actor,base);
     }
+    /* Stage vehicle graphics remain the original shared stage atlas. They
+     * are not character DAT frames and do not need a retained character bank. */
+    if(car_context() && second.car[3])guest(cpu,0x80024C60,CAR,0);
     psx_mod_write_word(SCRATCH+0x100,original);psx_mod_write_word(SCRATCH+0x104,mode);
     psx_mod_write_word(SCRATCH+0x124,budget);
     project_player(&first);diagnostics();busy=0;
@@ -1040,9 +1237,16 @@ static uint16_t hud_tile_bank(uint16_t page,uint16_t clut,uint16_t uv) {
     bank->id=id;bank->character=counterpart;memcpy(bank->colors,colors,sizeof colors);return id;
 }
 static int hud_icon(CPUState *cpu,uint32_t address) {
-    (void)address;
-    if(hud_seat!=1 || (cpu->gpr[4]!=3 && cpu->gpr[4]!=4))return 0;
-    cpu->gpr[2]=0;return 1;
+    if(hud_seat==1 && (cpu->gpr[4]==3 || cpu->gpr[4]==4)) {cpu->gpr[2]=0;return 1;}
+    if(hud_icon_call || !hud_call || hud_seat || cpu->gpr[4]!=10)return 0;
+    /* Native virus/radar block occupies the lower left in Maverick stages.
+     * Move its existing sprites together so the stacked P2 meter stays clear. */
+    hud_icon_call=1;uint32_t start=psx_mod_read_word(SCRATCH+0x108);
+    uint32_t result=guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);
+    uint32_t end=psx_mod_read_word(SCRATCH+0x108);
+    if(end>=start && end-start<=0x1000 && !((end-start)%16))
+        for(uint32_t at=start;at<end;at+=16)psx_mod_write_half(at+8,(uint16_t)(psx_mod_read_half(at+8)+48));
+    hud_icon_call=0;cpu->gpr[2]=result;return 1;
 }
 static void hud_packets(uint32_t base) {
     uint32_t sprites=psx_mod_read_word(SCRATCH+0x108),modes=psx_mod_read_word(SCRATCH+0x10C);
@@ -1056,7 +1260,7 @@ static void hud_packets(uint32_t base) {
         uint32_t link=psx_mod_read_word(at),uv=psx_mod_read_word(at+12);
         uint16_t page=(uint16_t)psx_mod_read_word(mode+4),bank=hud_tile_bank(page,(uint16_t)(uv>>16),(uint16_t)uv);
         if(!bank || expanded+80>base+0x8000) {failed=1;return;}
-        int x=(int16_t)psx_mod_read_half(at+8)+26,y=(int16_t)psx_mod_read_half(at+10);
+        int x=(int16_t)psx_mod_read_half(at+8),y=(int16_t)psx_mod_read_half(at+10)+SECOND_HUD_Y;
         uint32_t q[10]={link,0x2C000000u|hud_fade*0x010101u,0,0,0,0,0,0,0,0};
         for(unsigned i=0;i<4;++i) {
             q[2+i*2]=(uint16_t)(x+(i&1)*16)|((uint32_t)(uint16_t)(y+(i>>1)*16)<<16);
@@ -1067,7 +1271,7 @@ static void hud_packets(uint32_t base) {
         psx_mod_write_word(at,expanded&0xFFFFFFu);
     }
     for(uint32_t at=base+0x2000;at<bars;at+=36) {
-        for(unsigned xy=8;xy<=32;xy+=8)psx_mod_write_half(at+xy,(uint16_t)(psx_mod_read_half(at+xy)+26));
+        for(unsigned xy=10;xy<=34;xy+=8)psx_mod_write_half(at+xy,(uint16_t)(psx_mod_read_half(at+xy)+SECOND_HUD_Y));
         for(unsigned c=4;c<=28;c+=8) {
             uint32_t color=psx_mod_read_word(at+c),faded=color&0xFF000000u;
             for(unsigned channel=0;channel<24;channel+=8)faded|=(((color>>channel)&255)*hud_fade/128)<<channel;
@@ -1179,7 +1383,7 @@ static void activate(void) {
     busy=projected=enrolled=failed=ready=ticks=world_ticks=camera_call=0;previous_input=0;
     stage_call=player_call=world_owner=render_call=0;mmx5_coop_lifecycle_init(&life);
     render_primary=0;asset_generation=1;primary_packets=0;
-    hud_call=hud_seat=0;hud_fade=128;
+    hud_call=hud_seat=hud_icon_call=0;hud_fade=128;
     pause_owner=-1;p2_start_previous=0;upload_call=menu_active=0;
     for(unsigned i=0;i<menu_backup_count;++i) {free(menu_backups[i].pixels);menu_backups[i].pixels=NULL;}
     menu_backup_count=0;
@@ -1187,6 +1391,11 @@ static void activate(void) {
     ever_enrolled=last_stage=section_pending=stage_departed=0;
     hit_count=allocation_call=solid_call=contact_call=0;
     memset(hit_history,0,sizeof hit_history);memset(solid_history,0,sizeof solid_history);
+    ride_call=0;
+    memset(car_source_owner,0,sizeof car_source_owner);
+    for(unsigned i=0;i<2;++i) {
+        car_mirror[i]=psx_mod_alloc_guest_memory(0xB0,16);if(!car_mirror[i])failed=1;
+    }
     pickup_call=0;memset(pickup_owners,0,sizeof pickup_owners);
     scene_owner=scene_phase=scene_call=door_call=0;scene_y=0;memset(scene_body,0,sizeof scene_body);
     join_phase=0;join_y=0;memset(returning_body,0,sizeof returning_body);
@@ -1203,7 +1412,7 @@ static void activate(void) {
     arena=psx_mod_alloc_texture_packet_memory(FRAME_BYTES*2,16);
     primary_arena=psx_mod_alloc_texture_packet_memory(FRAME_BYTES*2,16);
     hud_arena=psx_mod_alloc_texture_packet_memory(0x10000,16);
-    diagnostic=psx_mod_alloc_guest_memory(0x500,16);if(!arena || !primary_arena || !hud_arena || !diagnostic)failed=1;
+    diagnostic=psx_mod_alloc_guest_memory(0x700,16);if(!arena || !primary_arena || !hud_arena || !diagnostic)failed=1;
     psx_mod_set_rewind_blocked(1);psx_mod_set_savestate_blocked(1);
     psx_mod_counter_add("mmx5.coop.activated",1);
     psx_mod_counter_add("mmx5.coop.diagnostic-address",diagnostic);
@@ -1227,6 +1436,8 @@ static uint32_t state_digest(void) {
     hash=hash_bytes(hash,second.body,sizeof second.body);
     hash=hash_bytes(hash,second.shots,sizeof second.shots);
     hash=hash_bytes(hash,second.trails,sizeof second.trails);
+    hash=hash_bytes(hash,first.car,sizeof first.car);hash=hash_bytes(hash,second.car,sizeof second.car);
+    hash=hash_bytes(hash,car_source_owner,sizeof car_source_owner);
     hash=hash_bytes(hash,returning_body,sizeof returning_body);
     hash=hash_bytes(hash,scene_body,sizeof scene_body);
     if(projected) {
@@ -1240,7 +1451,11 @@ static uint32_t state_digest(void) {
     for(unsigned i=0;i<hit_count;++i) {
         hash=hash_word(hash,hit_history[i].actor);hash=hash_bytes(hash,hit_history[i].token,2);
     }
-    for(unsigned i=0;i<64;++i) {hash=hash_word(hash,solid_history[i].sides);hash=hash_word(hash,solid_history[i].carried);}
+    for(unsigned i=0;i<64;++i) {
+        hash=hash_word(hash,solid_history[i].sides);hash=hash_word(hash,solid_history[i].carried);
+        hash=hash_word(hash,solid_history[i].car_sides);hash=hash_word(hash,solid_history[i].car_carried);
+    }
+    hash=hash_word(hash,ride_call);
     for(unsigned i=0;i<128;++i) {
         DeathOrigin *o=&death_origins[i];hash=hash_word(hash,o->valid);
         if(o->valid) {hash=hash_word(hash,o->x);hash=hash_word(hash,o->y);
@@ -1266,7 +1481,7 @@ PSX_MOD_CONSTRUCTOR(mmx5_register_coop) {
     psx_mod_register_activation_plugin(ID,activate);
     psx_mod_register_vblank_plugin(ID,observe_stage);
     psx_mod_register_function_entry_plugin(ID,0x8003BAC8,reset);
-    psx_mod_register_function_entry_plugin(ID,0x80022084,second_tick);
+    psx_mod_register_function_filter_plugin(ID,0x80022084,attacks_tick);
     psx_mod_register_function_entry_plugin(ID,0x80022D98,world_tick);
     psx_mod_register_function_filter_plugin(ID,0x80024C60,render_hook);
     psx_mod_register_function_filter_plugin(ID,0x80031DD0,contact);
@@ -1275,6 +1490,7 @@ PSX_MOD_CONSTRUCTOR(mmx5_register_coop) {
     psx_mod_register_function_filter_plugin(ID,0x8002A7E0,camera_target);
     psx_mod_register_function_filter_plugin(ID,0x8002A440,camera_update);
     psx_mod_register_function_filter_plugin(ID,0x80035040,player_tick);
+    psx_mod_register_function_filter_plugin(ID,0x80022960,ride_tick);
     psx_mod_register_function_filter_plugin(ID,0x80020D5C,stage_tick);
     psx_mod_register_function_filter_plugin(ID,0x8002D27C,effect_allocate);
     psx_mod_register_function_filter_plugin(ID,0x8004DB18,effect_init);

@@ -31,6 +31,8 @@ def main():
     parser.add_argument('--character', choices=('x', 'zero'), default='x')
     parser.add_argument('--enabled', action='store_true')
     parser.add_argument('--keep-running', action='store_true')
+    parser.add_argument('--paced', action='store_true',
+                        help='Use a hidden normally paced GL frontend for reliable native menu observation')
     args = parser.parse_args()
     args.run_dir.mkdir(parents=True, exist_ok=True)
     build = args.exe.resolve().parent
@@ -47,8 +49,11 @@ def main():
     env = os.environ.copy()
     env['PATH'] = 'C:/msys64/mingw64/bin;'+env['PATH']
     env['PSX_DEV_INPUT'] = '0'
+    if args.paced:
+        env['SDL_AUDIODRIVER'] = 'dummy'
     log = (args.run_dir/'runtime.log').open('w', encoding='utf-8')
-    command = [str(args.exe.resolve()), '--headless-opengl', '--no-launcher',
+    command = [str(args.exe.resolve()), '--hidden-window' if args.paced else '--headless-opengl',
+               '--renderer', 'opengl', '--no-launcher',
                '--game', str(args.game.resolve()), '--disc', str(args.disc.resolve()),
                '--bios', str(args.bios.resolve()), '--debug-port', str(port),
                '--memcard-dir', str((args.run_dir/'saves').resolve())]

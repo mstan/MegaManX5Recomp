@@ -45,6 +45,12 @@ Arrival grace also sets native contact gate `PLAYER+A4` with timer `+61`:
 Native stage loading includes modes8 and9 (`203F0`, player initialization at
 `204E4`) before gameplay mode10. Crossing either loader state preserves the
 continuation classification; leaving for title/stage selection clears it.
+The saved-inventory discriminator is **signed `PLAY+1E == -1` (`FF`)**:
+`8003BBA8` loads `v0=-1` before the comparison at `8003BBD0`, and native
+`80020794..80020818` saves HP/ammo/weapon/virus before choosing mode9.
+Value1 is an arrival/effect flag and does not select that inventory path.
+The earlier checkpoint checked1 incorrectly; controlled native continuation
+now verifies living, absent and fallen P2 across original init.
 
 Rendering uses `80024C60`, with native ordering-table tails at `80091C50`.
 DAT records 88/90 provide X/Zero graphics (member 3), assembly (member 9),
@@ -85,7 +91,7 @@ paths stay local. No owner checkout, personal cards, release, or remote branch
 is modified.
 
 Implemented: native two-body/input/attack passes; one shared enemy/world pass;
-native independent health/ammo/HUD/menus; shared retry/tank storage; P2 native
+native independent health/ammo/HUD/menus, with meters stacked on the left; shared retry/tank storage; P2 native
 Select withdrawal/return; survivor/team-wipe handling; independent target
 tokens and moving-solid contacts; native pickup/heal ownership; script and
 door owner/passenger transport; authored room/pit bounds and midpoint camera;
@@ -102,12 +108,81 @@ software 1x while each peer may present through GL at its own resolution.
 
 This remains an **early unified-screen checkpoint**, not a qualified full
 campaign. Ordinary room transitions, pits, moving platforms, all Maverick
-stages, boss defeats/rewards/return, late-story removal, vehicle ownership,
-alternative P2 X armors and long-session texture capacity need qualification
+stages, boss defeats/rewards/return, late-story removal, Ride Chaser traversal,
+mounted Armor traversal/doors, alternative P2 X armors and long-session texture
+capacity need qualification
 before calling the full X4-derived baseline complete. Enemy AI retains its
 native primary-world targeting while both seats are alive; the survivor owns
 the native world when P1 falls. Independent cameras and optional story PvP
 have not been implemented.
+
+Ride Armor is **P1-only** by owner preference. Original BIN member6 (logical
+ID10, stage4/section1) supplies `800F2A4C`; resident `80022960` dispatches the
+two original world slots (`800D1DC0`, `800D1E70`, stride `B0`). During P2
+survivor/script world ownership, only that native dispatcher temporarily uses
+P1's body/resources, preserving original vehicle/effect pointers and one world
+update. Original overlay ID and instruction guards prevent applying it to
+unrelated code at those VMAs. P2 stays on foot. Native Ride Chaser co-op remains
+undergoing qualification; the Armor policy does not qualify that separate
+forced-vehicle stage.
+
+The owner also requires **no voluntary despawn anywhere in the forced car
+sequence** and **one rider death must leave the surviving rider in the
+sequence**. Original `80020968..80020984` and X4's Marine Base gate select
+stage5/checkpoint0 even before mounting; the explicit leave lock also covers
+an active native car after that checkpoint changes. Both riders receive a
+private `B0` native car context and the original `8003D784` rider arrival.
+The counterpart enrolls during the scripted arrival instead of waiting for
+ordinary idle pose2 (a native rider uses pose12). Original `3D784` activates
+the vehicle during the player pass, after that frame's `22960` dispatcher;
+enrollment waits for the next initialized native car rather than copying an
+empty slot. Its input, native `22960` vehicle pass, body, attacks and terrain
+advance once at the existing private
+player boundary; the shared world still advances once.
+
+Car rendering uses the original stage atlas, with the native character CLUT
+choice from BIN7 `800EED30..800EED40`. Native moving-solid car histories
+(`+73/+77`) are independent. Verified following-source constructors at
+`800EFEC8`, `800F0BE8`, `800F0D64` store `+50`; bounded native-pool ownership
+redirects only the exact original car pointer to stable per-seat mirrors.
+Private native attack-pool arrival effects retain their own car projection.
+`800EF05C..800EF098` applies the authored camera delta to a car, so this
+sequence uses the native camera controller throughout. The saved cars and
+source owners are included in the delay-sync digest.
+
+Controlled car rules pass in `qa-palette-survivor-x/sequence-drive` and
+`qa-palette-survivor-zero2/sequence-drive`: Select
+stays locked for 180 world updates, either first death leaves the other rider
+alive with its own car, and the last death consumes one native shared retry
+(2→1,1→0). The control check waits for both native grounded driving mode1
+and verifies an actual upward jump response by the survivor. Arrival mode0's
+automatic motion alone is not treated as independent control. Full road
+traversal remains pending. Feature-disabled
+`qa-chaser-stock/car.json` also reaches the opening pit when unattended;
+that stock comparison is not co-op failure evidence. Early car tests
+(`qa-chaser-bringup-x`, `qa-chaser-paced-x`, `qa-chaser-title-x`,
+`qa-chaser-camera-x`, `qa-chaser-arrival-x`) retain their failed control
+windows/loader observations. They do not qualify road traversal or survivor
+orders. New checks use full original stage-entry5/6 and loader7/8/9,
+require a new living enrollment, and observe the native arrival itself.
+
+Both native HUD blocks keep their geometry and original character colors.
+P2 moves down104 pixels at the packet boundary, leaving shared life digits and
+boss meters in their original positions. The existing native virus/radar
+sprite block moves48 pixels right to clear the lower meter in Maverick stages.
+The owner's requested layout is P1 above P2 on the left. Native menus still
+belong to the requesting seat.
+
+Survivor image review caught a shared-palette bug in the Armor stage: original
+`56514` caches world palette pointers, `2BD8C` builds a whole-stage fade from
+the `4000`-byte palette, and `17484` uploads it. Projecting a character-only
+palette for P2's entire world corrupted the background. Shared world passes
+now retain the native stage palette; P2 body/attack passes temporarily select
+its private colors. `qa-palette-survivor-x/armor` passes P1 controls/dismount,
+P2 staying on foot and survivor ownership, and its inspected survivor capture
+shows intact lava/background and native death orbs. Earlier corrupted captures
+remain in `qa-stacked-car-zero2/armor` and `qa-stacked-final-x/armor-entry`;
+their control checks alone did not qualify presentation.
 
 ## Evidence and remaining stage matrix
 
@@ -116,13 +191,16 @@ No automated result represents owner human acceptance.
 
 | Path | Evidence | Scope |
 | --- | --- | --- |
-| X-selected fresh boot | `qa-baseline-x/report.json` | Original menus/dialogue, complementary bodies and correct native parts, independent movement/attacks, one counterpart pass per world pass |
+| X-selected fresh boot | `qa-palette-survivor-x/report.json` | Latest source: original menus/dialogue, complementary bodies and correct native parts, independent movement/attacks, one counterpart pass per world pass |
 | Native resource/scene fixtures | `qa-baseline-x/ownership/report.json` | P2 health pickup 11→27 with P1=13; shared tank16 consumed once for P2; HP/all16 ammo fields survive withdrawal and native script passenger transport |
-| Both native death orders | `qa-candidate-local-zero/lifecycle/report.json` | Final candidate with P1 Zero/P2 base X: survivor control, once-per-world native timer, no fallen Select rejoin, retry2→1 and1→0, native team reload |
-| Final X/Zero peer pairs | `qa-candidate-net-x/report.json`, `qa-candidate-net-zero/report.json` | Final candidate: private movement/attacks and both menus, matching core/mod CRCs through sampled ticks5888/4896; Zero case includes25ms±10ms jitter |
-| Zero-selected fresh boot | `qa-candidate-local-zero/report.json` | Final candidate, complementary native bodies/parts and independent controls |
+| Both native death orders | `qa-candidate-local-zero/lifecycle/report.json` | Earlier candidate with P1 Zero/P2 base X: survivor control, once-per-world native timer, no fallen Select rejoin, retry2→1 and1→0, native team reload |
+| Final X/Zero peer pairs | `qa-palette-net-x/report.json`, `qa-palette-net-zero/report.json` | Latest source: private movement/attacks and both menus, matching core/mod CRCs through sampled ticks6011/4935; Zero case includes25ms±10ms jitter |
+| Zero-selected fresh boot | `qa-palette-survivor-zero2/report.json` | Latest source: actual paced native Zero selection, stacked HUD, complementary base X parts and independent controls |
+| Native continuation/resource checks | `qa-stacked-car-zero2/continuation/report.json`, `qa-stacked-car-zero2/ownership/report.json` | Native FF continuation preserves independent HP/ammo and absent/fallen P2; pickups/tanks/Select return/script ownership pass |
+| P1-only Armor and survivor palette | `qa-palette-survivor-x/armor/report.json`, `qa-palette-survivor-zero2/armor-controls/report.json` | Native entry/load, P2 overlap stays on foot, P1 controls/dismount, survivor routing and inspected original stage art; Zero case also checks P2 survivor input |
+| Car sequence rules and driving | `qa-palette-survivor-x/sequence-drive/report.json`, `qa-palette-survivor-zero2/sequence-drive/report.json` | X and Zero selected: native entry/load, Select180 lock, both first-death orders, surviving native jump, one timer/world pass and one retry per team wipe; not road traversal |
 | Intro road/dialogue smoke | `qa-stage-x` and `qa-scene-x` captures | Reached native damaged-road dialogue; not an intro completion or boss qualification |
-| Feature disabled | `qa-candidate-disabled/report.json` | Final candidate, native fresh boot and single-player controls, no co-op activation |
+| Feature disabled | `qa-stacked-final-disabled/report.json` | Stacked/vehicle checkpoint before the enabled-only palette fix: native fresh boot and single-player controls, no co-op activation |
 | Unit/integration checks | CTest assets, lifecycle, hooks, production catalog | Bounded decoder/format checks, lifecycle/availability rules, unique hooks and emitted coverage, production package count |
 | Eight Maverick stages and late stages | Pending | No load/traversal/boss/vehicle matrix is claimed |
 
@@ -140,8 +218,13 @@ The unpaced selector observation can still race a native default confirmation
 (`qa-staged-loader`). The harness now accepts an already-confirmed
 original-input path only after verifying the
 requested character from the actual native body; it never forces a selector.
+`qa-palette-survivor-zero` correctly rejected an already-confirmed X pair;
+the fresh paced `qa-palette-survivor-zero2` verified actual Zero selection.
+`qa-palette-survivor-zero2/armor` retains the loader harness timeout caused by
+its strict idle-pose gate and repeated Cross pulses. The corrected gate waits
+for fresh enrollment and open native control, then leaves input neutral.
 
-The fully exercised candidate executable SHA-256 is
+The previous candidate executable SHA-256 is
 `b7f7066d431cf9fa8730abfacc086076cea463ee77e9b572806e66297834cd38`.
 The final corpse/passenger rendering adjustment is covered by the Zero
 candidate's two death orders; the resource/script fixture report preceded that
@@ -153,6 +236,8 @@ matched core/mod samples through tick5984. Ordinary section traversal remains
 pending; the loader fix does not turn this input/CRC check into that evidence.
 
 Build uses the local OpenBIOS image and framework `1483cc3`, UI `36cf0da`.
+The latest stacked-meter/vehicle/palette checkpoint executable SHA-256 is
+`500840386f7d42976aab48fb39f5a6bd10e31ad3832a68b8f8a5b05064665ec3`.
 Generated C is regenerated from `game.toml`, never patched. Rebuild with two
 compile jobs. Focused runtime commands are in `tools/test_mmx5_coop_*.py`;
 they own private processes/cards and use native input for boot/navigation.
@@ -161,11 +246,13 @@ Controlled ownership/death fixtures are debug-only and reject online use.
 Stage an owner test with:
 
 ```powershell
-py -3 tools/prepare_mmx5_coop_playtest.py --build build-coop --out build-coop/playtest-unified
+py -3 tools/prepare_mmx5_coop_playtest.py --build build-coop --out build-coop/playtest-stacked-unified
 ```
 
 Run the generated `Play X5 Co-op.ps1`, bind two controllers in the launcher,
 and use original stage/character menus. Start belongs to the requesting seat;
 P2 holds Select for 90 gameplay updates to leave, then taps Select near a
 grounded living P1 to return. Fallen actors wait for a native team retry or
-new stage. Keep other enhancement mods off for this initial baseline test.
+new stage. The forced car sequence locks voluntary withdrawal; one rider death
+keeps the other playing, and the last death spends one shared retry. Keep other
+enhancement mods off for this initial baseline test.

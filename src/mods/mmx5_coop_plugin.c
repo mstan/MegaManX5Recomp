@@ -78,6 +78,10 @@ typedef struct {uint32_t x,y,assembly;uint8_t layer,valid;} DeathOrigin;
 static DeathOrigin death_origins[128];
 static unsigned effect_allocate_call,effect_init_call;
 static uint32_t fixture_sequence;
+#ifdef MMX5_COOP_TEST_CHEATS
+static unsigned test_chord,test_god_mask,test_commands;
+static void test_menu_commands(void);
+#endif
 static uint32_t arena, primary_arena, primary_packets, diagnostic, ticks, world_ticks, asset_generation;
 static unsigned render_primary;
 static uint16_t previous_input;
@@ -360,9 +364,135 @@ static void observe_stage(void) {
      * loader after mode 8. It must not turn a section continuation into a
      * fresh team merely because loading crossed a VBlank. */
     if(ever_enrolled && mode!=8 && mode!=9 && mode!=10)stage_departed=1;
+#ifdef MMX5_COOP_TEST_CHEATS
+    test_menu_commands();
+#endif
 }
+#ifdef MMX5_COOP_TEST_CHEATS
+/* Qualification commands use logical P1's replicated SIO packet. Never use
+ * local-port selection or an online RAM mailbox: both peers must execute the
+ * command once at the same canonical world boundary, outside render replay.
+ * Hold L3+R3 and encode command 1..13 in the four shoulder button bits. */
+static void test_receipt(unsigned command,uint32_t result) {
+    ++test_commands;psx_mod_write_word(diagnostic+0x80,test_commands);
+    psx_mod_write_word(diagnostic+0x84,command);psx_mod_write_word(diagnostic+0x88,result);
+    psx_mod_counter_add("mmx5.coop.test-cheat",1);
+}
+static void test_stage_entry(unsigned command) {
+    psx_mod_write_byte(PLAY+0x0C,(uint8_t)(command==7?5:command==8?4:1));
+    psx_mod_write_byte(PLAY+0x0D,(uint8_t)(command==8?1:0));
+    for(unsigned i=1;i<4;++i)psx_mod_write_byte(PLAY+i,0);
+    psx_mod_write_byte(PLAY,5);
+}
+static void test_menu_commands(void) {
+    unsigned mode=psx_mod_read_byte(PLAY);
+    if(!diagnostic || busy || projected || psx_mod_local_view_scope() || (mode!=4 && mode!=13))return;
+    uint16_t held=(uint16_t)~sio_get_pad_buttons_slot(0);
+    if((held&6)!=6) {test_chord=0;return;}
+    unsigned command=(held>>8)&15;
+    if(!test_chord && (command==7 || command==8 || command==12)) {
+        /* Loaded selector/Game Over has campaign data but no world tick.
+         * Only the original mission-entry mode writes are permitted here.
+         * VBlank/SIO input is shared simulation state on both peers. */
+        test_chord=1;test_stage_entry(command);test_receipt(command,1);
+    }
+}
+static void test_place(unsigned seat,uint32_t x,uint32_t y) {
+    if(seat==(world_owner?1u:0u)) {
+        psx_mod_write_word(PLAYER+8,x);psx_mod_write_word(PLAYER+12,y);
+        psx_mod_write_word(PLAYER+0x18,x);psx_mod_write_word(PLAYER+0x1C,y);
+    } else {
+        uint8_t *body=seat?second.body:first.body;
+        for(unsigned i=0;i<4;++i) {
+            body[8+i]=body[0x18+i]=(uint8_t)(x>>(8*i));
+            body[12+i]=body[0x1C+i]=(uint8_t)(y>>(8*i));
+        }
+    }
+}
+static void test_fatal(unsigned seat) {
+    test_god_mask&=~(1u<<seat);
+    if(seat==(world_owner?1u:0u))psx_mod_write_byte(PLAYER+0x5C,0x80);
+    else (seat?second.body:first.body)[0x5C]=0x80;
+    if(car_context()) {
+        if(seat==(world_owner?1u:0u))psx_mod_write_byte(CAR+0x5C,0);
+        else (seat?second.car:first.car)[0x5C]=0;
+    }
+}
+static void test_commands_tick(CPUState *cpu) {
+    if(busy || (projected && !world_owner) || local_view_call)return;
+    uint16_t held=(uint16_t)~sio_get_pad_buttons_slot(0);
+    unsigned chord=(held&6)==6,command=(held>>8)&15,result=0;
+    if(chord && !test_chord) {
+        if((command==1 || command==2) && psx_mod_read_byte(PLAY+0x0C)==1 &&
+            !psx_mod_read_byte(PLAY+0x0D) && !scene_owner) {
+            /* Original loader resolves the checkpoint record, camera bounds,
+             * enemy placements and arrival. Do not fabricate a victory flag. */
+            psx_mod_write_byte(PLAY+0x1D,(uint8_t)(command==1?1:4));
+            psx_mod_write_byte(PLAY+0x0F,0xFF);guest(cpu,0x800205AC,PLAY,0);result=1;
+        } else if(command==3 && psx_mod_read_byte(PLAY+0x0C)==1 &&
+            psx_mod_read_word(0x800EE970)==5) {
+            for(unsigned i=0;i<48;++i) {
+                uint32_t actor=0x80092090u+i*0x9Cu;
+                if(psx_mod_read_byte(actor) && psx_mod_read_byte(actor+1)==0x36 &&
+                    psx_mod_read_byte(actor+4)==1 && psx_mod_read_byte(actor+5)!=9 &&
+                    psx_mod_read_byte(actor+0x5C)>0 && psx_mod_read_byte(actor+0x5C)<128) {
+                    /* BIN1 F880C..F8828 enters death on a negative damage
+                     * return, not an HP poll. Reproduce that actor transition;
+                     * original F9D00 drives the death pose/effects/controller.
+                     * No campaign, reward or victory flag is written here. */
+                    psx_mod_write_byte(actor+0x5C,0x80);
+                    psx_mod_write_byte(PLAYER+0x7A,1);
+                    psx_mod_write_byte(actor+4,2);psx_mod_write_byte(actor+5,0);
+                    result=actor;break;
+                }
+            }
+        } else if(command==4) {test_god_mask=3;result=1;}
+        else if(command==5 || command==6) {test_fatal(command-5);result=1;}
+        else if(command==7 || command==8 || command==12) {
+            /* Use original mission title/loader, including selected mission
+             * +26/+27. No disc code or actor is copied into guest memory. */
+            test_stage_entry(command);result=1;
+        } else if((command==9 || command==10) && native_armor_overlay()) {
+            if(psx_mod_read_byte(CAR) && psx_mod_read_byte(CAR+1)==1) {
+                test_place(command-9,psx_mod_read_word(CAR+8),psx_mod_read_word(CAR+12)-16*65536u);
+                result=1;
+            }
+        } else if(command==11 && life.status[0]==MMX5_COOP_ALIVE &&
+            life.status[1]==MMX5_COOP_ALIVE && !car_context() && !scene_owner) {
+            uint32_t x=world_owner?le32(first.body+8):psx_mod_read_word(PLAYER+8);
+            uint32_t y=world_owner?le32(first.body+12):psx_mod_read_word(PLAYER+12);
+            test_place(1,x+(24u<<16),y);result=1;
+        } else if(command==13) {
+            psx_mod_write_byte(PLAY+0x45,3);result=1;
+        }
+        test_receipt(command,result);
+    }
+    test_chord=chord;
+    /* Refill HP only. Native A4/61 immunity also rejects Armor contacts;
+     * changing those would conceal the native mount/door paths being tested. */
+    for(unsigned seat=0;seat<2;++seat)if((test_god_mask&(1u<<seat)) &&
+        life.status[seat]==MMX5_COOP_ALIVE) {
+        if(seat==(world_owner?1u:0u)) {
+            if(!(psx_mod_read_byte(PLAYER+0x5C)&128)) {
+                psx_mod_write_byte(PLAYER+0x5C,psx_mod_read_byte(PLAYER+0x5D));
+            }
+        } else {
+            uint8_t *body=seat?second.body:first.body;
+            if(!(body[0x5C]&128))body[0x5C]=body[0x5D];
+        }
+        if(car_context() && !((seat==(world_owner?1u:0u)?psx_mod_read_byte(PLAYER+0x5C):
+            (seat?second.body:first.body)[0x5C])&128)) {
+            if(seat==(world_owner?1u:0u))psx_mod_write_byte(CAR+0x5C,psx_mod_read_byte(PLAYER+0x5D));
+            else (seat?second.car:first.car)[0x5C]=(seat?second.body:first.body)[0x5D];
+        }
+    }
+}
+#endif
 static void world_tick(CPUState *cpu,uint32_t address) {
     (void)cpu;(void)address;
+#ifdef MMX5_COOP_TEST_CHEATS
+    test_commands_tick(cpu);
+#endif
 #ifndef PSX_NO_DEBUG_TOOLS
     if(diagnostic && !psx_mod_netplay_is_active()) {
         uint32_t sequence=psx_mod_read_word(diagnostic+0x50);
@@ -1252,7 +1382,9 @@ static int split_scan(CPUState *cpu,uint32_t address) {
     unsigned stage=psx_mod_read_byte(PLAY+12),section=psx_mod_read_byte(PLAY+13);
     if(stage>=19 || section>1)return 0;
     uint32_t table=psx_mod_read_word(0x80072EACu+stage*8u+section*4u);
-    if((table&7u) || table<0x80010000u || table>=0x80200000u)return 0;
+    /* Records are eight bytes, but original BIN1's Grizzly table FBD3C is
+     * only word aligned. Rejecting it skips the two-view activation union. */
+    if((table&3u) || table<0x80010000u || table>=0x80200000u)return 0;
     if(table!=split_table) {split_table=table;memset(split_visits,0,sizeof split_visits);}
     PSXPlacementRect regions[2];unsigned count=split_regions(regions);
     for(unsigned index=0;index<MMX5_COOP_PLACEMENTS && table+index*8u+8u<=0x80200000u;++index) {
@@ -1836,6 +1968,10 @@ static void activate(void) {
     scene_owner=scene_phase=scene_call=door_call=0;scene_y=0;memset(scene_body,0,sizeof scene_body);
     join_phase=0;join_y=0;memset(returning_body,0,sizeof returning_body);
     effect_allocate_call=effect_init_call=0;memset(death_origins,0,sizeof death_origins);fixture_sequence=0;
+#ifdef MMX5_COOP_TEST_CHEATS
+    test_chord=test_god_mask=test_commands=0;
+    psx_mod_counter_add("mmx5.coop.test-cheats-enabled",1);
+#endif
     memset(&first,0,sizeof first);memset(&second,0,sizeof second);
     if(split_views && !view_background_arena)failed=1;
     for(unsigned c=0;c<2;++c) {
@@ -1865,6 +2001,9 @@ static uint32_t hash_word(uint32_t hash,uint32_t word) {
 }
 static uint32_t state_digest(void) {
     uint32_t hash=2166136261u;
+#ifdef MMX5_COOP_TEST_CHEATS
+    hash=hash_word(hash,test_chord);hash=hash_word(hash,test_god_mask);hash=hash_word(hash,test_commands);
+#endif
     const unsigned words[]={ready,enrolled,failed,counterpart,projected,busy,world_owner,keep_zero,
         split_views,split_valid,split_owner,split_table,
         ai_pool_call,ai_call,ai_owner,ai_suspended,ai_pool,ai_pending,ai_function,ai_first_freeze,

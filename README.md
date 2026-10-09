@@ -39,6 +39,14 @@ Important files:
 
 ## Status
 
+**Windows co-op prerelease: `v0.2.0-coop-alpha-debug`.** Enable **X + Zero
+Co-op** in Mods for simultaneous local play, or use LAN/Online Host/Join for
+netplay. The launcher exposes both controller seats. Unified is the default;
+Split gives online peers independent displays of the shared world. Use OpenGL
+and the same alpha build on both peers. Co-op is default off; qualification
+cheats are excluded. Internet sessions and the full campaign remain alpha
+testing coverage. See `RELEASE_NOTES.md` for setup, tested paths and limits.
+
 **Playable preview — `v0.0.2-alpha`.** Mega Man
 X5 **boots from the PS1 BIOS and plays** — through the opening (including the
 intro cutscenes, which now decode and play), into stages, with working

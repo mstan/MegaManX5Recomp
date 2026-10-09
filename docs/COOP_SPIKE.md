@@ -3,6 +3,14 @@
 Tracking: central Beads `beads-eio.10.2`. Branch `spike/mmx5-coop`, created
 from freshly fetched remote master `c8fde08` on 2026-10-08.
 
+Release assessment resumed on 2026-10-09: the owner accepted the independent
+performance fix and Grizzly reward/return result, and waived a boss repeat.
+See `COOP_DEBUG_TESTING.md` for the remaining bounded checks and packaging work.
+The synthetic stage-access card and its generator described below are
+historical evidence only. Future test saves must come from an online download,
+with the original preserved and any edits kept sparing. Do not reuse the
+generated card in the staging/launch commands below.
+
 The approved sequence follows X4's original Codex plan, using X6's native
 player-context projection and retained original-disc resources. P1's native
 stage selection determines the character; P2 is the counterpart. Native Zero

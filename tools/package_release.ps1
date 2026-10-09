@@ -3,10 +3,18 @@ param(
     [string]$BuildDir = "build-release",
     [string]$RecompilerBuildDir = "recompiler/build",
     [int]$Jobs = 4,
-    [switch]$SkipRegen
+    [switch]$SkipRegen,
+    [switch]$CoopDebugTest,
+    [switch]$TestCheats
 )
 
 $ErrorActionPreference = "Stop"
+if ($TestCheats -and -not $CoopDebugTest) {
+    throw "-TestCheats requires -CoopDebugTest"
+}
+if ($CoopDebugTest -and -not $PSBoundParameters.ContainsKey('BuildDir')) {
+    $BuildDir = "build-coop-debug-release"
+}
 
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
 # All framework paths go through the psxrecomp-v4 junction at $Root so this
@@ -28,8 +36,12 @@ if ([string]::IsNullOrWhiteSpace($Version)) {
     }
     Write-Host "Release version from packaging/release/VERSION: $Version"
 }
+if ($CoopDebugTest) {
+    if ($Version -notmatch '-coop-alpha-debug(?:-cheats)?$') { $Version += "-coop-alpha-debug" }
+    if ($TestCheats -and $Version -notmatch '-cheats$') { $Version += "-cheats" }
+}
 $BuildPath = Join-Path $Root $BuildDir
-$StageRoot = Join-Path $Root "release-stage"
+$StageRoot = Join-Path $Root $(if ($CoopDebugTest) { "release-stage-coop-debug" } else { "release-stage" })
 $Stage = Join-Path $StageRoot "MegaManX5Recomp-windows-x64"
 $ZipPath = Join-Path $Root ("MegaManX5Recomp-{0}-windows-x64.zip" -f $Version)
 $MingwBin = "C:\msys64\mingw64\bin"
@@ -130,7 +142,15 @@ if (-not $SkipRegen) {
     Invoke-Native { & $RecompBin --config (Join-Path $Root 'game.toml') } 'base game regeneration'
 }
 
-Invoke-Native { & $CMake -S $Root -B $BuildPath -G Ninja -DCMAKE_BUILD_TYPE=Release -DPSX_DEBUG_TOOLS=OFF -DPSX_PGXP_VARIANT=OFF -DPSX_SDL_BACKEND=SDL3 "-DPSX_GAME_VERSION=$Version" } "cmake configure"
+$DebugTools = if ($CoopDebugTest) { "ON" } else { "OFF" }
+$Cheats = if ($TestCheats) { "ON" } else { "OFF" }
+$SdlBackend = if ($CoopDebugTest) { "SDL2" } else { "SDL3" }
+Invoke-Native {
+    & $CMake -S $Root -B $BuildPath -G Ninja -DCMAKE_BUILD_TYPE=Release `
+        "-DPSX_DEBUG_TOOLS=$DebugTools" "-DMMX5_COOP_TEST_CHEATS=$Cheats" `
+        -DPSX_PGXP_VARIANT=OFF "-DPSX_SDL_BACKEND=$SdlBackend" `
+        -DPSX_RECOMP_UI=ON -DPSX_NETPLAY=ON -DPSX_STATIC_RUNTIME=ON "-DPSX_GAME_VERSION=$Version"
+} "cmake configure"
 Invoke-Native { & $CMake --build $BuildPath --target psx-runtime -j $Jobs } "cmake build"
 
 if (Test-Path $StageRoot) {
@@ -150,6 +170,11 @@ $DevExe = Join-Path $BuildPath "MegaManX5Recomp.exe"
 if (-not (Test-Path $DevExe)) { $DevExe = Join-Path $BuildPath "mmx5-runtime.exe" }
 if (-not (Test-Path $DevExe)) { $DevExe = Join-Path $BuildPath "psx-runtime.exe" }
 Copy-Item $DevExe (Join-Path $Stage "MegaManX5Recomp.exe")
+$LobbyVersion = Join-Path $BuildPath "psx_game_version.txt"
+if (-not (Test-Path -LiteralPath $LobbyVersion) -or (Get-Content -LiteralPath $LobbyVersion -Raw).Trim() -ne $Version) {
+    throw "Built lobby version does not match packaged version $Version"
+}
+Copy-Item -LiteralPath $LobbyVersion -Destination $Stage
 Copy-Item (Join-Path $Root "README.md") $Stage
 Copy-Item (Join-Path $Root "LICENSE") $Stage
 New-Item -ItemType Directory -Force (Join-Path $Stage "docs") | Out-Null
@@ -176,8 +201,9 @@ Copy-Item (Join-Path $Root "docs/AOT_OVERLAYS.md") (Join-Path $Stage "docs")
 # It asserts that invariant rather than a count, which cannot go stale when
 # either side gains a mod.
 . (Join-Path $FrameworkRoot "tools\release_overlay_stage.ps1")
+$GameModSource = if ($CoopDebugTest) { Join-Path $BuildPath "development-mods" } else { Join-Path $Root "mods\preloaded" }
 Add-ModCatalog -BuildPath $BuildPath -Stage $Stage `
-               -GameModSource (Join-Path $Root "mods\preloaded") `
+               -GameModSource $GameModSource `
                -FrameworkModSource (Join-Path $FrameworkRoot "mods\builtin") | Out-Null
 $BundledBiosSrc = Join-Path $BuildPath "bios"
 if (!(Test-Path (Join-Path $BundledBiosSrc "openbios.bin")) -or
@@ -216,6 +242,7 @@ Write-Host "Bundled recomp-ui launcher assets: $fontCount font(s) + $imgCount im
 [game]
 name = "Mega Man X5"
 id = "SLUS-01334"
+players = 2
 exe = "mmx5/SLUS_013.34"
 disc = "mmx5/Mega Man X5 (USA).cue"
 load_address = "0x80010000"
@@ -448,6 +475,21 @@ Controller mappings are configurable in input.ini.
 Memory cards are stored in the saves directory; save and load work with standard
 PS1 .mcd images.
 "@ | Set-Content -Encoding ASCII (Join-Path $Stage "START_HERE.txt")
+
+if ($CoopDebugTest) {
+    @"
+
+Experimental co-op alpha debug test:
+Enable X + Zero Co-op in Mods, then configure Player 1 and Player 2 on the
+recomp-ui dashboard for local co-op. Choose separate devices for each seat.
+Use Netplay -> LAN / Direct IP or Online Netplay -> Host Lobby / Join for
+netplay. Each peer binds its local device as Player 1; the room assigns seats.
+The host chooses Unified or Split under the co-op mod's Netplay cameras option.
+Both peers need this same alpha build. Internet play is available for user testing;
+current synchronization checks use loopback peers and simulated jitter.
+"@ | Add-Content -Encoding ASCII (Join-Path $Stage "START_HERE.txt")
+    Copy-Item -LiteralPath (Join-Path $Root "docs/COOP_DEBUG_TESTING.md") -Destination (Join-Path $Stage "docs")
+}
 
 if (Test-Path $ZipPath) {
     Remove-Item -Force $ZipPath

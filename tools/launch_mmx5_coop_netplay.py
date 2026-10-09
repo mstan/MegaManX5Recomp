@@ -61,6 +61,10 @@ def main():
     staged = options.build.resolve()
     native_settings=tomllib.loads((staged/'game.toml').read_text(encoding='utf-8'))
     checkpoint=json.loads((staged/'CHECKPOINT.json').read_text())
+    require(checkpoint.get('save_source_url','').startswith(('https://','http://')),
+            'This playtest needs a downloaded save with recorded source; historical generated cards are retired')
+    require(checkpoint.get('stage_access_card_sha256')!='4a173ef3b348f61073a89b8e416687f556b44b7475ef60c0e3564a0ac093f3e9',
+            'The generated stage-access card is retired')
     for filename,key in (('mmx5-runtime.exe','executable_sha256'),('bios/openbios.bin','bios_sha256'),
                          ('saves/card1.mcd','stage_access_card_sha256')):
         require(sha256_file(staged/filename)==checkpoint[key],f'Staged checkpoint mismatch: {filename}')
@@ -73,14 +77,6 @@ def main():
     seed = out / 'card-seed'
     seed.mkdir()
     shutil.copy2(staged / 'saves/card1.mcd', seed / 'card1.mcd')
-    # Free the native directory in a private copy; no old playtest dependency.
-    blank = bytearray((seed/'card1.mcd').read_bytes())
-    require(len(blank)==131072 and blank[:2]==b'MC', 'Native stage-access card invalid')
-    for frame in range(1,16):
-        entry=bytearray(128);entry[0]=0xA0;entry[8:10]=b'\xff\xff'
-        for value in entry[:127]:entry[127]^=value
-        blank[frame*128:(frame+1)*128]=entry
-    (seed/'card2.mcd').write_bytes(blank)
     args = SimpleNamespace(exe=staged/'mmx5-runtime.exe', config=staged/'game.toml', game_root=ROOT,
                            bios=staged/'bios/openbios.bin', disc=ROOT/'mmx5/Mega Man X5 (USA).cue',
                            cameras='split', card_seed=seed, seed=1296914485,
@@ -118,8 +114,7 @@ def main():
         (peer.directory/'keybinds.ini').write_text('\n'.join(binds), encoding='utf-8')
         openbios = peer.directory/'saves/openbios'
         openbios.mkdir()
-        for name in ('card1.mcd', 'card2.mcd'):
-            shutil.copy2(seed/name, openbios/name)
+        shutil.copy2(seed/'card1.mcd', openbios/'card1.mcd')
 
     revision = checkpoint['source_commit']
     session = dict(directory=str(out), source_commit=revision,

@@ -5,10 +5,23 @@ include(CTest)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 17)
 
+# The co-op title exposes both controller seats and the launcher Host/Join
+# flow on a fresh configure, just like X6's co-op branch.
+option(PSX_NETPLAY "Build the shared two-player netplay stack" ON)
+
 set(PSXRECOMP_V4_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/psxrecomp-v4" CACHE PATH
     "Path to psxrecomp-v4")
 
 include("${PSXRECOMP_V4_ROOT}/runtime/runtime.cmake")
+
+option(MMX5_COOP_TEST_CHEATS "Enable replicated X5 qualification cheats (private debug builds only)" OFF)
+if(MMX5_COOP_TEST_CHEATS AND NOT PSX_DEBUG_TOOLS)
+    message(FATAL_ERROR "MMX5_COOP_TEST_CHEATS requires PSX_DEBUG_TOOLS")
+endif()
+if(MMX5_COOP_TEST_CHEATS)
+    set_property(SOURCE src/mods/mmx5_coop_plugin.c APPEND PROPERTY
+        COMPILE_DEFINITIONS MMX5_COOP_TEST_CHEATS=1)
+endif()
 
 # The recompiler emits the game body as SHARDS (SLUS_013.34_full_00.c ...) --
 # a single SLUS_013.34_full.c has not been produced for some time. This file
@@ -48,6 +61,7 @@ foreach(MMX5_FRAMEWORK_FILE IN ITEMS runtime/src/mod_netplay.c runtime/include/m
     list(APPEND MMX5_COOP_CONTRACT_FILES "${PSXRECOMP_V4_ROOT}/${MMX5_FRAMEWORK_FILE}")
 endforeach()
 set(MMX5_COOP_CONTRACT "mmx5-coop-delay-v1\n")
+string(APPEND MMX5_COOP_CONTRACT "qualification-cheats=${MMX5_COOP_TEST_CHEATS}\n")
 foreach(MMX5_COOP_FILE IN LISTS MMX5_COOP_CONTRACT_FILES)
     file(SHA256 "${MMX5_COOP_FILE}" MMX5_COOP_FILE_HASH)
     string(APPEND MMX5_COOP_CONTRACT "${MMX5_COOP_FILE_HASH}\n")

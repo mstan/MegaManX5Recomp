@@ -1,9 +1,9 @@
 format_version = 5
 id = "mmx5.coop"
 version = "0.0.1"
-name = "X + Zero Co-op (Development)"
+name = "X + Zero Co-op (Alpha)"
 author = "mstan"
-description = "Experimental native co-op. Gameplay qualification is in progress."
+description = "Experimental native co-op alpha with local play and opt-in independent netplay displays."
 resolver = "declarative"
 save_compatibility = "isolated"
 
@@ -14,7 +14,7 @@ disc_sha256 = "be731bc4b9d3211b9267a34b8a68c769199a15479b14004ff25b67cdfebe8af4"
 [[feature]]
 id = "coop"
 name = "X + Zero Co-op"
-description = "X and Zero share one screen, with life meters stacked on the left. P1 uses Ride Armor. Requires OpenGL and a fresh boot. Development build only."
+description = "X and Zero play together with life meters stacked on the left. P1 uses Ride Armor. Online play can use independent displays. Requires OpenGL and a fresh boot."
 group = "Experimental"
 default_enabled = false
 

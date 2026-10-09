@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import tomllib
@@ -16,8 +17,11 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--build',type=Path,default=Path('build-coop'))
     parser.add_argument('--out',type=Path,required=True)
-    parser.add_argument('--stage-access-card',type=Path,
-                        help='Seed a fresh playtest with the separately validated all-eight-stage card')
+    parser.add_argument('--save-card','--stage-access-card',dest='stage_access_card',type=Path,
+                        help='Seed a fresh playtest with an unmodified downloaded 128KB PS1 card')
+    parser.add_argument('--save-source-url',help='Online source of the downloaded save card')
+    parser.add_argument('--debug-test-build',action='store_true',
+                        help='Require both launcher controller seats, debug tools and the netplay lobby')
     args=parser.parse_args()
     root=Path(__file__).resolve().parent.parent
     build=args.build.resolve()
@@ -26,19 +30,41 @@ def main():
         parser.error('Use a fresh output directory to preserve previous playtest settings/cards')
     card=args.stage_access_card.read_bytes() if args.stage_access_card else None
     if card is not None and (len(card)!=131072 or card[:2]!=b'MC'):
-        parser.error('Stage-access card must be a native 128KB PS1 card')
+        parser.error('Downloaded save card must be a native 128KB PS1 card')
+    if card is not None:
+        if not args.save_source_url or not args.save_source_url.startswith(('https://','http://')):
+            parser.error('A downloaded card requires --save-source-url')
+        if hashlib.sha256(card).hexdigest()=='4a173ef3b348f61073a89b8e416687f556b44b7475ef60c0e3564a0ac093f3e9':
+            parser.error('The synthetic stage-access card is retired; use a downloaded save')
     exe=build/'mmx5-runtime.exe'
     bios=build/'bios/openbios.bin'
     package=build/'mods/bundled/mmx5.coop/0.0.1/manifest.toml'
     for path in (exe,bios,package):
         if not path.is_file():parser.error(f'Missing built input: {path}')
+    native=tomllib.loads((root/'game.toml').read_text(encoding='utf-8'))
+    if native['game'].get('players')!=2:
+        parser.error('Co-op launcher must declare game.players=2 for P1/P2 bindings')
+    cache_path=build/'CMakeCache.txt'
+    cache=cache_path.read_text(encoding='utf-8') if cache_path.exists() else ''
+    if args.debug_test_build:
+        for flag in ('PSX_DEBUG_TOOLS','PSX_RECOMP_UI','PSX_NETPLAY'):
+            if not re.search(r'^'+flag+r':BOOL=ON$',cache,re.M):
+                parser.error(f'Debug test distribution requires {flag}=ON in {cache_path}')
+        if not (build/'psx_game_version.txt').is_file():
+            parser.error('Debug test distribution requires its built lobby version stamp')
+        if not list((build/'assets/fonts').glob('*.ttf')) or not (build/'assets/img/boxart.tga').is_file():
+            parser.error('Debug test distribution requires the built recomp-ui fonts and artwork')
     out.mkdir(parents=True)
     shutil.copy2(exe,out/exe.name)
+    version=build/'psx_game_version.txt'
+    if version.is_file():shutil.copy2(version,out/version.name)
     for dll in build.glob('*.dll'):
         if dll.name!='asset-research.dll':
             shutil.copy2(dll,out/dll.name)
     if (build/'psxrecomp.png').is_file():
         shutil.copy2(build/'psxrecomp.png',out/'psxrecomp.png')
+    if (build/'assets').is_dir():
+        shutil.copytree(build/'assets',out/'assets')
     (out/'bios').mkdir()
     shutil.copy2(bios,out/'bios/openbios.bin')
     if (build/'bios/OpenBIOS.LICENSE').is_file():
@@ -47,7 +73,6 @@ def main():
     if (build/'cache').is_dir():
         shutil.copytree(build/'cache',out/'cache')
     config=(root/'game.toml').read_text(encoding='utf-8')
-    native=tomllib.loads(config)
     for section,key,value in (
         ('game','exe',str((root/native['game']['exe']).resolve())),
         ('game','disc',str((root/native['game']['disc']).resolve())),
@@ -118,17 +143,33 @@ remains deferred. Full room/boss/script-handoff qualification is still pending.
             location.mkdir(parents=True,exist_ok=True)
             (location/'card1.mcd').write_bytes(card)
         with (out/'README.txt').open('a',encoding='utf-8') as note:
-            note.write('\nStage-access save included: choose CONTINUE, Memory Card 1, DATA 1,\n'
-                       'then select Yes to load. Both characters and all eight boss stages\n'
-                       'are available, with 16 hours remaining and bosses unbeaten.\n')
+            note.write('\nDownloaded save included: choose CONTINUE, Memory Card 1,\n'
+                       'then choose the desired native save slot and confirm Yes.\n'
+                       f'Original save source: {args.save_source_url}\n')
     branch=subprocess.check_output(['git','branch','--show-current'],cwd=root,text=True).strip()
     revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip()
     framework_revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=root/'psxrecomp-v4',text=True).strip()
     manifest=dict(branch=branch,source_commit=revision,executable_sha256=hashlib.sha256(exe.read_bytes()).hexdigest(),
                   bios_sha256=hashlib.sha256(bios.read_bytes()).hexdigest(),
                   framework_commit=framework_revision,netplay_cameras=['unified','split'],
-                  default_camera='unified',human_validated=False,source_docs=str(root/'docs/COOP_SPIKE.md'))
-    if card is not None:manifest['stage_access_card_sha256']=hashlib.sha256(card).hexdigest()
+                  default_camera='unified',human_validated=False,source_docs=str(root/'docs/COOP_SPIKE.md'),
+                  controller_players=2,debug_test_build=args.debug_test_build,
+                  lobby_version=version.read_text().strip() if version.is_file() else None,
+                  qualification_cheats=bool(re.search(r'^MMX5_COOP_TEST_CHEATS:BOOL=ON$',cache,re.M)))
+    if args.debug_test_build:
+        (out/'docs').mkdir()
+        shutil.copy2(root/'docs/COOP_DEBUG_TESTING.md',out/'docs/COOP_DEBUG_TESTING.md')
+        with (out/'README.txt').open('a',encoding='utf-8') as note:
+            note.write('\nDebug test build: the recomp-ui Controller page exposes P1 and P2.\n'
+                       'Use separate device bindings for local co-op. Host/Join and the\n'
+                       'netplay lobby are available from the launcher; online peers each\n'
+                       'bind their local device as P1 and choose their seat in the room.\n')
+            if manifest['qualification_cheats']:
+                note.write('Qualification cheats enabled; see docs/COOP_DEBUG_TESTING.md.\n'
+                           'Use the same cheat-enabled build on both peers.\n')
+    if card is not None:
+        manifest['stage_access_card_sha256']=hashlib.sha256(card).hexdigest()
+        manifest['save_source_url']=args.save_source_url
     (out/'CHECKPOINT.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
     print(out/'Play X5 Co-op.ps1')
 

@@ -97,6 +97,7 @@ class Peer:
     process: subprocess.Popen | None = None
     diagnostic: int | None = None
     output: object | None = None
+    debug_timeout: float = 3.0
 
     @property
     def log(self) -> Path:
@@ -118,7 +119,7 @@ class Peer:
     def request(self, cmd: str, *, allow_error: bool = False, **fields) -> dict:
         require(self.running(), f"P{self.seat + 1} process exited before {cmd}")
         with socket.create_connection(("127.0.0.1", self.tcp), timeout=2) as connection:
-            connection.settimeout(3)
+            connection.settimeout(self.debug_timeout)
             connection.sendall((json.dumps(dict(id=1, cmd=cmd, **fields)) + "\n").encode())
             with connection.makefile("rb") as stream:
                 line = stream.readline(2 * 1024 * 1024)
@@ -225,8 +226,10 @@ def prepare_peer(args, case: Path, seat: int, ports: list[int], jitter: bool,
     if card_seed is not None:
         for name in ('card1.mcd', 'card2.mcd'):
             source_card = card_seed / name
-            require(source_card.is_file(), f'Missing private save seed: {source_card}')
-            shutil.copy2(source_card, saves / name)
+            if name == 'card1.mcd':
+                require(source_card.is_file(), f'Missing downloaded save seed: {source_card}')
+            if source_card.is_file():
+                shutil.copy2(source_card, saves / name)
     source = args.config.read_text(encoding="utf-8")
     original = tomllib.loads(source)
     game_exe = Path(original["game"]["exe"])

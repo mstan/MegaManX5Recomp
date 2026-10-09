@@ -1,6 +1,7 @@
 """Release owned preparation overrides and arrange the two human playtest windows."""
 import ctypes as C
 from ctypes import wintypes as W
+import argparse
 import json
 from pathlib import Path
 import sys
@@ -11,11 +12,16 @@ sys.path.insert(0, str(ROOT/'tools'))
 from coop_debug import Runtime
 from test_mmx5_coop_netplay import require, parse_crc_log
 
-out = Path(sys.argv[1]).resolve()
+parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument('directory',type=Path)
+parser.add_argument('--native-state',choices=('selector','save-prompt'),default='selector')
+options=parser.parse_args()
+out = options.directory.resolve()
 session = json.loads((out/'SESSION.json').read_text())
 require(session['success'], 'Selector preparation did not succeed')
 runtimes = [Runtime(p['tcp']) for p in session['peers']]
-require(all(r.read(0x800D1C00, 3) == b'\x04\x04\x00' for r in runtimes), 'Not at native selector')
+expected=b'\x04\x04\x00' if options.native_state=='selector' else b'\x0e\x01'
+require(all(r.read(0x800D1C00, len(expected)) == expected for r in runtimes), 'Not at requested native menu')
 user = C.WinDLL('user32', use_last_error=True)
 kernel = C.WinDLL('kernel32', use_last_error=True)
 kernel.OpenProcess.restype=W.HANDLE
@@ -70,7 +76,8 @@ for seat, hwnd in windows.items():
     x = rect.left + seat*half + (half-width)//2
     y = rect.top + max(15, (rect.bottom-rect.top-height)//2)
     require(user.MoveWindow(hwnd, x, y, width, height, True), 'Cannot arrange game window')
-    user.SetWindowTextW(hwnd, 'Mega Man X5 - P1 - Sony Controller' if seat == 0 else 'Mega Man X5 - P2 - Keyboard (arrows, X/Z/S)')
+    label=session['peers'][seat].get('label')
+    user.SetWindowTextW(hwnd, label or ('Mega Man X5 - P1 - Sony Controller' if seat == 0 else 'Mega Man X5 - P2 - Keyboard (arrows, X/Z/S)'))
 
 for runtime in runtimes:
     runtime.request('clear_input')
@@ -85,7 +92,8 @@ require(all(logs[0][tick] == logs[1][tick] for tick in common), 'Netplay digest 
 session.update(input_released=True, handed_off_at=time.strftime('%Y-%m-%d %H:%M:%S'),
                status=status, pad_status=pads, matched_through=common[-1], windows={k:int(v) for k,v in windows.items()})
 (out/'SESSION.json').write_text(json.dumps(session, indent=2)+'\n')
-# Keep the keyboard peer foregrounded. Sony input is explicitly allowed in background.
+# Ordinary playtests focus the keyboard peer; save-prompt QA focuses menu owner P1.
+focus_seat=0 if options.native_state=='save-prompt' else 1
 foreground = user.GetForegroundWindow()
 foreground_thread = user.GetWindowThreadProcessId(foreground, None) if foreground else 0
 this_thread = kernel.GetCurrentThreadId()
@@ -93,8 +101,8 @@ attached = False
 if foreground_thread and foreground_thread != this_thread:
     attached = bool(user.AttachThreadInput(this_thread, foreground_thread, True))
 try:
-    user.BringWindowToTop(windows[1])
-    focused = bool(user.SetForegroundWindow(windows[1]))
+    user.BringWindowToTop(windows[focus_seat])
+    focused = bool(user.SetForegroundWindow(windows[focus_seat]))
 finally:
     if attached:
         user.AttachThreadInput(this_thread, foreground_thread, False)

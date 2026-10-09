@@ -9,6 +9,7 @@
 
 # Release packaging artifacts
 /release-stage/
+/release-stage-*/
 /release-linux/
 *.zip
 # Downloaded toolchain artifacts cached by package_release.ps1 (embedded python +

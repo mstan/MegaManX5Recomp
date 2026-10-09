@@ -1,4 +1,4 @@
-"""Create a separate native X5 card from a fresh offline gameplay snapshot.
+"""Historical synthetic X5 card serializer; retired from active testing.
 
 The original BIN24 serializer (800F2970..2BF0), resident checksum validator
 (8001DB78), native icon/title and PS1 directory format define the output.
@@ -105,4 +105,5 @@ def main():
     print(args.out)
 
 
-if __name__=='__main__':main()
+if __name__=='__main__':
+    raise SystemExit('Synthetic save generation is retired. Download an existing X5 save, preserve its original, and modify only sparingly.')

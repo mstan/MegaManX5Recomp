@@ -7,6 +7,7 @@ import argparse
 import ctypes as C
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import sys
@@ -22,7 +23,7 @@ from test_mmx5_coop_netplay import prepare_peer, reserve_ports, change_config, p
 from coop_debug import Runtime
 
 
-def sony_pad():
+def sony_pad(expected_guid=None,expected_name='Sony controller'):
     os.add_dll_directory('C:/msys64/mingw64/bin')
     s = C.CDLL('C:/msys64/mingw64/bin/SDL2.dll')
     s.SDL_SetHint.argtypes = [C.c_char_p, C.c_char_p]
@@ -40,8 +41,12 @@ def sony_pad():
         if s.SDL_IsGameController(i) and any(x in name.lower() for x in ('dualsense', 'dualshock', 'ps4', 'ps5')):
             buf = C.create_string_buffer(40)
             s.SDL_JoystickGetGUIDString(s.SDL_JoystickGetDeviceGUID(i), buf, 40)
-            found.append(dict(name=name, guid=buf.value.decode()))
+            guid=buf.value.decode()
+            if not expected_guid or guid==expected_guid:
+                found.append(dict(name=name, guid=guid, detected=True))
     s.SDL_Quit()
+    if not found and expected_guid:
+        return dict(name=expected_name,guid=expected_guid,detected=False)
     require(len(found) == 1, f'Expected one connected Sony controller: {found}')
     return found[0]
 
@@ -50,6 +55,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--build', type=Path, default=ROOT/'build-coop/playtest-independent-displays')
     parser.add_argument('--out', type=Path)
+    parser.add_argument('--controller-guid',help='Remembered Sony SDL GUID; allows reconnect after launch')
+    parser.add_argument('--controller-name',default='Sony controller',help='Name for a remembered profile')
     options = parser.parse_args()
     staged = options.build.resolve()
     native_settings=tomllib.loads((staged/'game.toml').read_text(encoding='utf-8'))
@@ -59,7 +66,9 @@ def main():
         require(sha256_file(staged/filename)==checkpoint[key],f'Staged checkpoint mismatch: {filename}')
     out = options.out.resolve() if options.out else ROOT/'build-coop'/('playtest-netplay-'+time.strftime('%Y%m%d-%H%M%S'))
     out.mkdir()
-    pad = sony_pad()
+    if options.controller_guid:
+        require(bool(re.fullmatch('[0-9a-fA-F]{32}',options.controller_guid)),'Controller GUID must contain32 hex digits')
+    pad = sony_pad(options.controller_guid.lower() if options.controller_guid else None,options.controller_name)
     print('Controller:', pad, flush=True)
     seed = out / 'card-seed'
     seed.mkdir()
@@ -200,7 +209,8 @@ def main():
         require(len(common) >= 2, 'No matched simulation digests')
         for tick in common:
             require(logs[0][tick] == logs[1][tick], f'Digest mismatch {tick}')
-        require('opened controller for slot: '+pad['name'] in peers[0].log.read_text(errors='replace'), 'P1 Sony pad not opened')
+        if pad['detected']:
+            require('opened controller for slot: '+pad['name'] in peers[0].log.read_text(errors='replace'), 'P1 Sony pad not opened')
         require('opened controller for slot:' not in peers[1].log.read_text(errors='replace'), 'P2 incorrectly opened a gamepad')
         session.update(success=True, status=both('status'), matched_through=common[-1],
                        stage_table=list(table), cursor=play[0x28], pad_status=both('request', 'pad_status'))

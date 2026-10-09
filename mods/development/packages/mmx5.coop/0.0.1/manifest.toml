@@ -1,0 +1,31 @@
+format_version = 5
+id = "mmx5.coop"
+version = "0.0.1"
+name = "X + Zero Co-op (Development)"
+author = "mstan"
+description = "Experimental native co-op. Gameplay qualification is in progress."
+resolver = "declarative"
+save_compatibility = "isolated"
+
+[[target]]
+game_id = "SLUS-01334"
+disc_sha256 = "be731bc4b9d3211b9267a34b8a68c769199a15479b14004ff25b67cdfebe8af4"
+
+[[feature]]
+id = "coop"
+name = "X + Zero Co-op"
+description = "Two original-disc native characters. Requires OpenGL and a fresh boot. Development build only."
+group = "Experimental"
+default_enabled = false
+
+[[plugin]]
+feature = "coop"
+id = "mmx5.coop"
+
+[[option]]
+feature = "coop"
+id = "keep_zero"
+label = "Keep Zero playable"
+description = "Keep P2 Zero available after the story removes him. Story and ending flags stay native. Local co-op only; netplay uses native availability."
+type = "boolean"
+default = "false"

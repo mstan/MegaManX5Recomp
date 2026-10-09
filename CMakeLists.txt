@@ -35,6 +35,27 @@ set(GAME_GENERATED_DISPATCH
 file(GLOB MMX5_MOD_PLUGIN_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/*.c")
 
+# Delay-sync peers must share the title and framework simulation contract.
+file(GLOB MMX5_COOP_CONTRACT_FILES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/mmx5_coop_*")
+list(APPEND MMX5_COOP_CONTRACT_FILES "${CMAKE_CURRENT_SOURCE_DIR}/game.toml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/mods/development/packages/mmx5.coop/0.0.1/manifest.toml")
+foreach(MMX5_FRAMEWORK_FILE IN ITEMS runtime/src/mod_netplay.c runtime/include/mod_netplay.h
+    runtime/src/mod_runtime.cpp runtime/src/mod_texture_banks.c runtime/include/mod_plugins.h
+    runtime/src/psx_cycles.c runtime/src/gpu.c)
+    list(APPEND MMX5_COOP_CONTRACT_FILES "${PSXRECOMP_V4_ROOT}/${MMX5_FRAMEWORK_FILE}")
+endforeach()
+set(MMX5_COOP_CONTRACT "mmx5-coop-delay-v1\n")
+foreach(MMX5_COOP_FILE IN LISTS MMX5_COOP_CONTRACT_FILES)
+    file(SHA256 "${MMX5_COOP_FILE}" MMX5_COOP_FILE_HASH)
+    string(APPEND MMX5_COOP_CONTRACT "${MMX5_COOP_FILE_HASH}\n")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${MMX5_COOP_FILE}")
+endforeach()
+string(SHA256 MMX5_COOP_CONTRACT_HASH "${MMX5_COOP_CONTRACT}")
+string(SUBSTRING "${MMX5_COOP_CONTRACT_HASH}" 0 40 MMX5_COOP_CONTRACT_SHORT_HASH)
+set_property(SOURCE src/mods/mmx5_coop_plugin.c APPEND PROPERTY COMPILE_DEFINITIONS
+    "MMX5_COOP_NETPLAY_COMPATIBILITY=\"mmx5-coop-delay-v1:${MMX5_COOP_CONTRACT_SHORT_HASH}\"")
+
 # X5's two game-owned presentation mods.
 #
 # The FRAMEWORK stages them: PRELOADED_MODS_DIR below hands the directory to
@@ -49,6 +70,15 @@ file(GLOB MMX5_MOD_PLUGIN_SOURCES CONFIGURE_DEPENDS
 # neither the launcher nor the release packager's Add-ModCatalog reads.
 # Bead beads-eio.3.101.
 set(MMX5_PRELOADED_MODS "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded")
+if(PSX_DEBUG_TOOLS)
+    set(MMX5_PRELOADED_MODS "${CMAKE_CURRENT_BINARY_DIR}/development-mods")
+    file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded/"
+        DESTINATION "${MMX5_PRELOADED_MODS}")
+    file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/mods/development/packages/mmx5.coop"
+        DESTINATION "${MMX5_PRELOADED_MODS}/packages")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/mods/development/packages/mmx5.coop/0.0.1/manifest.toml")
+endif()
 
 psxrecomp_v4_add_runtime_target(psx-runtime
     GAME_GENERATED_FULL_C "${GAME_GENERATED_FULL}"
@@ -65,12 +95,22 @@ psxrecomp_v4_add_runtime_target(psx-runtime
 )
 
 if(BUILD_TESTING)
+    add_executable(mmx5_coop_lifecycle_test
+        tests/test_mmx5_coop_lifecycle.c src/mods/mmx5_coop_lifecycle.c)
+    target_include_directories(mmx5_coop_lifecycle_test PRIVATE src/mods)
+    add_test(NAME mmx5_coop_lifecycle_test COMMAND mmx5_coop_lifecycle_test)
+    add_executable(mmx5_coop_assets_test
+        tests/test_mmx5_coop_assets.c src/mods/mmx5_coop_assets.c)
+    target_include_directories(mmx5_coop_assets_test PRIVATE src/mods)
+    add_test(NAME mmx5_coop_assets_test COMMAND mmx5_coop_assets_test)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    add_test(NAME mmx5_coop_hooks_test COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_mmx5_coop_hooks.py")
     add_test(
         NAME mmx5_preloaded_mods_test
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_preloaded_mods.py"
-                "${MMX5_PRELOADED_MODS}")
+                "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded")
 endif()
 
 # First-divergence co-sim oracle build (COSIM_ORACLE.md): clean, deterministic,

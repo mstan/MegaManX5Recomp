@@ -73,19 +73,29 @@ def main():
         # Skip native opening movies and confirm Game Start. Character select
         # is original PLAY mode1/substate3; no menu/progression flags are forced.
         deadline = time.monotonic()+50
+        already_confirmed = False
         while runtime.read(PLAY, 2) != b'\x01\x03':
             require(time.monotonic()<deadline, 'Native character selection timeout')
+            mode = runtime.read(PLAY, 2)
+            if mode[0] in (8, 9, 10):
+                # An unpaced frame can accept the default character before a
+                # TCP observation sees the selector. Verify the actual native
+                # body below; do not force a menu/state back into existence.
+                already_confirmed = True
+                break
             runtime.tap(8, .015)
             time.sleep(.04)
             if runtime.read(PLAY, 2) == b'\x01\x03':
                 break
             runtime.tap(0x4000, .015)
             time.sleep(.04)
-        if args.character == 'zero':
+        if args.character == 'zero' and not already_confirmed:
             runtime.tap(0x20, .10)
             time.sleep(.2)
-        runtime.screenshot(args.run_dir/'character-select.png')
-        runtime.tap(0x4000, .10)
+        runtime.screenshot(args.run_dir/('selection-already-confirmed.png' if already_confirmed else 'character-select.png'))
+        report['selector_observed'] = not already_confirmed
+        if not already_confirmed:
+            runtime.tap(0x4000, .10)
         deadline = time.monotonic()+90
         sample_at = 0
         while True:

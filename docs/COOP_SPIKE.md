@@ -136,6 +136,10 @@ Retain `qa-final-x3` (the parts check caught the skipped arrival setup) and
 opening fade). The corrected harness waits for native menu interactivity and
 compares inventory at the actual absence boundary: an alive actor can take
 ordinary damage during the 90-update Select hold.
+The unpaced selector observation can still race a native default confirmation
+(`qa-staged-loader`). The harness now accepts an already-confirmed
+original-input path only after verifying the
+requested character from the actual native body; it never forces a selector.
 
 The fully exercised candidate executable SHA-256 is
 `b7f7066d431cf9fa8730abfacc086076cea463ee77e9b572806e66297834cd38`.

@@ -280,7 +280,10 @@ static void reset(CPUState *cpu,uint32_t address) {
 }
 static void observe_stage(void) {
     unsigned mode=psx_mod_read_byte(PLAY);
-    if(ever_enrolled && mode!=8 && mode!=10)stage_departed=1;
+    /* Native mode 9 (203F0, including player init at 204E4) belongs to the
+     * loader after mode 8. It must not turn a section continuation into a
+     * fresh team merely because loading crossed a VBlank. */
+    if(ever_enrolled && mode!=8 && mode!=9 && mode!=10)stage_departed=1;
 }
 static void world_tick(CPUState *cpu,uint32_t address) {
     (void)cpu;(void)address;

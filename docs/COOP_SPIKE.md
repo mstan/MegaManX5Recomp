@@ -42,6 +42,9 @@ Original arrival calls `8003D5E0` before `8003B65C` at `8003553C/80035570`;
 calling `8003BAC8` and forcing idle alone skips that native parts setup.
 Arrival grace also sets native contact gate `PLAYER+A4` with timer `+61`:
 `80038C54..80038C7C` expires the gate, and `80031968` checks it.
+Native stage loading includes modes8 and9 (`203F0`, player initialization at
+`204E4`) before gameplay mode10. Crossing either loader state preserves the
+continuation classification; leaving for title/stage selection clears it.
 
 Rendering uses `80024C60`, with native ordering-table tails at `80091C50`.
 DAT records 88/90 provide X/Zero graphics (member 3), assembly (member 9),
@@ -134,11 +137,16 @@ opening fade). The corrected harness waits for native menu interactivity and
 compares inventory at the actual absence boundary: an alive actor can take
 ordinary damage during the 90-update Select hold.
 
-The final candidate executable SHA-256 is
+The fully exercised candidate executable SHA-256 is
 `b7f7066d431cf9fa8730abfacc086076cea463ee77e9b572806e66297834cd38`.
 The final corpse/passenger rendering adjustment is covered by the Zero
 candidate's two death orders; the resource/script fixture report preceded that
 presentation-only adjustment.
+The subsequent loader-mode9 classification fix is in playtest SHA-256
+`8aeb28e12233debd891646ab8e029e5722f04d33c2559c5471da91b5c16c6819`.
+Its X-selected private pair passes in `qa-loader-net-x/report.json`, with
+matched core/mod samples through tick5984. Ordinary section traversal remains
+pending; the loader fix does not turn this input/CRC check into that evidence.
 
 Build uses the local OpenBIOS image and framework `1483cc3`, UI `36cf0da`.
 Generated C is regenerated from `game.toml`, never patched. Rebuild with two

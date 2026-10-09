@@ -29,6 +29,8 @@ def main():
     parser.add_argument('--bios', type=Path, required=True)
     parser.add_argument('--run-dir', type=Path, required=True)
     parser.add_argument('--character', choices=('x', 'zero'), default='x')
+    parser.add_argument('--cameras',choices=('unified','split'),default='unified',
+                        help='Offline must remain Unified even when saved preference is Split')
     parser.add_argument('--enabled', action='store_true')
     parser.add_argument('--keep-running', action='store_true')
     parser.add_argument('--paced', action='store_true',
@@ -43,6 +45,7 @@ def main():
     selection = 'format_version = 2\n'
     if args.enabled:
         selection += '\n[[package]]\nid="mmx5.coop"\n\n[[feature]]\npackage_id="mmx5.coop"\nid="coop"\nenabled=true\n'
+        selection += f'[feature.values]\ncameras="{args.cameras}"\n'
     state.write_text(selection, encoding='utf-8')
     with socket.socket() as reserve:
         reserve.bind(('127.0.0.1', 0))
@@ -63,7 +66,7 @@ def main():
                                stderr=subprocess.STDOUT,
                                creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
     report = dict(pid=process.pid, port=port, command=command, character=args.character,
-                  enabled=args.enabled, human_validation=False,
+                  enabled=args.enabled,camera_preference=args.cameras,human_validation=False,
                   executable_sha256=hashlib.sha256(args.exe.read_bytes()).hexdigest())
     print('Owned X5 QA process', process.pid, 'port', port, flush=True)
     success = False
@@ -119,6 +122,8 @@ def main():
         runtime.input(0, 0)
         runtime.input(0, 1)
         if args.enabled:
+            require(not any(c['name']=='mmx5.coop.split-state' for c in runtime.request('mod_counters')['counters']),
+                    'Offline camera preference activated independent online views')
             deadline=time.monotonic()+12
             arrival=[]
             while runtime.lifecycle()[1]!=0:

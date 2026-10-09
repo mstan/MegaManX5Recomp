@@ -17,8 +17,10 @@ story availability is the default, with an optional persistent counterpart.
    checksums; qualify original-disc stage and two-peer behavior.
 5. Deliver an isolated launcher-ready development build for owner validation.
 
-Independent-camera netplay must wait for actual owner validation of this
-unified baseline. A playable X-versus-Zero story encounter is optional later:
+The owner approved moving to independent displays after the unified human
+playtest on 2026-10-09, while reporting Zero's Ride Chaser pose/facing defect.
+That explicit approval supersedes the earlier independent-camera gate. A
+playable X-versus-Zero story encounter is optional later:
 P2 controls the opposing actor, uses the native boss meter, and either winner
 advances the normal post-fight script without changing campaign outcome.
 
@@ -26,7 +28,8 @@ On 2026-10-09 the owner approved **unsplit/shared-screen netplay as an opt-in
 feature**. Host / Join explicitly starts the existing trusted co-op delay-sync
 profile; offline play requires no network session. The package defaults off
 outside its isolated playtest build. Positive early playtest feedback does not
-qualify the full campaign or unlock the independent-camera stretch goal.
+qualify the full campaign. The subsequent human approval above authorizes
+independent displays; its new build still requires its own owner playtest.
 
 No campaign or gameplay qualification is claimed by workspace setup or builds.
 Original assets, captures, saves and generated code stay local and ignored.
@@ -119,8 +122,10 @@ mounted Armor traversal/doors, alternative P2 X armors and long-session texture
 capacity need qualification
 before calling the full X4-derived baseline complete. Enemy AI retains its
 native primary-world targeting while both seats are alive; the survivor owns
-the native world when P1 falls. Independent cameras and optional story PvP
-have not been implemented.
+the native world when P1 falls. Optional story PvP has not been implemented.
+Independent online displays now use the native camera and shared-world
+implementation described below; general native enemy/shot targeting selects
+the nearest eligible actor in that mode. Unified targeting stays native.
 
 Counterpart enrollment now starts the original character-specific teleport
 arrival, matching X4/X6's stage-entry lifecycle. X5 `8003B33C` selects its own
@@ -186,6 +191,100 @@ windows/loader observations. They do not qualify road traversal or survivor
 orders. New checks use full original stage-entry5/6 and loader7/8/9,
 require a new living enrollment, and observe the native arrival itself.
 
+Owner image review found that the counterpart rider kept its old teleport
+parts and faced backward. Original `8003D784` sets rider+6=1; the original
+BIN7 car initializer `800EEC50` normally clears it and selects the mounted
+pose. Copying an initialized car bypassed that latter rider step. Enrollment
+now borrows the actual car facing/current native rider action and clears+6,
+letting `800377A0/80037854` select each character's original mounted parts.
+`qa-chaser-pose-fixed-x/sequence` passes both fatal orders, survivor jump,
+Select lock and shared retry; inspected Zero frames16/17 face40 with the car,
+instead of face0 and the expired teleport frameFF. The subsequent
+Zero-selected `qa-independent-offline-zero/sequence` also passes both fatal
+orders and the strengthened native pose/facing check, with inspected original
+mounted X/Zero art. Saving Split as an offline preference still uses Unified.
+
+## Independent online displays
+
+Tracking: central Beads `beads-eio.10.3`. **Netplay cameras: Unified / Split**
+is an opt-in choice, with Unified first/default. Offline always uses Unified.
+The trusted profile accepts only its declared co-op settings feature; room
+agreement adopts the host's choice and fingerprints the canonical options.
+Direct LAN peers must choose the same option. Native 4:3 OpenGL delay sync,
+independent inventory and the original shared retry/script rules remain.
+The framework pin advances only to `8fff59f`, the direct child of `1483cc3`
+already used by X4, for trusted settings agreement and isolated render-pass
+transactions. This repin does not change the codegen version.
+
+Each seat owns a native `FC`-byte foreground/parallax camera record. Original
+`2A440`, `2A4E4`, `2A554` update those views; P2's private controller uses its
+own layer origins. Split removes the mutual horizontal tether while retaining
+the original authored left/right/pit bounds for each seat. Native `5609C`
+camera areas use X5's fixed sixteen-byte record (`55F60`, FFFF preserves a
+bound), and `56AA0` checkpoints select the eligible participant. Shared
+script/door acquisition adopts the owner's camera; absent/fallen seats watch
+the owner/survivor. Forced Ride Chaser scrolling remains the one authored
+camera, with private native rider control and a HUD for each online seat.
+
+Original `2AE50/2B070` scan both complete activation rectangles, rather than
+the bounding box across the gap. Their native pools/placement flags remain
+shared. A successful-allocation latch at `2B39C` records visits; kills cannot
+immediately respawn during a stationary scan, leaving both regions restores
+native re-entry, and allocation failure stays retryable. Supplemental scans
+admit ordinary native enemy/item categories; scripted allocations stay with
+the original directional scans. Native `2D800/2D938` lifetime and
+`2D89C/2D9EC/2DAA0` draw predicates retain actors visible to either seat.
+
+Original enemy and world-shot pools `21F64/221B0` execute one callback per
+actor. Their inspected `22044/22290` dispatch instructions select the nearest
+eligible full player context, with a stable P1 tie-break and each seat's own
+CC hit pause. Native collision/solid/pickup/door boundaries temporarily restore
+the canonical two-body context. The nearby actor's character resource pointers
+are projected too, because native grabs/status changes can select player parts.
+Campaign selection and the whole-stage palette stay with the shared world.
+Camera records and successful visits join the
+canonical co-op digest; local port selection never controls simulation.
+
+At the completed native frame (`68C28`, caller11E50, buffer pointer9E794),
+each peer draws its local seat through `psx_mod_render_local_view`. Original
+`272B4` produces the scene and native HUD. The background producer `27F88`
+resolves the complete authored map with the common Capcom renderer, replacing
+the canonical camera's tile ring for that local pass. Original heads93F78 /
+tails91D60, three layers, seventeen page buckets, parity stride198 and
+CLUT7900 were verified from `27CD8/281C0`. Native menus/story scenes keep their
+shared presentation. The local view gets one native meter at its original
+position; Unified retains the stacked meters.
+
+RAM, CPU, scratchpad, GPU/device state and authoritative VRAM are restored by
+the sandbox, and the plugin restores its private host contexts. Local retained
+sprite/UI banks have separate IDs/caches, preserving canonical bank numbering.
+Reports require committed seat views, enabled restoration checks, no host-state
+leak, and zero watchdog/device-read/VRAM-leak/restoration mismatch counters.
+Inspected images show both original character HUDs and intact distant stage art.
+
+Native two-peer evidence: `qa-independent-separation-x5` reaches camera origins
+1/501 with both living actors, native nearby-P2 enemy updates, then overlaps
+and rejoins at camera0/0. Matching core/mod samples extend through tick6974,
+including both menus. `qa-independent-zero-jitter` uses actual Zero selection
+with25ms +/-10ms jitter; native withdrawal switches P2's display to Zero's
+survivor view, native return restores X's own HUD and private HP/all16 ammo
+fields, and both menus restore with matching digests through5438. These are
+bounded intro/selection/view checks, not every actor family, every room, boss
+handoff, or full campaign qualification. Live Internet lobby play and the new
+independent mode's owner playtest remain pending.
+
+Retain unsuccessful own-view bringup (`qa-independent-close-x`, recursive
+background callback guard), simultaneous Zero saber/movement control window
+(`qa-independent-separation-x`), native truck/rejoin input windows (`x2/x4`),
+and unpaced selector-observation race (`x3`). Corrected native-input checks
+separate movement from grounded saber, jump original obstacles, allow enough
+time to rejoin, and accept an already completed default X selection only after
+verifying the real enrolled characters. No online RAM writes or stage forces
+are used. The final X source-contract/withdrawal/separation check is recorded
+in `qa-independent-final-x`: native absence/return, distant separation,
+overlap/rejoin and both menus pass with matching core/mod samples through7331
+on the final candidate executable. Zero's jitter run uses that same executable.
+
 Both native HUD blocks keep their geometry and original character colors.
 P2 moves down104 pixels at the packet boundary, leaving shared life digits and
 boss meters in their original positions. The existing native virus/radar
@@ -227,6 +326,7 @@ No automated result represents owner human acceptance.
 | Arrival checkpoint netplay | `qa-native-spawn-net-x/report.json`, `qa-native-spawn-net-zero/report.json` | Matching core/mod samples through ticks5623/4879; Zero pair includes25ms +/-10ms jitter; both actors and menus exercised |
 | Stage-access card | `qa-stage-access-complete/report.json` | Original Continue/DATA1/Yes loads, eight native cursor choices map to stages1..8, both characters available, native Grizzly stage entry with both living actors; no stage traversal/boss qualification |
 | Zero departure image review | `qa-stage-access-ready/departure/report.json` and captures | Original P2 Select request, outgoing Zero pose and upward red beam, absence and native return |
+| Independent displays | `qa-independent-separation-x5/report.json`, `qa-independent-zero-jitter/report.json` | Native separate/overlap/rejoin cameras, shared enemy pools/nearest-player callbacks, per-seat HUD, verified local render sandbox, native absence/return and25ms +/-10ms jitter; bounded intro evidence |
 | Eight Maverick stages and late stages | Pending | No load/traversal/boss/vehicle matrix is claimed |
 
 Keep the unsuccessful `qa-stage-x/report.json` selection-navigation timeout:
@@ -261,10 +361,25 @@ matched core/mod samples through tick5984. Ordinary section traversal remains
 pending; the loader fix does not turn this input/CRC check into that evidence.
 
 Build uses the local OpenBIOS image and framework `1483cc3`, UI `36cf0da`.
+The independent-display candidate uses framework `8fff59f`, with the same UI.
 The latest stacked-meter/vehicle/palette checkpoint executable SHA-256 is
 `500840386f7d42976aab48fb39f5a6bd10e31ad3832a68b8f8a5b05064665ec3`.
 The subsequent native-arrival checkpoint executable SHA-256 is
 `d7c5fd5f3408c802ebff5b625062f48eb0db6174590ea557a44c8ddeaa5fff61`.
+The independent-display candidate executable SHA-256 is
+`9a88e837bbd4e46a7f019acd3b3633a2e31206984930b35731a1fc2be5b747f0`.
+Its final native-character resource projection passes the X separation,
+absence/return, rejoin and menu matrix in `qa-independent-resources-x` with
+matching core/mod samples through7816. Earlier independent-view reports
+above precede that resource-scope correction and retain their own identities.
+`qa-independent-resources-zero2` passes the same native separation/rejoin
+matrix, both menus, spectator fallback and resource-preserving return with
+actual Zero selection and25ms +/-10ms jitter, matching core/mod through6568.
+Its preceding `qa-independent-resources-zero` report retains a harness error:
+ordinary native enemy combat killed P1 before a check requiring his menu.
+Menu qualification now occurs while both actors are alive, before traversal.
+`qa-independent-final-unified` verifies the default shared camera and both
+menus through5832 before the Split-only native-resource projection correction.
 Generated C is regenerated from `game.toml`, never patched. Rebuild with two
 compile jobs. Focused runtime commands are in `tools/test_mmx5_coop_*.py`;
 they own private processes/cards and use native input for boot/navigation.
@@ -273,7 +388,7 @@ Controlled ownership/death fixtures are debug-only and reject online use.
 Stage an owner test with:
 
 ```powershell
-py -3 tools/prepare_mmx5_coop_playtest.py --build build-coop --out build-coop/playtest-native-arrival --stage-access-card build-coop/stage-access-ready/card1.mcd
+py -3 tools/prepare_mmx5_coop_playtest.py --build build-coop --out build-coop/playtest-independent-displays --stage-access-card build-coop/stage-access-ready/card1.mcd
 ```
 
 Run the generated `Play X5 Co-op.ps1`, bind two controllers in the launcher,
@@ -283,6 +398,12 @@ grounded living P1 to return. Fallen actors wait for a native team retry or
 new stage. The forced car sequence locks voluntary withdrawal; one rider death
 keeps the other playing, and the last death spends one shared retry. Keep other
 enhancement mods off for this initial baseline test.
+
+For independent online displays choose **Mods -> X + Zero Co-op -> Netplay
+cameras -> Split** before hosting; Unified is the default. The room host
+chooses for both peers, while direct LAN launches need matching choices. Bind
+the local controller as P1 on each peer; netplay assigns its logical seat.
+Offline always uses Unified, including when Split is saved as a preference.
 
 The next-test card is a separate **stage-access fixture**, with all eight bosses
 unbeaten, both characters available, 16 hours remaining and native starting

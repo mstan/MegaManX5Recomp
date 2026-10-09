@@ -42,7 +42,9 @@ list(APPEND MMX5_COOP_CONTRACT_FILES "${CMAKE_CURRENT_SOURCE_DIR}/game.toml"
     "${CMAKE_CURRENT_SOURCE_DIR}/mods/development/packages/mmx5.coop/0.0.1/manifest.toml")
 foreach(MMX5_FRAMEWORK_FILE IN ITEMS runtime/src/mod_netplay.c runtime/include/mod_netplay.h
     runtime/src/mod_runtime.cpp runtime/src/mod_texture_banks.c runtime/include/mod_plugins.h
-    runtime/src/psx_cycles.c runtime/src/gpu.c)
+    runtime/src/psx_cycles.c runtime/src/gpu.c runtime/src/render_pass.c
+    runtime/include/psx_cycle_freeze.h runtime/include/mod_capcom_bg2d.h
+    runtime/include/mod_visible_placements.h runtime/src/main.cpp runtime/include/mod_runtime.h)
     list(APPEND MMX5_COOP_CONTRACT_FILES "${PSXRECOMP_V4_ROOT}/${MMX5_FRAMEWORK_FILE}")
 endforeach()
 set(MMX5_COOP_CONTRACT "mmx5-coop-delay-v1\n")
@@ -95,6 +97,9 @@ psxrecomp_v4_add_runtime_target(psx-runtime
 )
 
 if(BUILD_TESTING)
+    add_executable(mmx5_coop_views_test tests/test_mmx5_coop_views.c src/mods/mmx5_coop_views.c)
+    target_include_directories(mmx5_coop_views_test PRIVATE src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")
+    add_test(NAME mmx5_coop_views_test COMMAND mmx5_coop_views_test)
     add_executable(mmx5_coop_lifecycle_test
         tests/test_mmx5_coop_lifecycle.c src/mods/mmx5_coop_lifecycle.c)
     target_include_directories(mmx5_coop_lifecycle_test PRIVATE src/mods)

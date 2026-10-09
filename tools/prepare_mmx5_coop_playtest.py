@@ -91,6 +91,7 @@ Life meters are stacked on the left. Ride Armor belongs to P1; P2 stays
 on foot. Both players use Ride Chasers in the forced car sequence. Select
 departure is locked there; one death leaves the survivor playing, and two
 deaths consume one shared retry. Full road traversal still needs playtesting.
+Zero's mounted rider pose and facing have been corrected.
 
 This directory owns its settings and memory cards. The original disc/exe
 remain in the worktree. Keep other enhancement mods off for this baseline.
@@ -98,11 +99,17 @@ remain in the worktree. Keep other enhancement mods off for this baseline.
 Shared-screen netplay is optional: use Host / Join in the launcher when
 both peers have this same build, game region and co-op package enabled.
 The trusted co-op profile uses one shared 4:3 camera and delay sync. Offline
-play needs no network session. Independent cameras remain a later goal.
+play needs no network session. For independent displays, select Mods ->
+X + Zero Co-op -> Netplay cameras -> Split before hosting. The host chooses
+for both peers; direct LAN launches need the same setting on each peer.
+Each peer binds its local controller as P1; the session assigns its seat.
+Each online player then gets its own 4:3 camera and native HUD. Offline
+always uses Unified. Native menus and story scenes retain shared presentation.
 
 This is an early checkpoint, not a qualified full campaign. See the source
 docs/COOP_SPIKE.md for tested paths and outstanding stage/vehicle/armor work.
-Independent cameras and optional X-versus-Zero PvP remain deferred.
+Independent online displays are a new playtest candidate. Optional story PvP
+remains deferred. Full room/boss/script-handoff qualification is still pending.
 ''',encoding='utf-8')
     if card is not None:
         # The launcher isolates OpenBIOS cards; CLI tests can use the legacy
@@ -116,9 +123,11 @@ Independent cameras and optional X-versus-Zero PvP remain deferred.
                        'are available, with 16 hours remaining and bosses unbeaten.\n')
     branch=subprocess.check_output(['git','branch','--show-current'],cwd=root,text=True).strip()
     revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip()
+    framework_revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=root/'psxrecomp-v4',text=True).strip()
     manifest=dict(branch=branch,source_commit=revision,executable_sha256=hashlib.sha256(exe.read_bytes()).hexdigest(),
                   bios_sha256=hashlib.sha256(bios.read_bytes()).hexdigest(),
-                  human_validated=False,source_docs=str(root/'docs/COOP_SPIKE.md'))
+                  framework_commit=framework_revision,netplay_cameras=['unified','split'],
+                  default_camera='unified',human_validated=False,source_docs=str(root/'docs/COOP_SPIKE.md'))
     if card is not None:manifest['stage_access_card_sha256']=hashlib.sha256(card).hexdigest()
     (out/'CHECKPOINT.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
     print(out/'Play X5 Co-op.ps1')

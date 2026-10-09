@@ -4,12 +4,15 @@
  */
 #include "mod_plugins.h"
 #include "mod_netplay.h"
+#include "mod_capcom_bg2d.h"
+#include "psx_netplay.h"
 #include "cpu_state.h"
 #include "sio.h"
 #include "gpu.h"
 #include "mmx5_coop_assets.h"
 #include "mmx5_coop_sprite_packet.h"
 #include "mmx5_coop_lifecycle.h"
+#include "mmx5_coop_views.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -54,6 +57,18 @@ static uint32_t resources[6];
 static const unsigned resource_offsets[6]={0x14,0x1C,0x24,0x28,0x38,0x3C};
 static SpriteBank banks[4096];
 static unsigned bank_count, counterpart, projected, busy, enrolled, failed, ready, camera_call;
+static SpriteBank view_banks[4096];
+static unsigned view_bank_count;
+static unsigned split_views,split_valid,split_owner,split_camera_call,split_scan_call,split_supplemental;
+static unsigned split_bounds_call,local_view_call,local_view_seat,local_background_call;
+static unsigned spatial_call;
+static uint8_t split_cameras[2][0xFC],split_visits[MMX5_COOP_PLACEMENTS/8];
+static uint32_t split_table;
+static uint32_t view_background_arena;
+static unsigned ai_pool_call,ai_call,ai_owner,ai_suspended;
+static uint32_t ai_pool,ai_pending,ai_function;
+static uint8_t ai_first_freeze;
+#define AI_DISPATCH 0x8F7FFF00u
 static unsigned stage_call, player_call, world_owner, render_call;
 static unsigned camera_update_call;
 static uint32_t world_packets;
@@ -71,6 +86,8 @@ static unsigned join_phase;
 typedef struct {uint16_t page,clut,uv,id;uint16_t colors[16];unsigned character;} UiBank;
 static UiBank ui_banks[4096];
 static unsigned ui_bank_count,hud_call,hud_seat,hud_icon_call,hud_fade=128;
+static UiBank view_ui_banks[4096];
+static unsigned view_ui_bank_count;
 static uint32_t hud_arena;
 typedef struct {unsigned x,y,w,h;uint16_t *pixels;} MenuBackup;
 static MenuBackup menu_backups[32];
@@ -112,6 +129,7 @@ static int car_source_index(uint32_t actor) {
 static void cars_refresh(unsigned default_seat);
 static void scene_tick(CPUState *cpu);
 static void begin_join(CPUState *cpu,uint32_t x,uint32_t y);
+static uint32_t state_digest(void);
 static void scene_begin(unsigned seat);
 static int scene_passenger(unsigned seat) {return scene_owner && scene_owner!=seat+1;}
 static void enforce_roster(void) {
@@ -280,6 +298,17 @@ static void leave_second_context(int shared_world) {
     projected=0;
 }
 static void leave_second(void) {leave_second_context(0);}
+static int ai_canonical_call(CPUState *cpu,uint32_t address,PSXModFunctionFilterCallback callback) {
+    if(!ai_call || !ai_owner || ai_suspended)return callback(cpu,address);
+    ai_suspended=1;leave_second_context(1);world_owner=0;
+    uint32_t result;
+    if(callback(cpu,address))result=cpu->gpr[2];
+    else result=guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);
+    uint8_t campaign=psx_mod_read_byte(PLAY+0x44);enter_second();world_owner=1;
+    psx_mod_write_byte(PLAY+0x44,campaign);psx_mod_write_word(SCRATCH+0x28,resources[3]);
+    ai_suspended=0;
+    cpu->gpr[2]=result;return 1;
+}
 static void diagnostics(void) {
     if(!diagnostic)return;
     psx_mod_write_word(diagnostic,ticks);psx_mod_write_word(diagnostic+4,ready);
@@ -287,6 +316,10 @@ static void diagnostics(void) {
     psx_mod_write_word(diagnostic+16,counterpart);psx_mod_write_word(diagnostic+20,bank_count);
     psx_mod_write_word(diagnostic+24,world_ticks);
     psx_mod_write_word(diagnostic+28,psx_mod_read_word(PLAY+0x1B4));
+    if(split_views) {
+        psx_mod_write_word(diagnostic+0x700,split_valid);
+        project(diagnostic+0x710,split_cameras,sizeof split_cameras);
+    }
     psx_mod_write_byte(diagnostic+0x40,(uint8_t)life.status[0]);
     psx_mod_write_byte(diagnostic+0x41,(uint8_t)life.status[1]);
     psx_mod_write_byte(diagnostic+0x42,life.wipe);
@@ -306,6 +339,8 @@ static void reset(CPUState *cpu,uint32_t address) {
     section_pending=ever_enrolled && !stage_departed && !life.wipe &&
         last_stage==psx_mod_read_byte(PLAY+0x0C) && psx_mod_read_byte(PLAY+0x1E)==0xFF;
     enrolled=0;previous_input=0;
+    split_valid=split_owner=0;split_table=0;
+    memset(split_cameras,0,sizeof split_cameras);memset(split_visits,0,sizeof split_visits);
     if(!section_pending) {memset(&second,0,sizeof second);mmx5_coop_lifecycle_respawn(&life);}
     else {
         if(life.status[0]==MMX5_COOP_DYING)life.status[0]=MMX5_COOP_FALLEN;
@@ -455,6 +490,13 @@ static int enroll(CPUState *cpu) {
         psx_mod_write_byte(CAR+0x5C,psx_mod_read_byte(PLAYER+0x5C));
         uint8_t active=psx_mod_read_byte(CAR);
         guest(cpu,0x8003D784,PLAYER,0);psx_mod_write_byte(CAR,active);
+        /* BIN7 EEC50 normally changes the rider's pose and clears +6 so
+         * original 377A0 selects its character-specific assembly at 37854.
+         * This car is already initialized, so reproduce that rider boundary
+         * instead of keeping the old teleport parts with +6 == 1. */
+        psx_mod_write_byte(PLAYER+0x15,psx_mod_read_byte(CAR+0x15));
+        psx_mod_write_byte(PLAYER+0xD8,first.body[0xD8]);
+        psx_mod_write_byte(PLAYER+6,0);
         psx_mod_counter_add("mmx5.coop.chaser-enrolled",1);
     } else {
         guest(cpu,0x8003D5E0,PLAYER,0);guest(cpu,0x8003B65C,PLAYER,0);guest(cpu,0x8003A670,PLAYER,0);
@@ -601,7 +643,12 @@ static void second_tick(CPUState *cpu,uint32_t address) {
     }
     if(enrolled && !failed && life.status[1]!=MMX5_COOP_FALLEN && life.status[1]!=MMX5_COOP_ABSENT &&
        life.status[1]!=MMX5_COOP_UNAVAILABLE) {
-        uint8_t saved_input[6];capture(PAD,saved_input,sizeof saved_input);
+        uint8_t saved_input[6],origins[3][20];capture(PAD,saved_input,sizeof saved_input);
+        int own_camera=split_views && split_valid && !scene_owner && !car_context();
+        if(own_camera)for(unsigned layer=0;layer<3;++layer) {
+            capture(CAMERA+layer*0x54u+8,origins[layer],20);
+            project(CAMERA+layer*0x54u+8,split_cameras[1]+layer*0x54u+8,20);
+        }
         uint16_t raw=input(1);enter_second();
         psx_mod_write_half(PAD,life.status[1]==MMX5_COOP_LEAVING?0:raw);psx_mod_write_half(PAD+2,previous_input);
         psx_mod_write_half(PAD+4,(uint16_t)(raw&~previous_input));previous_input=raw;
@@ -613,6 +660,8 @@ static void second_tick(CPUState *cpu,uint32_t address) {
         guest(cpu,0x80035040,0,0);
         guest(cpu,0x80022084,0,0);guest(cpu,0x8002FB58,PLAYER,0);
         leave_second();project(PAD,saved_input,sizeof saved_input);++ticks;
+        if(own_camera)for(unsigned layer=0;layer<3;++layer)
+            project(CAMERA+layer*0x54u+8,origins[layer],20);
         if(life.status[1]==MMX5_COOP_LEAVING && second.body[4]==3)mmx5_coop_teleport_done(&life);
         if(second.body[4]==2)mmx5_coop_fatal(&life,1);
         if(life.status[1]==MMX5_COOP_DYING && second.body[4]==3)life.status[1]=MMX5_COOP_FALLEN;
@@ -782,7 +831,7 @@ static int allocate_actor(CPUState *cpu,uint32_t address) {
     if(actor)forget_actor(actor);
     cpu->gpr[2]=actor;return 1;
 }
-static int contact(CPUState *cpu,uint32_t address) {
+static int contact_canonical(CPUState *cpu,uint32_t address) {
     if(contact_call || (projected && !world_owner) || !enrolled || failed || psx_mod_read_byte(PLAY)!=10)return 0;
     contact_call=1;uint32_t actor=cpu->gpr[4],argument=cpu->gpr[5],result=0;
     unsigned seat=world_owner?1:0;
@@ -808,6 +857,7 @@ static int contact(CPUState *cpu,uint32_t address) {
     if(h)psx_mod_write_byte(actor+0x65,world_owner?stock_token:h->token[0]);
     cpu->gpr[2]=result;contact_call=0;return 1;
 }
+static int contact(CPUState *cpu,uint32_t address) {return ai_canonical_call(cpu,address,contact_canonical);}
 static uint32_t solid_as_second(CPUState *cpu,uint32_t address,uint32_t actor,SolidHistory *h) {
     uint8_t sides=psx_mod_read_byte(actor+0x72),carried=psx_mod_read_byte(actor+0x76);
     uint8_t car_sides=psx_mod_read_byte(actor+0x73),car_carried=psx_mod_read_byte(actor+0x77);
@@ -823,7 +873,7 @@ static uint32_t solid_as_second(CPUState *cpu,uint32_t address,uint32_t actor,So
     }
     psx_mod_write_byte(actor+0x72,sides);psx_mod_write_byte(actor+0x76,carried);return result;
 }
-static int solid_contact(CPUState *cpu,uint32_t address) {
+static int solid_contact_canonical(CPUState *cpu,uint32_t address) {
     uint32_t actor=cpu->gpr[4];SolidHistory *h=solid_record(actor);
     if(solid_call || !h || !enrolled || failed || (projected && !world_owner))return 0;
     solid_call=1;uint32_t result;
@@ -848,6 +898,7 @@ static int solid_contact(CPUState *cpu,uint32_t address) {
     }
     solid_call=0;cpu->gpr[2]=result;return 1;
 }
+static int solid_contact(CPUState *cpu,uint32_t address) {return ai_canonical_call(cpu,address,solid_contact_canonical);}
 static uint32_t pickup_as_seat(CPUState *cpu,uint32_t address,uint32_t actor,unsigned seat) {
     if(seat==world_owner)return guest(cpu,address,actor,cpu->gpr[5]);
     uint8_t body[0x158],character=psx_mod_read_byte(PLAY+0x44);
@@ -858,7 +909,7 @@ static uint32_t pickup_as_seat(CPUState *cpu,uint32_t address,uint32_t actor,uns
     capture(PLAYER,other,sizeof body);project(PLAYER,body,sizeof body);
     psx_mod_write_byte(PLAY+0x44,character);return result;
 }
-static int pickup_collect(CPUState *cpu,uint32_t address) {
+static int pickup_collect_canonical(CPUState *cpu,uint32_t address) {
     if(pickup_call || !enrolled || failed)return 0;
     pickup_call=1;uint32_t actor=cpu->gpr[4],result=0;
     for(unsigned seat=0;seat<2;++seat) {
@@ -874,6 +925,7 @@ static int pickup_collect(CPUState *cpu,uint32_t address) {
     }
     pickup_call=0;cpu->gpr[2]=result;return 1;
 }
+static int pickup_collect(CPUState *cpu,uint32_t address) {return ai_canonical_call(cpu,address,pickup_collect_canonical);}
 static int pickup_tick(CPUState *cpu,uint32_t address) {
     if(pickup_call || !enrolled || failed)return 0;
     uint32_t actor=cpu->gpr[4];
@@ -890,6 +942,9 @@ static void scene_begin(unsigned seat) {
      * use the ordinary passenger beam while its vehicle remains behind. */
     if(car_context())return;
     if(!enrolled || failed || scene_owner)return;
+    if(split_views && split_valid && split_owner!=seat+1) {
+        project(CAMERA,split_cameras[seat],sizeof saved_camera);split_owner=seat+1;
+    }
     scene_owner=seat+1;scene_phase=life.status[seat^1]==MMX5_COOP_ALIVE?1:0;
     life.select_frames=life.select_armed=0;
     psx_mod_counter_add("mmx5.coop.scene-starts",1);
@@ -952,7 +1007,7 @@ static void scene_tick(CPUState *cpu) {
     project(PLAY,play,sizeof play);project(CAMERA,camera,sizeof camera);
     scene_call=0;busy=old_busy;
 }
-static int door_tick(CPUState *cpu,uint32_t address) {
+static int door_tick_canonical(CPUState *cpu,uint32_t address) {
     if(door_call || !enrolled || failed || (projected && !world_owner))return 0;
     door_call=1;uint32_t actor=cpu->gpr[4],result;
     unsigned seat=world_owner;
@@ -964,6 +1019,12 @@ static int door_tick(CPUState *cpu,uint32_t address) {
             if(hit)seat=1;
         }
     }
+    uint8_t canonical_camera[0xFC];unsigned camera_owner=split_owner;
+    int scoped_camera=split_views && split_valid && !scene_owner && seat!=world_owner;
+    if(scoped_camera) {
+        capture(CAMERA,canonical_camera,sizeof canonical_camera);
+        project(CAMERA,split_cameras[seat],sizeof canonical_camera);split_owner=seat+1;
+    }
     if(seat!=world_owner) {
         enter_second();result=guest(cpu,address,actor,cpu->gpr[5]);
         if(psx_mod_read_byte(PLAYER+0xD4))scene_begin(seat);
@@ -972,13 +1033,18 @@ static int door_tick(CPUState *cpu,uint32_t address) {
         result=guest(cpu,address,actor,cpu->gpr[5]);
         if(psx_mod_read_byte(PLAYER+0xD4))scene_begin(seat);
     }
+    if(scoped_camera) {
+        capture(CAMERA,split_cameras[seat],sizeof canonical_camera);
+        if(scene_owner!=seat+1) {project(CAMERA,canonical_camera,sizeof canonical_camera);split_owner=camera_owner;}
+    }
     door_call=0;cpu->gpr[2]=result;return 1;
 }
+static int door_tick(CPUState *cpu,uint32_t address) {return ai_canonical_call(cpu,address,door_tick_canonical);}
 static int camera_target(CPUState *cpu,uint32_t address) {
     /* BIN7 EF05C..EF098 carries a car with the authored camera delta. A
      * midpoint target adds feedback into that forced scroll; keep its original
      * controller while both riders are present and let a survivor own it. */
-    if(camera_call || busy || projected || !enrolled || failed || scene_owner || car_context() ||
+    if(split_views || camera_call || busy || projected || !enrolled || failed || scene_owner || car_context() ||
        psx_mod_read_byte(PLAY)!=10 || psx_mod_read_byte(PLAY+0x10) ||
        psx_mod_read_byte(PLAY+0x1C) || life.status[1]!=MMX5_COOP_ALIVE ||
        second.body[4]!=1 || psx_mod_read_byte(PLAYER+4)!=1)return 0;
@@ -1007,7 +1073,7 @@ static void actor_byte_write(unsigned seat,unsigned offset,uint8_t value) {
 static void team_bounds(void) {
     if(!enrolled || failed || scene_owner || psx_mod_read_byte(PLAY)!=10 ||
        psx_mod_read_byte(PLAY+0x10) || psx_mod_read_byte(PLAY+0x1C))return;
-    if(life.status[0]==MMX5_COOP_ALIVE && life.status[1]==MMX5_COOP_ALIVE &&
+    if(!split_views && life.status[0]==MMX5_COOP_ALIVE && life.status[1]==MMX5_COOP_ALIVE &&
        !actor_byte(0,0xD5) && !actor_byte(1,0xD5)) {
         int32_t x=(int32_t)actor_word(0,8),other=(int32_t)actor_word(1,8);
         int64_t distance=(int64_t)x-other;
@@ -1027,6 +1093,12 @@ static void team_bounds(void) {
     int bottom=(int16_t)(psx_mod_read_half(CAMERA+0x20)+256);
     for(unsigned seat=0;seat<2;++seat) {
         if(life.status[seat]!=MMX5_COOP_ALIVE)continue;
+        if(split_views && split_valid && !car_context()) {
+            const uint8_t *view=split_cameras[seat];
+            left=(int16_t)(view[0x1E]|view[0x1F]<<8)+8;
+            right=(int16_t)(view[0x1C]|view[0x1D]<<8)+312;
+            bottom=(int16_t)((uint16_t)(view[0x20]|view[0x21]<<8)+256);
+        }
         int x=(int16_t)(actor_word(seat,8)>>16),y=(int16_t)(actor_word(seat,12)>>16);
         if(!(psx_mod_read_byte(PLAY+0xC)==5 && actor_byte(seat,0xD5))) {
             if(x<left)actor_word_write(seat,8,(uint32_t)(left*65536));
@@ -1040,12 +1112,251 @@ static void team_bounds(void) {
     }
 }
 static int camera_update(CPUState *cpu,uint32_t address) {
-    if(camera_update_call || busy || !enrolled || failed)return 0;
+    if(camera_update_call || split_camera_call || psx_mod_local_view_scope() || busy || !enrolled || failed)return 0;
+    if(split_views && split_valid && split_owner!=world_owner+1 && !scene_owner && !car_context())
+        project(CAMERA,split_cameras[world_owner],sizeof saved_camera);
     camera_update_call=1;team_bounds();
     uint32_t result=guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);
     camera_update_call=0;cpu->gpr[2]=result;return 1;
 }
+static int split_available(void) {
+    return split_views && split_valid && enrolled && !failed &&
+        psx_mod_read_byte(PLAY)==10 && !psx_mod_local_view_scope();
+}
+static void split_actors(Mmx5CoopViewActor actors[2]) {
+    unsigned resident=projected?1u:0u;
+    for(unsigned seat=0;seat<2;++seat) {
+        const uint8_t *body=seat?second.body:first.body;
+        actors[seat]=(Mmx5CoopViewActor){seat==resident?(int16_t)psx_mod_read_half(PLAYER+10):
+            (int16_t)(body[10]|body[11]<<8),seat==resident?(int16_t)psx_mod_read_half(PLAYER+14):
+            (int16_t)(body[14]|body[15]<<8),(unsigned)mmx5_coop_living(&life,seat)};
+    }
+}
+static void ai_redirect(CPUState *cpu,uint32_t address) {
+    if(!ai_pool_call || ai_call || projected || !split_available())return;
+    uint32_t base=address==0x80022044u?0x80092090u:0x80096D98u;
+    unsigned capacity=address==0x80022044u?48u:32u;
+    uint32_t actor=cpu->gpr[4],function=cpu->gpr[5];
+    if(actor<base || actor>=base+capacity*0x9Cu || (actor-base)%0x9Cu || ai_pending ||
+       (function&3u) || function<0x80010000u || function>=0x80200000u)return;
+    ai_pending=actor;ai_function=function;cpu->gpr[5]=AI_DISPATCH;
+}
+static void ai_update(CPUState *cpu,uint32_t address) {
+    (void)address;uint32_t actor=ai_pending,function=ai_function;
+    ai_pending=ai_function=0;if(!actor || !function || ai_call || !ai_pool_call)return;
+    psx_mod_write_byte(PLAYER+0xCC,ai_first_freeze);
+    Mmx5CoopViewActor actors[2];split_actors(actors);
+    unsigned target=scene_owner?scene_owner-1:mmx5_coop_view_nearest(actors,
+        (int16_t)psx_mod_read_half(actor+10),(int16_t)psx_mod_read_half(actor+14),0);
+    ai_call=1;ai_owner=target;uint32_t result=0;
+    if(actors[target].active) {
+        /* Native grabs/status changes can call player-part helpers too.
+         * Select the matching body AND character resources, preserving the
+         * whole-stage palette and campaign. Nested contacts restore the
+         * normal two-player ownership boundary before resuming this scope. */
+        if(target) {
+            uint8_t campaign=psx_mod_read_byte(PLAY+0x44);enter_second();world_owner=1;
+            psx_mod_write_byte(PLAY+0x44,campaign);psx_mod_write_word(SCRATCH+0x28,resources[3]);
+        }
+        if(psx_mod_read_byte(PLAYER+0xCC)) {
+            if(psx_mod_read_byte(actor+3))result=guest(cpu,0x8002DAA0,actor,0);
+        } else {
+            result=guest(cpu,function,actor,function);
+            psx_mod_counter_add(target?"mmx5.coop.p2-native-ai":"mmx5.coop.p1-native-ai",1);
+        }
+        if(target) {leave_second_context(1);world_owner=0;}
+    }
+    ai_first_freeze=psx_mod_read_byte(PLAYER+0xCC);psx_mod_write_byte(PLAYER+0xCC,0);
+    ai_call=ai_owner=0;cpu->gpr[2]=result;
+}
+static int ai_pool_tick(CPUState *cpu,uint32_t address) {
+    if(ai_pool_call || projected || car_context() || !split_available())return 0;
+    ai_pool_call=1;ai_pool=address;ai_first_freeze=psx_mod_read_byte(PLAYER+0xCC);
+    psx_mod_write_byte(PLAYER+0xCC,0);
+    uint32_t result=guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);
+    psx_mod_write_byte(PLAYER+0xCC,ai_first_freeze);ai_first_freeze=0;
+    ai_pool_call=0;ai_pool=0;cpu->gpr[2]=result;return 1;
+}
+static unsigned split_view_seat(unsigned seat) {
+    if(scene_owner)return scene_owner-1;
+    if(seat>1)seat=0;
+    if(!mmx5_coop_living(&life,seat))return mmx5_coop_living(&life,seat^1)?seat^1:0;
+    return seat;
+}
+static int split_camera_finish(CPUState *cpu,uint32_t address) {
+    if(split_camera_call || psx_mod_local_view_scope() || !split_views || !enrolled || failed)return 0;
+    split_camera_call=1;
+    uint32_t result=guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);
+    uint8_t canonical[0xFC];capture(CAMERA,canonical,sizeof canonical);
+    unsigned owner=world_owner,other=owner^1;
+    if(!split_valid) {
+        memcpy(split_cameras[0],canonical,sizeof canonical);memcpy(split_cameras[1],canonical,sizeof canonical);
+        split_valid=1;
+    }
+    memcpy(split_cameras[owner],canonical,sizeof canonical);split_owner=owner+1;
+    if(scene_owner || car_context() || psx_mod_read_byte(PLAY+0x10) ||
+       psx_mod_read_byte(PLAY+0x1C) || !mmx5_coop_living(&life,other)) {
+        memcpy(split_cameras[other],canonical,sizeof canonical);
+    } else if(!projected) {
+        /* Original primary/parallax updates run once for this extra camera,
+         * restoring the canonical camera and all private player projection. */
+        memcpy(split_cameras[other],canonical,8);
+        project(CAMERA,split_cameras[other],sizeof canonical);
+        enter_second();
+        guest(cpu,0x8002A440,0,0);guest(cpu,0x8002A4E4,0,0);guest(cpu,0x8002A554,0,0);
+        capture(CAMERA,split_cameras[other],sizeof canonical);leave_second();
+        project(CAMERA,canonical,sizeof canonical);
+        psx_mod_counter_add("mmx5.coop.split-camera-ticks",1);
+    }
+    split_camera_call=0;diagnostics();cpu->gpr[2]=result;return 1;
+}
+static unsigned split_regions(PSXPlacementRect regions[2]) {
+    Mmx5CoopViewActor actors[2];split_actors(actors);int16_t cameras[2][2];
+    for(unsigned seat=0;seat<2;++seat) {
+        cameras[seat][0]=(int16_t)(split_cameras[seat][10]|split_cameras[seat][11]<<8);
+        cameras[seat][1]=(int16_t)(split_cameras[seat][14]|split_cameras[seat][15]<<8);
+    }
+    return mmx5_coop_view_regions(cameras,actors,scene_owner?(int)scene_owner-1:-1,regions);
+}
+static int split_placement_index(uint32_t record,unsigned *index) {
+    if(!split_table || record<split_table || (record-split_table)%8 ||
+       record-split_table>=MMX5_COOP_PLACEMENTS*8u)return 0;
+    *index=(record-split_table)/8u;return 1;
+}
+static int split_allocate(CPUState *cpu,uint32_t address) {
+    (void)address;unsigned index;
+    if(!split_available() || cpu->gpr[31]!=0x8002B280 ||
+       !split_placement_index(cpu->gpr[18],&index))return 0;
+    uint32_t record=cpu->gpr[18];unsigned category=psx_mod_read_byte(record+3)&15;
+    if((split_visits[index/8]&(1u<<(index&7))) ||
+       (split_supplemental && ((psx_mod_read_byte(record)&0x70) || category>=3))) {
+        cpu->gpr[2]=0;psx_mod_counter_add("mmx5.coop.split-respawn-suppressed",1);return 1;
+    }
+    return 0;
+}
+static void split_spawned(CPUState *cpu,uint32_t address) {
+    (void)address;unsigned index;
+    /* Original successful allocation (+s1 != 0), never an attempted spawn. */
+    if(split_available() && cpu->gpr[17] && split_placement_index(cpu->gpr[18],&index))
+        split_visits[index/8]|=(uint8_t)(1u<<(index&7));
+}
+static void split_scan_rectangle(CPUState *cpu,PSXPlacementRect region) {
+    CPUState saved=*cpu;cpu->gpr[29]-=32;
+    uint32_t arg=cpu->gpr[29]+16,previous=psx_mod_read_word(arg);
+    cpu->gpr[4]=(uint32_t)region.left;cpu->gpr[5]=(uint32_t)region.right;
+    cpu->gpr[6]=(uint32_t)region.top;cpu->gpr[7]=(uint32_t)region.bottom;
+    psx_mod_write_word(arg,0);cpu->gpr[31]=0x8002B570;
+    psx_dispatch_call(cpu,0x8002B070,cpu->gpr[31]);
+    psx_mod_write_word(arg,previous);
+    if(cpu->gte_ts_done>saved.gte_ts_done)saved.gte_ts_done=cpu->gte_ts_done;
+    if(cpu->muldiv_ts_done>saved.muldiv_ts_done)saved.muldiv_ts_done=cpu->muldiv_ts_done;
+    *cpu=saved;
+}
+static int split_scan(CPUState *cpu,uint32_t address) {
+    if(split_scan_call || !split_available())return 0;
+    unsigned stage=psx_mod_read_byte(PLAY+12),section=psx_mod_read_byte(PLAY+13);
+    if(stage>=19 || section>1)return 0;
+    uint32_t table=psx_mod_read_word(0x80072EACu+stage*8u+section*4u);
+    if((table&7u) || table<0x80010000u || table>=0x80200000u)return 0;
+    if(table!=split_table) {split_table=table;memset(split_visits,0,sizeof split_visits);}
+    PSXPlacementRect regions[2];unsigned count=split_regions(regions);
+    for(unsigned index=0;index<MMX5_COOP_PLACEMENTS && table+index*8u+8u<=0x80200000u;++index) {
+        uint32_t record=table+index*8u;
+        if(psx_mod_read_byte(record+3)==15)break;
+        unsigned mask=1u<<(index&7);
+        int inside=mmx5_coop_view_contains(regions,count,(int16_t)psx_mod_read_half(record+4),
+                                         (int16_t)psx_mod_read_half(record+6));
+        if(!inside)split_visits[index/8]&=(uint8_t)~mask;
+        else if(psx_mod_read_byte(record)&1)split_visits[index/8]|=(uint8_t)mask;
+    }
+    uint8_t canonical[0xFC];capture(CAMERA,canonical,sizeof canonical);split_scan_call=1;
+    Mmx5CoopViewActor actors[2];split_actors(actors);uint32_t result=0;
+    for(unsigned seat=0;seat<2;++seat)if(actors[seat].active && (!scene_owner || scene_owner==seat+1)) {
+        project(CAMERA,split_cameras[seat],sizeof canonical);
+        result=guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);
+    }
+    split_supplemental=1;
+    for(unsigned index=0;index<count;++index) {
+        /* 2B070 also uses its camera for native cooldown re-entry bounds. */
+        unsigned seat=scene_owner?scene_owner-1:index;
+        if(count==1 && !actors[0].active)seat=1;
+        project(CAMERA,split_cameras[seat],sizeof canonical);
+        split_scan_rectangle(cpu,regions[index]);
+    }
+    project(CAMERA,canonical,sizeof canonical);split_scan_call=split_supplemental=0;
+    psx_mod_counter_add("mmx5.coop.split-placement-scans",count);cpu->gpr[2]=result;return 1;
+}
+static int split_actor_bounds(CPUState *cpu,uint32_t address) {
+    if(split_bounds_call || !split_available())return 0;
+    uint32_t actor=cpu->gpr[4];unsigned layer=psx_mod_read_byte(actor+0x14);
+    if(layer>=3)return 0;
+    int draw=address!=0x8002D800u && address!=0x8002D938u;
+    uint8_t canonical[0xFC];capture(CAMERA,canonical,sizeof canonical);
+    Mmx5CoopViewActor actors[2];split_actors(actors);
+    unsigned visible=0;uint32_t result=draw?0:1;split_bounds_call=1;
+    for(unsigned seat=0;seat<2;++seat)if(actors[seat].active && (!scene_owner || scene_owner==seat+1)) {
+        project(CAMERA,split_cameras[seat],sizeof canonical);
+        uint32_t candidate=guest(cpu,address,actor,cpu->gpr[5]);
+        if(draw) {if(psx_mod_read_byte(actor+3)) {visible=1;result=candidate;}}
+        else if(!candidate)result=0;
+    }
+    if(draw)psx_mod_write_byte(actor+3,(uint8_t)visible);
+    project(CAMERA,canonical,sizeof canonical);split_bounds_call=0;cpu->gpr[2]=result;return 1;
+}
+static int camera_area_contains(uint32_t parameters,Mmx5CoopViewActor actor) {
+    return actor.active && parameters>=0x80010000u && parameters<=0x801FFFF0u &&
+        actor.x>=(int)psx_mod_read_half(parameters) && actor.x<=(int)psx_mod_read_half(parameters+2) &&
+        actor.y>=(int)psx_mod_read_half(parameters+4) && actor.y<=(int)psx_mod_read_half(parameters+6);
+}
+static void camera_area_apply(uint32_t parameters,uint8_t *view) {
+    /* Original 55F60 uses a fixed sixteen-byte record, not X4's variable
+     * assignment lists. FFFF preserves that bound; +47 is native speed2. */
+    const unsigned targets[4]={0x26,0x24,0x2A,0x28};view[0x47]=2;
+    for(unsigned index=0;index<4;++index) {
+        uint16_t value=psx_mod_read_half(parameters+8+index*2);
+        if(value!=0xFFFF) {view[targets[index]]=(uint8_t)value;view[targets[index]+1]=(uint8_t)(value>>8);}
+    }
+}
+static int spatial_stage_actor(CPUState *cpu,uint32_t address) {
+    if(spatial_call || projected || car_context() || !split_available())return 0;
+    uint32_t actor=cpu->gpr[4];
+    if(actor<0x8009E7A0u || actor>=0x8009F9A0u || (actor-0x8009E7A0u)%0x30u)return 0;
+    unsigned checkpoint=address==0x80056AA0u;
+    if(psx_mod_read_byte(actor+1)!=(checkpoint?6u:0u))return 0;
+    Mmx5CoopViewActor actors[2];split_actors(actors);Mmx5CoopViewActor eligible[2]={actors[0],actors[1]};
+    uint32_t parameters=psx_mod_read_byte(actor+4)?psx_mod_read_word(actor+0x18):0;
+    for(unsigned seat=0;seat<2;++seat) {
+        if(!checkpoint && parameters)eligible[seat].active=(unsigned)camera_area_contains(parameters,actors[seat]);
+        if(checkpoint)eligible[seat].active=actors[seat].active &&
+            ((psx_mod_read_byte(actor+2)&0x80)?actors[seat].y>=(int16_t)psx_mod_read_half(actor+14):
+                                             actors[seat].x>=(int16_t)psx_mod_read_half(actor+10));
+    }
+    unsigned target=scene_owner?scene_owner-1:mmx5_coop_view_nearest(
+        eligible[0].active || eligible[1].active?eligible:actors,
+        (int16_t)psx_mod_read_half(actor+10),(int16_t)psx_mod_read_half(actor+14),0);
+    uint8_t canonical[0xFC];capture(CAMERA,canonical,sizeof canonical);spatial_call=1;
+    if(target) {project(CAMERA,split_cameras[target],sizeof canonical);enter_second();}
+    uint32_t result=guest(cpu,address,actor,cpu->gpr[5]);
+    if(target) {
+        capture(CAMERA,split_cameras[target],sizeof canonical);leave_second_context(1);
+        project(CAMERA,canonical,sizeof canonical);
+    }
+    if(!checkpoint && !scene_owner && !psx_mod_read_byte(PLAY+0x10) && !psx_mod_read_byte(PLAY+0x1C)) {
+        parameters=psx_mod_read_word(actor+0x18);
+        for(unsigned seat=0;seat<2;++seat)if(camera_area_contains(parameters,actors[seat])) {
+            camera_area_apply(parameters,split_cameras[seat]);
+            if(!seat) {
+                uint8_t current[0xFC];capture(CAMERA,current,sizeof current);camera_area_apply(parameters,current);
+                project(CAMERA,current,sizeof current);
+            }
+        }
+    }
+    spatial_call=0;psx_mod_counter_add(target?"mmx5.coop.p2-spatial-stage":"mmx5.coop.p1-spatial-stage",1);
+    cpu->gpr[2]=result;return 1;
+}
 static uint16_t sprite_bank(uint32_t table,unsigned frame,uint16_t clut,uint16_t tile) {
+    unsigned *used=psx_mod_local_view_scope()?&view_bank_count:&bank_count;
+    SpriteBank *cache=psx_mod_local_view_scope()?view_banks:banks;
     CharacterAssets *a=&assets[counterpart];
     uint8_t native_compressed[65536];
     const uint8_t *compressed;size_t available;uint32_t packed,source;
@@ -1069,10 +1380,10 @@ static uint16_t sprite_bank(uint32_t table,unsigned frame,uint16_t clut,uint16_t
     if(!tiles || tiles>256 || palette_offset+32>0x4000)return 0;
     uint32_t palette=render_primary?psx_mod_read_word(SCRATCH+0x28):a->palette;
     uint8_t colors[32];capture(palette+(uint32_t)palette_offset,colors,sizeof colors);
-    for(unsigned i=0;i<bank_count;++i)
-        if(banks[i].source==source && banks[i].tile==tile &&
-           banks[i].generation==(render_primary?asset_generation:0) &&
-           !memcmp(banks[i].colors,colors,sizeof colors))return banks[i].id;
+    for(unsigned i=0;i<(*used);++i)
+        if(cache[i].source==source && cache[i].tile==tile &&
+           cache[i].generation==(render_primary?asset_generation:0) &&
+           !memcmp(cache[i].colors,colors,sizeof colors))return cache[i].id;
     if(render_primary)capture(source,native_compressed,available);
     uint8_t decoded[32768];uint16_t pixels[256*256];size_t written;
     if(!mmx5_coop_decode_sprite(compressed,
@@ -1094,23 +1405,23 @@ static uint16_t sprite_bank(uint32_t table,unsigned frame,uint16_t clut,uint16_t
     }
     uint32_t hash=2166136261u;
     for(unsigned i=0;i<count;++i)hash=(hash^output[i])*16777619u;
-    unsigned index=bank_count;
-    for(unsigned i=0;i<bank_count;++i)
-        if(banks[i].pixel_hash==hash && banks[i].pixel_count==count &&
-           !memcmp(banks[i].pixels,output,count*2)) {index=i;break;}
-    if(index==bank_count) {
-        if(bank_count==4096)return 0;
+    unsigned index=(*used);
+    for(unsigned i=0;i<(*used);++i)
+        if(cache[i].pixel_hash==hash && cache[i].pixel_count==count &&
+           !memcmp(cache[i].pixels,output,count*2)) {index=i;break;}
+    if(index==(*used)) {
+        if((*used)==4096)return 0;
         uint16_t *copy=malloc(count*2);if(!copy)return 0;memcpy(copy,output,count*2);
-        uint16_t id=(uint16_t)(0x6000+index);
+        uint16_t id=(uint16_t)((psx_mod_local_view_scope()?0xA000u:0x6000u)+index);
         if(!psx_mod_define_texture_bank(id,tile==UINT16_MAX?256:16,tile==UINT16_MAX?256:16,output)) {
             free(copy);return 0;
         }
-        banks[index].id=id;banks[index].pixels=copy;banks[index].pixel_hash=hash;banks[index].pixel_count=count;
-        ++bank_count;
+        cache[index].id=id;cache[index].pixels=copy;cache[index].pixel_hash=hash;cache[index].pixel_count=count;
+        ++(*used);
     }
-    banks[index].source=source;banks[index].tile=tile;
-    banks[index].generation=render_primary?asset_generation:0;
-    memcpy(banks[index].colors,colors,sizeof colors);return banks[index].id;
+    cache[index].source=source;cache[index].tile=tile;
+    cache[index].generation=render_primary?asset_generation:0;
+    memcpy(cache[index].colors,colors,sizeof colors);return cache[index].id;
 }
 static void triangle(uint32_t dst,uint32_t next,const uint32_t *q,unsigned a,unsigned b,unsigned c,uint16_t bank) {
     unsigned vertices[3]={a,b,c};psx_mod_write_word(dst,0x09000000u|(next&0xFFFFFFu));
@@ -1227,6 +1538,8 @@ static int render_hook(CPUState *cpu,uint32_t address) {
     return 1;
 }
 static uint16_t hud_tile_bank(uint16_t page,uint16_t clut,uint16_t uv) {
+    unsigned *used=psx_mod_local_view_scope()?&view_ui_bank_count:&ui_bank_count;
+    UiBank *cache=psx_mod_local_view_scope()?view_ui_banks:ui_banks;
     if(page&0x180)return 0;
     uint16_t colors[16],pixels[256];unsigned cx=(clut&63)*16,cy=clut>>6;
     if(cx+16>1024 || cy>=512)return 0;
@@ -1234,23 +1547,24 @@ static uint16_t hud_tile_bank(uint16_t page,uint16_t clut,uint16_t uv) {
      * The facade synchronizes GL before reading its current palette. */
     for(unsigned i=0;i<16;++i)colors[i]=clut==0x7841?assets[counterpart].hud_colors[i]:
         gpu_vram_peek((int)(cx+i),(int)cy);
-    for(unsigned i=0;i<ui_bank_count;++i)
-        if(ui_banks[i].character==counterpart && ui_banks[i].page==page && ui_banks[i].clut==clut &&
-           ui_banks[i].uv==uv && !memcmp(ui_banks[i].colors,colors,sizeof colors))return ui_banks[i].id;
-    if(ui_bank_count==4096)return 0;
+    for(unsigned i=0;i<(*used);++i)
+        if(cache[i].character==counterpart && cache[i].page==page && cache[i].clut==clut &&
+           cache[i].uv==uv && !memcmp(cache[i].colors,colors,sizeof colors))return cache[i].id;
+    if((*used)==4096)return 0;
     unsigned bx=(page&15)*64,by=(page&16)*16;
     for(unsigned y=0;y<16;++y)for(unsigned x=0;x<16;++x) {
         unsigned u=((uv&255)+x)&255,v=((uv>>8)+y)&255;
         uint16_t word=assets[counterpart].ui_pixels[(by+v)*1024+bx+u/4];
         pixels[y*16+x]=colors[(word>>((u&3)*4))&15];
     }
-    uint16_t id=(uint16_t)(0x7000+ui_bank_count);
+    uint16_t id=(uint16_t)((psx_mod_local_view_scope()?0xB000u:0x7000u)+(*used));
     if(!psx_mod_define_texture_bank(id,16,16,pixels))return 0;
-    UiBank *bank=&ui_banks[ui_bank_count++];bank->page=page;bank->clut=clut;bank->uv=uv;
+    UiBank *bank=&cache[(*used)++];bank->page=page;bank->clut=clut;bank->uv=uv;
     bank->id=id;bank->character=counterpart;memcpy(bank->colors,colors,sizeof colors);return id;
 }
 static int hud_icon(CPUState *cpu,uint32_t address) {
-    if(hud_seat==1 && (cpu->gpr[4]==3 || cpu->gpr[4]==4)) {cpu->gpr[2]=0;return 1;}
+    if(!psx_mod_local_view_scope() && hud_seat==1 && (cpu->gpr[4]==3 || cpu->gpr[4]==4)) {cpu->gpr[2]=0;return 1;}
+    if(psx_mod_local_view_scope())return 0;
     if(hud_icon_call || !hud_call || hud_seat || cpu->gpr[4]!=10)return 0;
     /* Native virus/radar block occupies the lower left in Maverick stages.
      * Move its existing sprites together so the stacked P2 meter stays clear. */
@@ -1273,7 +1587,8 @@ static void hud_packets(uint32_t base) {
         uint32_t link=psx_mod_read_word(at),uv=psx_mod_read_word(at+12);
         uint16_t page=(uint16_t)psx_mod_read_word(mode+4),bank=hud_tile_bank(page,(uint16_t)(uv>>16),(uint16_t)uv);
         if(!bank || expanded+80>base+0x8000) {failed=1;return;}
-        int x=(int16_t)psx_mod_read_half(at+8),y=(int16_t)psx_mod_read_half(at+10)+SECOND_HUD_Y;
+        int offset=psx_mod_local_view_scope()?0:SECOND_HUD_Y;
+        int x=(int16_t)psx_mod_read_half(at+8),y=(int16_t)psx_mod_read_half(at+10)+offset;
         uint32_t q[10]={link,0x2C000000u|hud_fade*0x010101u,0,0,0,0,0,0,0,0};
         for(unsigned i=0;i<4;++i) {
             q[2+i*2]=(uint16_t)(x+(i&1)*16)|((uint32_t)(uint16_t)(y+(i>>1)*16)<<16);
@@ -1284,7 +1599,8 @@ static void hud_packets(uint32_t base) {
         psx_mod_write_word(at,expanded&0xFFFFFFu);
     }
     for(uint32_t at=base+0x2000;at<bars;at+=36) {
-        for(unsigned xy=10;xy<=34;xy+=8)psx_mod_write_half(at+xy,(uint16_t)(psx_mod_read_half(at+xy)+SECOND_HUD_Y));
+        int offset=psx_mod_local_view_scope()?0:SECOND_HUD_Y;
+        for(unsigned xy=10;xy<=34;xy+=8)psx_mod_write_half(at+xy,(uint16_t)(psx_mod_read_half(at+xy)+offset));
         for(unsigned c=4;c<=28;c+=8) {
             uint32_t color=psx_mod_read_word(at+c),faded=color&0xFF000000u;
             for(unsigned channel=0;channel<24;channel+=8)faded|=(((color>>channel)&255)*hud_fade/128)<<channel;
@@ -1295,6 +1611,29 @@ static void hud_packets(uint32_t base) {
 }
 static int draw_hud(CPUState *cpu,uint32_t address) {
     if(hud_call || !enrolled || failed || psx_mod_read_byte(PLAY)!=10)return 0;
+    if(split_views && psx_mod_local_view_scope()) {
+        hud_call=1;uint32_t result;
+        if(!local_view_seat)result=guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);
+        else {
+            uint8_t current[sizeof second.body];capture(PLAYER,current,sizeof current);
+            uint32_t assembly_now=psx_mod_read_word(SCRATCH+0x1C),menu_now=psx_mod_read_word(SCRATCH+0x3C);
+            uint8_t character=psx_mod_read_byte(PLAY+0x44);
+            project(PLAYER,second.body,sizeof second.body);
+            psx_mod_write_byte(PLAY+0x44,(uint8_t)counterpart);
+            psx_mod_write_word(SCRATCH+0x1C,assets[counterpart].assembly);
+            psx_mod_write_word(SCRATCH+0x3C,assets[counterpart].menu_layout);
+            uint32_t pools[3];for(unsigned i=0;i<3;++i)pools[i]=psx_mod_read_word(SCRATCH+0x108+i*4);
+            uint32_t base=hud_arena+(psx_mod_read_word(SCRATCH)&1u)*0x8000;
+            for(unsigned i=0;i<3;++i)psx_mod_write_word(SCRATCH+0x108+i*4,base+i*0x1000);
+            hud_fade=128;hud_seat=1;result=guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);
+            hud_seat=0;hud_packets(base);
+            for(unsigned i=0;i<3;++i)psx_mod_write_word(SCRATCH+0x108+i*4,pools[i]);
+            /* Scene drawing still uses the canonical P1 body/resources. */
+            project(PLAYER,current,sizeof current);psx_mod_write_byte(PLAY+0x44,character);
+            psx_mod_write_word(SCRATCH+0x1C,assembly_now);psx_mod_write_word(SCRATCH+0x3C,menu_now);
+        }
+        hud_call=0;cpu->gpr[2]=result;return 1;
+    }
     hud_call=1;
     if(life.status[1]==MMX5_COOP_LEAVING || life.status[1]==MMX5_COOP_ABSENT || life.status[1]==MMX5_COOP_UNAVAILABLE)
         hud_fade=hud_fade>8?hud_fade-8:0;
@@ -1388,9 +1727,98 @@ static int retained_upload(CPUState *cpu,uint32_t address) {
     for(uint32_t i=0;i<words;++i) {gpu_set_gp0_source(source+i*4);gpu_write_gp0(psx_mod_read_word(source+i*4));}
     gpu_write_gp1(0x04000002u);upload_call=0;cpu->gpr[2]=0;return 1;
 }
+typedef struct {
+    PlayerContext first,second;
+    uint8_t play[0x1C0],camera[0xFC],car_owners[272];
+    uint32_t resources[6],world_packets,primary_packets;
+    unsigned projected,busy,world_owner,render_call,render_primary,hud_call,hud_seat,hud_fade,upload_call,failed;
+} LocalViewContext;
+static int draw_local_view(CPUState *cpu,void *user,uint32_t alpha) {
+    (void)alpha;uint32_t buffer=*(uint32_t *)user;
+    project(CAMERA,split_cameras[local_view_seat],sizeof saved_camera);
+    gpu_set_gp0_source(0);
+    gpu_write_gp0(0x02000000u|psx_mod_read_byte(buffer+0x2D)|
+        (uint32_t)psx_mod_read_byte(buffer+0x2E)<<8|(uint32_t)psx_mod_read_byte(buffer+0x2F)<<16);
+    gpu_write_gp0(psx_mod_read_half(buffer+0x14)|(uint32_t)psx_mod_read_half(buffer+0x16)<<16);
+    gpu_write_gp0(psx_mod_read_half(buffer+0x18)|(uint32_t)psx_mod_read_half(buffer+0x1A)<<16);
+    guest(cpu,0x80068B20,buffer+0x70,16);
+    guest(cpu,0x800272B4,0,0);
+    if(failed || projected || busy || render_call || hud_call)return 0;
+    guest(cpu,0x8006A314,buffer+0xAC,0);
+    return !failed;
+}
+static int local_background(CPUState *cpu,uint32_t address) {
+    if(local_background_call || !split_views || !psx_mod_local_view_scope())return 0;
+    unsigned layer=cpu->gpr[4];if(layer>=3)return 0;
+    local_background_call=1;
+    uint32_t start=psx_mod_read_word(SCRATCH+0x108);
+    uint32_t result=guest(cpu,address,layer,cpu->gpr[5]);
+    uint32_t record=CAMERA+layer*0x54u;
+    int sx=(int16_t)psx_mod_read_half(record+10),sy=(int16_t)psx_mod_read_half(record+14);
+    int relative=(int8_t)psx_mod_read_byte(record+0x52);
+    if(relative>=0 && relative<3) {
+        sx=(int16_t)(sx+(int16_t)psx_mod_read_half(CAMERA+(unsigned)relative*0x54u+10));
+        sy=(int16_t)(sy+(int16_t)psx_mod_read_half(CAMERA+(unsigned)relative*0x54u+14));
+    }
+    /* Original 27CD8/281C0: six groups, seventeen page buckets,
+     * heads93F78 / tails1D60, 198-byte parity stride. Resolve the complete
+     * authored map for a distant view rather than reuse the P1 tile ring. */
+    static const PSXCapcomBackground background={0x80093F78u,0x80091D60u,3,17,0x7900};
+    unsigned width=psx_mod_read_byte(0x800D1DBCu),stride=psx_mod_read_half(0x80091D58u);
+    PSXCapcomTileMap map={psx_mod_read_word(SCRATCH+4),psx_mod_read_word(SCRATCH+8),
+        psx_mod_read_word(SCRATCH+12),width,width?stride/width:0,stride,layer,
+        psx_mod_read_byte(record+0x4D),psx_mod_read_byte(record+0x4E)};
+    WsViewAnchor view={0,16,0,0,0};
+    int packets=psx_capcom_background_render(&background,view_background_arena,psx_mod_read_word(SCRATCH),
+        &map,sx,sy,view,start,NULL);
+    if(packets<0) {failed=1;psx_mod_counter_add("mmx5.coop.local-view-background-invalid",1);}
+    else psx_mod_counter_add("mmx5.coop.local-view-background-tiles",(unsigned)packets);
+    local_background_call=0;cpu->gpr[2]=result;return 1;
+}
+static int present_local_view(CPUState *cpu,uint32_t address) {
+    if(!split_available() || local_view_call || projected || busy || scene_owner ||
+       psx_mod_read_byte(PLAY+1) || psx_mod_read_byte(PLAY+0xF) || psx_mod_read_byte(PLAY+0x10) ||
+       psx_mod_read_byte(PLAY+0x1C) || cpu->gpr[31]!=0x80011E50)return 0;
+    uint32_t buffer=psx_mod_read_word(0x8009E794u);
+    if(cpu->gpr[4]!=buffer+0xAC)return 0;
+    local_view_call=1;
+    uint32_t result=guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);
+    guest(cpu,0x80068634,0,0);
+    int port=psx_netplay_local_port();local_view_seat=split_view_seat(port>=0 && port<2?(unsigned)port:0);
+    PSXModRenderPass rectangle={sizeof rectangle,0,psx_mod_read_half(buffer+0x14),psx_mod_read_half(buffer+0x16),
+        psx_mod_read_half(buffer+0x18),psx_mod_read_half(buffer+0x1A)};
+    LocalViewContext context={first,second,{0},{0},{0},{0},world_packets,primary_packets,
+        projected,busy,world_owner,render_call,render_primary,hud_call,hud_seat,hud_fade,upload_call,failed};
+    memcpy(context.play,saved_play,sizeof saved_play);memcpy(context.camera,saved_camera,sizeof saved_camera);
+    memcpy(context.car_owners,car_source_owner,sizeof car_source_owner);memcpy(context.resources,resources,sizeof resources);
+    uint32_t before=state_digest();
+    int committed=psx_mod_render_local_view(cpu,&rectangle,draw_local_view,&buffer);
+    local_background_call=0;
+    first=context.first;second=context.second;
+    memcpy(saved_play,context.play,sizeof saved_play);memcpy(saved_camera,context.camera,sizeof saved_camera);
+    memcpy(car_source_owner,context.car_owners,sizeof car_source_owner);memcpy(resources,context.resources,sizeof resources);
+    world_packets=context.world_packets;primary_packets=context.primary_packets;
+    projected=context.projected;busy=context.busy;world_owner=context.world_owner;
+    render_call=context.render_call;render_primary=context.render_primary;hud_call=context.hud_call;
+    hud_seat=context.hud_seat;hud_fade=context.hud_fade;upload_call=context.upload_call;failed=context.failed;
+    if(state_digest()!=before)psx_mod_counter_add("mmx5.coop.local-view-state-leak",1);
+    psx_mod_counter_add(committed?"mmx5.coop.local-view-committed":"mmx5.coop.local-view-refused",1);
+    if(committed)psx_mod_counter_add(local_view_seat?"mmx5.coop.local-view-seat-1":"mmx5.coop.local-view-seat-0",1);
+    local_view_call=0;cpu->gpr[2]=result;return 1;
+}
 static void activate(void) {
     char option[16];keep_zero=!psx_mod_netplay_is_active() &&
         psx_mod_current_option_value("keep_zero",option,sizeof option) && !strcmp(option,"true");
+    if(!psx_mod_current_option_value("cameras",option,sizeof option))strcpy(option,"unified");
+    split_views=(unsigned)mmx5_coop_views_requested(psx_mod_netplay_is_active(),option);
+    split_valid=split_owner=split_camera_call=split_scan_call=split_supplemental=split_bounds_call=0;
+    local_view_call=local_view_seat=local_background_call=0;split_table=0;
+    ai_pool_call=ai_call=ai_owner=ai_suspended=0;ai_pool=ai_pending=ai_function=0;ai_first_freeze=0;
+    spatial_call=0;
+    memset(split_cameras,0,sizeof split_cameras);memset(split_visits,0,sizeof split_visits);
+    for(unsigned i=0;i<view_bank_count;++i) {free(view_banks[i].pixels);view_banks[i].pixels=NULL;}
+    view_bank_count=view_ui_bank_count=0;
+    view_background_arena=split_views?psx_capcom_background_activate(3):0;
     for(unsigned i=0;i<bank_count;++i) {free(banks[i].pixels);banks[i].pixels=NULL;}
     bank_count=ui_bank_count=0;
     busy=projected=enrolled=failed=ready=ticks=world_ticks=camera_call=0;previous_input=0;
@@ -1414,6 +1842,7 @@ static void activate(void) {
     join_phase=0;join_y=0;memset(returning_body,0,sizeof returning_body);
     effect_allocate_call=effect_init_call=0;memset(death_origins,0,sizeof death_origins);fixture_sequence=0;
     memset(&first,0,sizeof first);memset(&second,0,sizeof second);
+    if(split_views && !view_background_arena)failed=1;
     for(unsigned c=0;c<2;++c) {
         free(assets[c].graphics);free(assets[c].ui_pixels);memset(&assets[c],0,sizeof assets[c]);
         uint32_t memory=psx_mod_alloc_guest_memory(0x58000,16);
@@ -1425,10 +1854,11 @@ static void activate(void) {
     arena=psx_mod_alloc_texture_packet_memory(FRAME_BYTES*2,16);
     primary_arena=psx_mod_alloc_texture_packet_memory(FRAME_BYTES*2,16);
     hud_arena=psx_mod_alloc_texture_packet_memory(0x10000,16);
-    diagnostic=psx_mod_alloc_guest_memory(0x700,16);if(!arena || !primary_arena || !hud_arena || !diagnostic)failed=1;
+    diagnostic=psx_mod_alloc_guest_memory(0xC00,16);if(!arena || !primary_arena || !hud_arena || !diagnostic)failed=1;
     psx_mod_set_rewind_blocked(1);psx_mod_set_savestate_blocked(1);
     psx_mod_counter_add("mmx5.coop.activated",1);
     psx_mod_counter_add("mmx5.coop.diagnostic-address",diagnostic);
+    if(split_views)psx_mod_counter_add("mmx5.coop.split-state",diagnostic+0x700);
 }
 static uint32_t hash_bytes(uint32_t hash,const uint8_t *data,size_t size) {
     for(size_t i=0;i<size;++i)hash=(hash^data[i])*16777619u;
@@ -1441,6 +1871,8 @@ static uint32_t hash_word(uint32_t hash,uint32_t word) {
 static uint32_t state_digest(void) {
     uint32_t hash=2166136261u;
     const unsigned words[]={ready,enrolled,failed,counterpart,projected,busy,world_owner,keep_zero,
+        split_views,split_valid,split_owner,split_table,
+        ai_pool_call,ai_call,ai_owner,ai_suspended,ai_pool,ai_pending,ai_function,ai_first_freeze,
         ever_enrolled,last_stage,section_pending,stage_departed,previous_input,
         life.status[0],life.status[1],life.select_frames,life.select_armed,life.select_previous,life.wipe,
         join_phase,(uint32_t)join_y,(unsigned)(pause_owner+1),(unsigned)p2_start_previous,menu_active,
@@ -1453,6 +1885,7 @@ static uint32_t state_digest(void) {
     hash=hash_bytes(hash,car_source_owner,sizeof car_source_owner);
     hash=hash_bytes(hash,returning_body,sizeof returning_body);
     hash=hash_bytes(hash,scene_body,sizeof scene_body);
+    hash=hash_bytes(hash,split_cameras[0],sizeof split_cameras);hash=hash_bytes(hash,split_visits,sizeof split_visits);
     if(projected) {
         hash=hash_bytes(hash,first.body,sizeof first.body);
         hash=hash_bytes(hash,first.shots,sizeof first.shots);
@@ -1489,7 +1922,7 @@ static uint32_t state_digest(void) {
 #endif
 PSX_MOD_CONSTRUCTOR(mmx5_register_coop) {
     static const PSXModNetplayProfile profile={ID,MMX5_COOP_NETPLAY_COMPATIBILITY,0,0,1,1u,
-        NULL,state_digest,1};
+        NULL,state_digest,1,ID,"coop",NULL,NULL};
     psx_mod_register_netplay_profile(&profile);
     psx_mod_register_activation_plugin(ID,activate);
     psx_mod_register_vblank_plugin(ID,observe_stage);
@@ -1502,6 +1935,24 @@ PSX_MOD_CONSTRUCTOR(mmx5_register_coop) {
     psx_mod_register_function_filter_plugin(ID,0x8002A720,camera_target);
     psx_mod_register_function_filter_plugin(ID,0x8002A7E0,camera_target);
     psx_mod_register_function_filter_plugin(ID,0x8002A440,camera_update);
+    psx_mod_register_function_filter_plugin(ID,0x8002A554,split_camera_finish);
+    psx_mod_register_function_filter_plugin(ID,0x8002AE50,split_scan);
+    psx_mod_register_function_filter_plugin(ID,0x8002B4E4,split_allocate);
+    psx_mod_register_instruction_plugin(ID,0x8002B39C,0xA2420000,split_spawned);
+    psx_mod_register_function_filter_plugin(ID,0x8002D800,split_actor_bounds);
+    psx_mod_register_function_filter_plugin(ID,0x8002D938,split_actor_bounds);
+    psx_mod_register_function_filter_plugin(ID,0x8002D89C,split_actor_bounds);
+    psx_mod_register_function_filter_plugin(ID,0x8002D9EC,split_actor_bounds);
+    psx_mod_register_function_filter_plugin(ID,0x8002DAA0,split_actor_bounds);
+    psx_mod_register_function_filter_plugin(ID,0x80068C28,present_local_view);
+    psx_mod_register_function_filter_plugin(ID,0x80027F88,local_background);
+    psx_mod_register_function_filter_plugin(ID,0x80021F64,ai_pool_tick);
+    psx_mod_register_function_filter_plugin(ID,0x800221B0,ai_pool_tick);
+    psx_mod_register_function_filter_plugin(ID,0x8005609C,spatial_stage_actor);
+    psx_mod_register_function_filter_plugin(ID,0x80056AA0,spatial_stage_actor);
+    psx_mod_register_instruction_plugin(ID,0x80022044,0x00A0F809,ai_redirect);
+    psx_mod_register_instruction_plugin(ID,0x80022290,0x00A0F809,ai_redirect);
+    psx_mod_register_guest_function_plugin(ID,AI_DISPATCH,ai_update);
     psx_mod_register_function_filter_plugin(ID,0x80035040,player_tick);
     psx_mod_register_function_filter_plugin(ID,0x80022960,ride_tick);
     psx_mod_register_function_filter_plugin(ID,0x80020D5C,stage_tick);

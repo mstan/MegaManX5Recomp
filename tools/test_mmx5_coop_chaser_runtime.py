@@ -40,6 +40,9 @@ def wait_driving(r):
         require(r.lifecycle()[:2]==(0,0),'A rider died before the driving-control window')
         cars=r.cars()
         if all(c[4]==1 and c[5]==1 and c[0x70]&8 for c in cars):
+            for body,car in zip(r.players(),cars):
+                require(body[0x15]==car[0x15],'Native rider faces opposite its car')
+                require(body[0x47]!=0xff,'Native rider kept an expired teleport frame')
             return
         require(time.monotonic()<deadline,'Native cars never reached grounded driving mode')
         time.sleep(.015)

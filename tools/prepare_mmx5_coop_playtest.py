@@ -16,12 +16,17 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--build',type=Path,default=Path('build-coop'))
     parser.add_argument('--out',type=Path,required=True)
+    parser.add_argument('--stage-access-card',type=Path,
+                        help='Seed a fresh playtest with the separately validated all-eight-stage card')
     args=parser.parse_args()
     root=Path(__file__).resolve().parent.parent
     build=args.build.resolve()
     out=args.out.resolve()
     if out.exists():
         parser.error('Use a fresh output directory to preserve previous playtest settings/cards')
+    card=args.stage_access_card.read_bytes() if args.stage_access_card else None
+    if card is not None and (len(card)!=131072 or card[:2]!=b'MC'):
+        parser.error('Stage-access card must be a native 128KB PS1 card')
     exe=build/'mmx5-runtime.exe'
     bios=build/'bios/openbios.bin'
     package=build/'mods/bundled/mmx5.coop/0.0.1/manifest.toml'
@@ -80,6 +85,8 @@ P2 is the counterpart (base X when P1 is Zero). Each seat opens its own
 native menu with Start. P2 holds Select for 90 gameplay updates to leave,
 then taps Select near a grounded living P1 to return. A fallen actor stays
 out until a team retry/new stage. Shared retry count and stored tanks.
+The counterpart uses its native teleport arrival on stage entry/return and
+native departure on withdrawal, including Zero's character animations.
 Life meters are stacked on the left. Ride Armor belongs to P1; P2 stays
 on foot. Both players use Ride Chasers in the forced car sequence. Select
 departure is locked there; one death leaves the survivor playing, and two
@@ -88,15 +95,31 @@ deaths consume one shared retry. Full road traversal still needs playtesting.
 This directory owns its settings and memory cards. The original disc/exe
 remain in the worktree. Keep other enhancement mods off for this baseline.
 
+Shared-screen netplay is optional: use Host / Join in the launcher when
+both peers have this same build, game region and co-op package enabled.
+The trusted co-op profile uses one shared 4:3 camera and delay sync. Offline
+play needs no network session. Independent cameras remain a later goal.
+
 This is an early checkpoint, not a qualified full campaign. See the source
 docs/COOP_SPIKE.md for tested paths and outstanding stage/vehicle/armor work.
 Independent cameras and optional X-versus-Zero PvP remain deferred.
 ''',encoding='utf-8')
+    if card is not None:
+        # The launcher isolates OpenBIOS cards; CLI tests can use the legacy
+        # root. Seed both in this new directory before either is opened.
+        for location in (out/'saves',out/'saves/openbios'):
+            location.mkdir(parents=True,exist_ok=True)
+            (location/'card1.mcd').write_bytes(card)
+        with (out/'README.txt').open('a',encoding='utf-8') as note:
+            note.write('\nStage-access save included: choose CONTINUE, Memory Card 1, DATA 1,\n'
+                       'then select Yes to load. Both characters and all eight boss stages\n'
+                       'are available, with 16 hours remaining and bosses unbeaten.\n')
     branch=subprocess.check_output(['git','branch','--show-current'],cwd=root,text=True).strip()
     revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip()
     manifest=dict(branch=branch,source_commit=revision,executable_sha256=hashlib.sha256(exe.read_bytes()).hexdigest(),
                   bios_sha256=hashlib.sha256(bios.read_bytes()).hexdigest(),
                   human_validated=False,source_docs=str(root/'docs/COOP_SPIKE.md'))
+    if card is not None:manifest['stage_access_card_sha256']=hashlib.sha256(card).hexdigest()
     (out/'CHECKPOINT.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
     print(out/'Play X5 Co-op.ps1')
 

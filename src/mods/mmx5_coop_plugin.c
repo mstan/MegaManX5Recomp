@@ -111,6 +111,7 @@ static int car_source_index(uint32_t actor) {
 }
 static void cars_refresh(unsigned default_seat);
 static void scene_tick(CPUState *cpu);
+static void begin_join(CPUState *cpu,uint32_t x,uint32_t y);
 static void scene_begin(unsigned seat);
 static int scene_passenger(unsigned seat) {return scene_owner && scene_owner!=seat+1;}
 static void enforce_roster(void) {
@@ -469,7 +470,16 @@ static int enroll(CPUState *cpu) {
         psx_mod_write_byte(PLAYER+3,0);psx_mod_write_byte(PLAYER+4,3);psx_mod_write_byte(PLAYER+0x5C,0x80);
     }
     section_pending=stage_departed=0;ever_enrolled=1;last_stage=psx_mod_read_byte(PLAY+0x0C);
-    enrolled=1;psx_mod_counter_add("mmx5.coop.enrolled",1);return 1;
+    enrolled=1;psx_mod_counter_add("mmx5.coop.enrolled",1);
+    /* Like X4/X6, keep initialization private and introduce an absent
+     * counterpart with its own original incoming/resolving animation. Native
+     * forced vehicle arrival stays separate; retained absent/fallen seats
+     * must not be brought back by an ordinary continuation. */
+    if(life.status[1]==MMX5_COOP_ALIVE && !car_context()) {
+        hud_fade=0;begin_join(cpu,x+(24u<<16),y);
+        psx_mod_counter_add("mmx5.coop.stage-arrivals",1);
+    }
+    return 1;
 }
 static uint16_t input(unsigned seat) {
     uint16_t raw=(uint16_t)~sio_get_pad_buttons_slot((int)seat);
@@ -521,16 +531,19 @@ static void start_leave(CPUState *cpu) {
     enter_second();guest(cpu,0x8003A2C8,PLAYER,0);guest(cpu,0x8003B33C,PLAYER,3);
     guest(cpu,0x8003B28C,PLAYER,0);psx_mod_write_word(PLAYER+0x54,0);leave_second();
 }
-static void start_join(CPUState *cpu) {
-    memcpy(second.body,returning_body,sizeof returning_body);
-    put32(second.body+8,psx_mod_read_word(PLAYER+8));join_y=(int32_t)psx_mod_read_word(PLAYER+12);
+static void begin_join(CPUState *cpu,uint32_t x,uint32_t y) {
+    put32(second.body+8,x);join_y=(int32_t)y;
     int32_t top=(int16_t)psx_mod_read_half(CAMERA+0x0E)-40;
     put32(second.body+12,(uint32_t)(top*65536));
     put32(second.body+0x18,le32(second.body+8));put32(second.body+0x1C,le32(second.body+12));
     second.body[3]=second.body[4]=1;second.body[5]=second.body[6]=0;
     enter_second();guest(cpu,0x8003A2C8,PLAYER,0);guest(cpu,0x8003B33C,PLAYER,1);
     psx_mod_write_word(PLAYER+0x68,0);psx_mod_write_word(PLAYER+0x54,0);leave_second();
-    join_phase=1;
+    life.status[1]=MMX5_COOP_JOINING;join_phase=1;
+}
+static void start_join(CPUState *cpu) {
+    memcpy(second.body,returning_body,sizeof returning_body);
+    begin_join(cpu,psx_mod_read_word(PLAYER+8),psx_mod_read_word(PLAYER+12));
 }
 static void join_animation(CPUState *cpu) {
     enter_second();guest(cpu,0x80017248,PLAYER,0);

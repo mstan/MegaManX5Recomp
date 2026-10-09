@@ -22,6 +22,12 @@ unified baseline. A playable X-versus-Zero story encounter is optional later:
 P2 controls the opposing actor, uses the native boss meter, and either winner
 advances the normal post-fight script without changing campaign outcome.
 
+On 2026-10-09 the owner approved **unsplit/shared-screen netplay as an opt-in
+feature**. Host / Join explicitly starts the existing trusted co-op delay-sync
+profile; offline play requires no network session. The package defaults off
+outside its isolated playtest build. Positive early playtest feedback does not
+qualify the full campaign or unlock the independent-camera stretch goal.
+
 No campaign or gameplay qualification is claimed by workspace setup or builds.
 Original assets, captures, saves and generated code stay local and ignored.
 
@@ -116,6 +122,20 @@ native primary-world targeting while both seats are alive; the survivor owns
 the native world when P1 falls. Independent cameras and optional story PvP
 have not been implemented.
 
+Counterpart enrollment now starts the original character-specific teleport
+arrival, matching X4/X6's stage-entry lifecycle. X5 `8003B33C` selects its own
+X/Zero incoming/resolving parts (arguments1/2); original `80017248` advances
+them before `8003A670` restores idle and native contact grace. Withdrawal
+already uses arguments3/4 through the original departure loop and action/sound
+helper `8003B28C`. Fresh stage/retry and living continuation arrivals animate;
+retained absent/fallen seats stay out. Forced car arrival remains native
+`8003D784`. Inspected captures show Zero's descending red beam/resolving pose
+and outgoing pose/upward red beam, including a save-loaded Maverick stage.
+`qa-native-spawn-x/continuation` retains a harness failure that held Select
+while the counterpart was still JOINING. The corrected arrival-aware check
+waits for native teleport completion before requesting withdrawal and passes
+in `continuation-arrival`; elapsed arrival time is not a despawn request.
+
 Ride Armor is **P1-only** by owner preference. Original BIN member6 (logical
 ID10, stage4/section1) supplies `800F2A4C`; resident `80022960` dispatches the
 two original world slots (`800D1DC0`, `800D1E70`, stride `B0`). During P2
@@ -202,6 +222,11 @@ No automated result represents owner human acceptance.
 | Intro road/dialogue smoke | `qa-stage-x` and `qa-scene-x` captures | Reached native damaged-road dialogue; not an intro completion or boss qualification |
 | Feature disabled | `qa-stacked-final-disabled/report.json` | Stacked/vehicle checkpoint before the enabled-only palette fix: native fresh boot and single-player controls, no co-op activation |
 | Unit/integration checks | CTest assets, lifecycle, hooks, production catalog | Bounded decoder/format checks, lifecycle/availability rules, unique hooks and emitted coverage, production package count |
+| Native stage arrivals | `qa-native-spawn-x/report.json`, `qa-native-spawn-zero/report.json` | Both character selections and original incoming parts, independent control after arrival; Zero's red beam and resolved actor inspected |
+| Arrival-aware resources/continuation | `qa-native-spawn-x/ownership/report.json`, `qa-native-spawn-zero/ownership/report.json`, `qa-native-spawn-x/continuation-arrival/report.json` | Native pickup/tank/withdrawal/return/script checks; native FF living/absent/fallen continuation |
+| Arrival checkpoint netplay | `qa-native-spawn-net-x/report.json`, `qa-native-spawn-net-zero/report.json` | Matching core/mod samples through ticks5623/4879; Zero pair includes25ms +/-10ms jitter; both actors and menus exercised |
+| Stage-access card | `qa-stage-access-complete/report.json` | Original Continue/DATA1/Yes loads, eight native cursor choices map to stages1..8, both characters available, native Grizzly stage entry with both living actors; no stage traversal/boss qualification |
+| Zero departure image review | `qa-stage-access-ready/departure/report.json` and captures | Original P2 Select request, outgoing Zero pose and upward red beam, absence and native return |
 | Eight Maverick stages and late stages | Pending | No load/traversal/boss/vehicle matrix is claimed |
 
 Keep the unsuccessful `qa-stage-x/report.json` selection-navigation timeout:
@@ -238,6 +263,8 @@ pending; the loader fix does not turn this input/CRC check into that evidence.
 Build uses the local OpenBIOS image and framework `1483cc3`, UI `36cf0da`.
 The latest stacked-meter/vehicle/palette checkpoint executable SHA-256 is
 `500840386f7d42976aab48fb39f5a6bd10e31ad3832a68b8f8a5b05064665ec3`.
+The subsequent native-arrival checkpoint executable SHA-256 is
+`d7c5fd5f3408c802ebff5b625062f48eb0db6174590ea557a44c8ddeaa5fff61`.
 Generated C is regenerated from `game.toml`, never patched. Rebuild with two
 compile jobs. Focused runtime commands are in `tools/test_mmx5_coop_*.py`;
 they own private processes/cards and use native input for boot/navigation.
@@ -246,7 +273,7 @@ Controlled ownership/death fixtures are debug-only and reject online use.
 Stage an owner test with:
 
 ```powershell
-py -3 tools/prepare_mmx5_coop_playtest.py --build build-coop --out build-coop/playtest-stacked-unified
+py -3 tools/prepare_mmx5_coop_playtest.py --build build-coop --out build-coop/playtest-native-arrival --stage-access-card build-coop/stage-access-ready/card1.mcd
 ```
 
 Run the generated `Play X5 Co-op.ps1`, bind two controllers in the launcher,
@@ -256,3 +283,28 @@ grounded living P1 to return. Fallen actors wait for a native team retry or
 new stage. The forced car sequence locks voluntary withdrawal; one rider death
 keeps the other playing, and the last death spends one shared retry. Keep other
 enhancement mods off for this initial baseline test.
+
+The next-test card is a separate **stage-access fixture**, with all eight bosses
+unbeaten, both characters available, 16 hours remaining and native starting
+equipment. Choose CONTINUE, Memory Card1, DATA1, then Yes. The staging tool
+seeds a fresh directory's root and OpenBIOS-isolated cards; it refuses existing
+output directories and never replaces previous playtest cards.
+
+`tools/prepare_mmx5_stage_access_save.py` reproduces the original BIN24 slot
+serializer `800F2970..800F2BF0`, `158`-byte slot and resident checksum validator
+`8001DB78`, using a fresh offline native PLAY snapshot. The card filename is
+`BASLUS-01334`, with original title/palette/three icon frames. The fixture sets
+the native post-intro phase1, one completed opening mission, and the original
+`FF` empty pending-story queue. Resident `8001DCC8` otherwise resumes a queued
+story event instead of stage selection. Initial queue0 cards were recognized
+but reentered the intro (`qa-stage-access-save`, `qa-stage-access-post-intro`);
+these observations remain unqualified. The corrected card SHA-256 is
+`4a173ef3b348f61073a89b8e416687f556b44b7475ef60c0e3564a0ac093f3e9`.
+
+`tools/test_mmx5_stage_access_save.py` uses original input and private copied
+cards, with no gameplay RAM writes or savestates. It waits for the interactive
+eight-portrait selector, visits each native choice, checks Zero availability,
+and enters one selected boss stage with both actors. Original selector
+`800EF858` owns PLAY+28; original BIN20 `800F5050` maps those eight portraits
+to stages1..8. A load-mode transition alone is not this validation. Native
+briefing/dialogue still runs when the card is loaded.

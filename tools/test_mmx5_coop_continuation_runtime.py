@@ -33,8 +33,11 @@ def enrollments(r):
 
 def reload(r):
     before = enrollments(r)
+    status=r.lifecycle()[1]
     r.fixture(8)
     wait_for(lambda: r.state()['enrolled'] and enrollments(r)>before)
+    if status==0:
+        wait_for(lambda:r.lifecycle()[1]==0)  # Finish the native counterpart arrival.
     require(not r.state()['failed'], 'Co-op failed during original init')
     require(r.read(PLAY, 1) == b'\x0a', 'Original continuation did not return to gameplay')
 

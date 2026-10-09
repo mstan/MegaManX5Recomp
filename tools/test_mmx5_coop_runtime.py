@@ -33,6 +33,8 @@ def main():
     parser.add_argument('--keep-running', action='store_true')
     parser.add_argument('--paced', action='store_true',
                         help='Use a hidden normally paced GL frontend for reliable native menu observation')
+    parser.add_argument('--capture-arrival',action='store_true',
+                        help='Record the native counterpart arrival before testing controls')
     args = parser.parse_args()
     args.run_dir.mkdir(parents=True, exist_ok=True)
     build = args.exe.resolve().parent
@@ -116,6 +118,17 @@ def main():
                 sample_at = time.monotonic()+10
         runtime.input(0, 0)
         runtime.input(0, 1)
+        if args.enabled:
+            deadline=time.monotonic()+12
+            arrival=[]
+            while runtime.lifecycle()[1]!=0:
+                require(time.monotonic()<deadline,'Counterpart native arrival did not finish')
+                if args.capture_arrival:
+                    arrival.append(dict(state=runtime.state(),life=runtime.lifecycle(),
+                                        body=runtime.players()[1].hex()))
+                    runtime.screenshot(args.run_dir/f'arrival-{len(arrival):02}.png')
+                time.sleep(.04)
+            if args.capture_arrival:report['arrival']=arrival
         time.sleep(.2)
         runtime.screenshot(args.run_dir/'idle.png')
         if args.enabled:

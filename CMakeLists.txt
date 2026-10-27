@@ -9,6 +9,15 @@ set(PSXRECOMP_V4_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/psxrecomp-v4" CACHE PATH
     "Path to psxrecomp-v4")
 
 include("${PSXRECOMP_V4_ROOT}/runtime/runtime.cmake")
+option(MMX5_NATIVE_IDLE_WAIT "Select the audited native PsyQ frame wait" ON)
+set(MMX5_NATIVE_IDLE_WAIT_SITES "")
+if(MMX5_NATIVE_IDLE_WAIT)
+    if(NOT COMMAND psxrecomp_native_idle_wait)
+        message(FATAL_ERROR "MMX5_NATIVE_IDLE_WAIT needs native wait-policy support")
+    endif()
+    set(MMX5_NATIVE_IDLE_WAIT_SITES 0x80062FE8 0x80063030)
+endif()
+
 
 # The recompiler emits the game body as SHARDS (SLUS_013.34_full_00.c ...) --
 # a single SLUS_013.34_full.c has not been produced for some time. This file
@@ -51,12 +60,14 @@ file(GLOB MMX5_MOD_PLUGIN_SOURCES CONFIGURE_DEPENDS
 set(MMX5_PRELOADED_MODS "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded")
 
 psxrecomp_v4_add_runtime_target(psx-runtime
+    NATIVE_IDLE_WAIT_SITES ${MMX5_NATIVE_IDLE_WAIT_SITES}
     GAME_GENERATED_FULL_C "${GAME_GENERATED_FULL}"
     GAME_GENERATED_DISPATCH_C "${GAME_GENERATED_DISPATCH}"
     DEBUG_PORT 4520
     WINDOW_TITLE "MegaManX5Recomp"
     DEFAULT_GAME_CONFIG_PATH "game.toml"
     EXE_NAME "mmx5-runtime"
+    BUILTIN_MOD_EXCLUDE psx.enhancement.cd-speed psx.enhancement.fast-loading
     LAUNCHER_BOXART "${CMAKE_SOURCE_DIR}/recomp/launcher/boxart.tga"
     PRELOADED_MODS_DIR "${MMX5_PRELOADED_MODS}"
     EXTRAS_SOURCES
@@ -66,6 +77,14 @@ psxrecomp_v4_add_runtime_target(psx-runtime
 
 if(BUILD_TESTING)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    add_test(NAME mmx5_vwait_contract
+        COMMAND "${Python3_EXECUTABLE}"
+            "${PSXRECOMP_V4_ROOT}/runtime/tests/native_wait_caller.py"
+            --framework "${PSXRECOMP_V4_ROOT}" --cc "${CMAKE_C_COMPILER}"
+            --generated "${CMAKE_CURRENT_SOURCE_DIR}/generated"
+            --contract "${CMAKE_CURRENT_SOURCE_DIR}/tests/vwait_contract.json")
+    set_tests_properties(mmx5_vwait_contract PROPERTIES SKIP_RETURN_CODE 77 RUN_SERIAL TRUE)
+
     add_test(
         NAME mmx5_preloaded_mods_test
         COMMAND "${Python3_EXECUTABLE}"

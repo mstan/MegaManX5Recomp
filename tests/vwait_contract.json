@@ -1,0 +1,16 @@
+{
+  "symbol": "func_80062FC0",
+  "entry": "0x80062FC0",
+  "end": "0x80063058",
+  "counter": "0x8007FA70",
+  "sites": [
+    "0x80062FE8",
+    "0x80063030"
+  ],
+  "callbacks": [
+    "0x8006C210",
+    "0x8006C438",
+    "0x8006C448"
+  ],
+  "revision": "SLUS-01334"
+}

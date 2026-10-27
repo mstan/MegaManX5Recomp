@@ -1,5 +1,10 @@
 # MMX5 [widescreen.bg2d] hook sites (static recon 2026-07-09)
 
+Historical address inventory only: this tile-ring widening implementation is
+retired. No active game config emits these hooks. The current custom renderer
+reads the authored map through shared `mod_capcom_bg2d.h` and an independent
+DMA arena; native count, start, streamer and packet-cap instructions stay stock.
+
 Structural analogues of MMX6's 2D-background widescreen hook sites
 (MegaManX6Recomp/game.toml lines ~117-148), verified against the generated
 instruction listing for `SLUS_013.34`. Same Capcom engine,

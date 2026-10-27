@@ -5,7 +5,7 @@ set -euo pipefail
 
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 orig_args=("$@")
-version=""; out_dir=""; skip_build=0
+version=""; out_dir=""; skip_build=0; execution_profile=ENHANCED
 build_dir=${BUILD_DIR:-"$root/build-appimage"}
 _cores=$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)
 jobs=${BUILD_JOBS:-$(( _cores > 4 ? _cores - 2 : 2 ))}
@@ -17,6 +17,7 @@ while [ $# -gt 0 ]; do
         --build-dir) build_dir=$2; shift 2;;
         --jobs) jobs=$2; shift 2;;
         --skip-build) skip_build=1; shift;;
+        --execution-profile) execution_profile=$2; shift 2;;
         --nice) nice_level=$2; shift 2;;
         -h|--help)
             cat <<'EOF'
@@ -26,12 +27,15 @@ Usage: bash tools/package_appimage.sh [options]
   --build-dir DIRECTORY   CMake build directory (default: build-appimage)
   --jobs COUNT            parallel build jobs
   --skip-build            package an existing Linux build directory
+  --execution-profile P   ENHANCED (default) or REFERENCE; use separate build dirs
   --nice LEVEL            build priority (default: 10; use 0 to disable)
 EOF
             exit 0;;
         *) echo "unknown arg: $1" >&2; exit 2;;
     esac
 done
+
+case "$execution_profile" in ENHANCED|REFERENCE) ;; *) echo "invalid execution profile: $execution_profile" >&2; exit 2;; esac
 
 nice_level=${nice_level:-10}
 if [ "$nice_level" -gt 0 ] && [ "${RECOMP_APPIMAGE_RENICED:-0}" != "1" ] \
@@ -110,7 +114,8 @@ if [ "$skip_build" = 0 ]; then
     generator=Ninja; command -v ninja >/dev/null 2>&1 || generator="Unix Makefiles"
     cmake -S "$root" -B "$build_dir" -G "$generator" \
         -DCMAKE_BUILD_TYPE=Release -DPSX_SDL_BACKEND=SDL3 -DPSX_DEBUG_TOOLS=OFF -DPSX_PGXP_VARIANT=OFF -DPSX_GAME_VERSION="$version" \
-        -DCMAKE_EXE_LINKER_FLAGS="-Wl,--build-id=none"
+        -DCMAKE_EXE_LINKER_FLAGS="-Wl,--build-id=none" \
+        -DPSX_EXECUTION_PROFILE="$execution_profile"
     cmake --build "$build_dir" --target psx-runtime -j "$jobs"
 fi
 
@@ -118,6 +123,13 @@ elf=$build_dir/$EXE_NAME
 [ -f "$elf" ] || elf=$build_dir/psx-runtime
 [ -f "$elf" ] || { echo "no runtime ELF under $build_dir" >&2; exit 1; }
 file -b "$elf" | grep -q ELF || { echo "$elf is not an ELF binary" >&2; exit 1; }
+python3 - "$elf.execution.json" "$execution_profile" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as stream:
+    actual = json.load(stream)["profile"]
+if actual != sys.argv[2]:
+    raise SystemExit(f"existing build profile {actual} differs from requested {sys.argv[2]}")
+PY
 
 # X5 keeps the shipping config in the root game.toml. Cut only the audit
 # metadata so turbo_loads=false and all runtime settings remain single-sourced.
@@ -199,10 +211,10 @@ else echo "ImageMagick is required for the AppImage icon." >&2; exit 1; fi
 "$image_tool" "$root/$ICON_SOURCE" -resize 240x240 -background transparent -gravity center -extent 256x256 "$appdir/$DESKTOP_ID.png"
 ln -s "$DESKTOP_ID.png" "$appdir/.DirIcon"
 
-linuxdeploy_url=https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-linuxdeploy_sha=36a2d7e274d12e1050d0e9ecfe11d339ed54720b2bec464c286d53f8b07f5c62
-appimagetool_url=https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
-appimagetool_sha=a6d71e2b6cd66f8e8d16c37ad164658985e0cf5fcaa950c90a482890cb9d13e0
+linuxdeploy_url=https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20251107-1/linuxdeploy-x86_64.AppImage
+linuxdeploy_sha=c20cd71e3a4e3b80c3483cef793cda3f4e990aca14014d23c544ca3ce1270b4d
+appimagetool_url=https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage
+appimagetool_sha=ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0
 fetch_tool() {
     url=$1; sha=$2; dest=$3
     if [ ! -f "$dest" ] || [ "$(sha256sum "$dest" | awk '{print $1}')" != "$sha" ]; then
@@ -219,6 +231,10 @@ fetch_tool "$linuxdeploy_url" "$linuxdeploy_sha" "$linuxdeploy"
 fetch_tool "$appimagetool_url" "$appimagetool_sha" "$appimagetool"
 export NO_STRIP=1
 "$linuxdeploy" --appimage-extract-and-run --appdir "$appdir" --executable "$appdir/usr/bin/$EXE_NAME" --desktop-file "$appdir/$DESKTOP_ID.desktop" --icon-file "$appdir/$DESKTOP_ID.png"
+# linuxdeploy may rewrite the ELF; bind its final bytes before compression.
+python3 "$fw/tools/release_stage.py" stage-execution \
+    --binary "$appdir/usr/bin/$EXE_NAME" \
+    --manifest "$(dirname -- "$elf")/$(basename -- "$elf").execution.json"
 find "$appdir" -exec touch -h -d "@$SOURCE_DATE_EPOCH" {} + 2>/dev/null || true
 rm -f -- "$output"
 ARCH=x86_64 "$appimagetool" --appimage-extract-and-run "$appdir" "$output"

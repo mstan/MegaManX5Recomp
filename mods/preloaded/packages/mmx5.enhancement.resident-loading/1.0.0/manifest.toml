@@ -1,0 +1,23 @@
+format_version = 5
+id = "mmx5.enhancement.resident-loading"
+version = "1.0.0"
+name = "Mega Man X5 Fast Asset Loading"
+author = "mstan"
+description = "Serves verified blocking archive loads from memory through the original asset callbacks and GPU/sound upload queues."
+resolver = "declarative"
+save_compatibility = "shared"
+
+[[target]]
+game_id = "SLUS-01334"
+disc_sha256 = "be731bc4b9d3211b9267a34b8a68c769199a15479b14004ff25b67cdfebe8af4"
+
+[[feature]]
+id = "resident-loading"
+name = "Fast Asset Loading"
+description = "Accelerates loading-screen transfers. Background actor loads, movies and music retain their original paths."
+group = "Loading"
+default_enabled = true
+
+[[plugin]]
+feature = "resident-loading"
+id = "mmx5.resident-loading"

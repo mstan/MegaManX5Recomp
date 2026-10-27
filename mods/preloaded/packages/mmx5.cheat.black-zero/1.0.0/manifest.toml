@@ -1,0 +1,23 @@
+format_version = 5
+id = "mmx5.cheat.black-zero"
+version = "1.0.0"
+name = "Black Zero"
+author = "mstan"
+description = "Use Zero's native X5 black palette, abilities, damage and weapon-energy behavior without a button code. Preserves native memory-card progress and grants no capsule rewards. Independent of Ultimate Armor X."
+resolver = "declarative"
+save_compatibility = "shared"
+
+[[target]]
+game_id = "SLUS-01334"
+disc_sha256 = "be731bc4b9d3211b9267a34b8a68c769199a15479b14004ff25b67cdfebe8af4"
+
+[[feature]]
+id = "black-zero"
+name = "Black Zero"
+description = "Use Zero's native X5 black palette, abilities, damage and weapon-energy behavior. Native memory-card progress is preserved and no capsule rewards are granted. Requires a fresh boot. For netplay, use the host's X + Zero Co-op option."
+group = "Cheats"
+default_enabled = false
+
+[[plugin]]
+feature = "black-zero"
+id = "mmx5.cheats.black-zero"

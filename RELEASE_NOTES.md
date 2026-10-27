@@ -1,3 +1,166 @@
+# v0.2.4-coop-alpha-debug (local Windows alpha)
+
+This build completes the latest eight opening-stage owner reports. Each split
+view keeps its own lower-floor scrolling and personal effects, including Zero's
+Z-Buster muzzle and wall-jump dust. Restarting from X to Zero in one process
+retains the correct character, projectile and HUD graphics. Both heroes follow
+the native white flash during the statue reveal and Sigma defeat.
+
+- The companion continues native walking/dashing animation through Both-player
+  boss doors, preserving the original door carry, scene and control recovery.
+- Black Zero is available only after earning the Sigma stage 3 capsule unlock.
+  Either seat can collect it; the native unit selector then offers Normal and
+  Black Zero. Choosing Normal keeps the unlock. The Black Zero preference does
+  not bypass collection, and X's palette remains intact when P2 Zero collects it.
+- The campaign still fixes P1's hero, with one X and one Zero. Fourth Armor and
+  Z-Buster remain available. Local split-screen, Either-player doors, diagnostics
+  and Alia suppression remain selected/default on.
+
+The eight reports have six bounded automated passes and two owner visual passes.
+Both native capsule collection paths and locked/unlocked selector behavior pass;
+native cold memory-card Save/Load of this new unlock remains unverified. Older
+comparisons, solo Grizzly pause reproduction and LAN remain deferred. Full
+winner-selected stories/endings and native cold-save duel-winner persistence
+remain unqualified. See docs/COOP_X5_023_OWNER_BURNDOWN.md for exact scope.
+
+P1 uses keyboard and P2 targets DualSense. Normal window/audio are retained;
+devices can be changed in the launcher. Prepared QA snapshots are regenerated
+for this build and use separate disposable saves. Native campaign saves remain
+separate. Bring your own USA SLUS-01334 disc; OpenBIOS is included. CD Speed and
+Fast Loading packages/controls are absent. No remote publication.
+
+# v0.2.3-coop-alpha-debug (local Windows alpha)
+
+This build completes the latest 11-report owner follow-up with bounded checks.
+P2 can rescue native injured Reploids: the team receives one life and the
+rescuer receives the native healing. Full P2 virus infections now retain their
+shared progression counts; X and Zero keep their different original effects.
+
+- Silent Alia hints retain their native completion actions without briefly
+  holding controls or gathering the partner. Visible hints still gather and
+  return safely; X's return retains its native armor/materialization layers.
+- Intro building/lower backgrounds follow each view independently. The Both
+  door path preserves the native roof carry, statue reveal, Sigma dialogue
+  and control recovery. Companion boss-intro animation continues normally.
+- Personal HUDs retain native frames, badges, lives and sorting when either
+  hero overlaps them. X/P2 hover exhaust stays live, and the charged Crescent
+  shield samples its original weapon graphics in either seat.
+
+All 11 latest reports have bounded passes; this is not full campaign parity.
+Older comparison work, the intermittent solo Grizzly pause and LAN expansion
+remain deferred. Full winner-selected stories/endings are unqualified, and
+native cold-save duel-winner persistence is not implemented.
+
+Local split-screen, Either-player doors, diagnostics and Alia suppression
+remain selected/default on. P1 uses keyboard and P2 targets DualSense, with
+normal audio in a normal window. Native campaign saves stay separate from
+build-specific disposable QA states. Bring your own USA SLUS-01334 disc;
+OpenBIOS is included. CD Speed/Fast Loading are absent. No remote publication.
+
+# v0.2.2-coop-alpha-debug (local Windows alpha)
+
+This local release brings the latest owner-report fixes into the portable
+co-op build. Fourth Armor's lingering charged orb now uses the correct
+reflected source tiles and full-sized pieces, removing the seams through it.
+Common scenery/effect palettes retain the original stage colors.
+
+- Each seat uses the original unit selector in sequence. The campaign fixes
+  P1's hero; P2 selects the counterpart's form. One X and one Zero remain,
+  with Black Zero separately selectable and no replacement selector UI.
+- P2 can quit from their pause menu through the native confirmation flow.
+  Alia interactions gather a distant partner safely and preserve native stage
+  actions. Intro descent camera bounds recover in the bounded regression.
+- The cleared-stage Grizzly explosion countdown/GO cue is verified with
+  default hint suppression. Native debris and moving-structure smoke retain
+  their original palettes in both views.
+
+The current 16-report follow-up has 13 bounded passes and three unverified
+checks: damaged hovering-platform smoke, final intro Sigma arena camera/control,
+and visible boss-door closure during that fight. These need one normal authored
+intro route; incomplete teleport setups are not passes. The owner authorized
+this release with those gaps recorded. See docs/COOP_X5_021_FOLLOWUPS.md.
+The older comparative campaign, solo Grizzly pause reproduction and LAN
+expansion remain deferred; full campaign parity is not claimed.
+
+Local split-screen co-op and Either-player doors are selected. Diagnostics
+and Alia hint suppression default on. P1 uses keyboard and P2 targets the
+DualSense; devices can be changed in the launcher. Normal audio and windowed
+mode are retained. Bring your own USA SLUS-01334 disc; OpenBIOS is included.
+CD Speed and Fast Loading packages/controls are absent. Native campaign saves
+are separate from disposable QA snapshots. No remote publication.
+
+# v0.2.1-coop-alpha-debug (local Windows alpha)
+
+This local co-op build includes the accumulated user-report fixes and the
+owner-accepted playable X-versus-Zero defeat sequence. It defaults to local
+side-by-side cameras, Either-player doors, diagnostic recording and Alia hint
+suppression. X retains Fourth Armor availability and Zero retains Z-Buster;
+X's player owns armor selection. Configure other devices or displays in the
+launcher. The supplied local profile assigns P1 keyboard and P2 DualSense.
+
+- Correct independent pause menus, cameras, HUDs, actor/effect graphics and
+  scene ownership, including intro Sigma and Grizzly's trains, timer and door.
+- Preserve native actions when suppressing Alia messages; health pickups no
+  longer pause both players. Intro roof structures wait for every living hero.
+- The duel has equal starting health, normal moves/personal menus, aligned
+  meters and one real arrival. Only the loser loses their meter and crouches,
+  then vanishes into the explosions during the white flash. Ordinary stage
+  deaths retain their native animation. Physical input isolation is accepted.
+
+The recent follow-up burndown is8 resolved,2 deferred,10 total. The older
+Both-door intro death lacks a qualified normal-route reproduction. Solo
+Grizzly's intermittent background pause was not reproduced in the bounded
+scroll check. These findings remain open; see docs/COOP_X5_USER_REPORTS.md.
+Default Either-player doors are retained. LAN is deferred by the owner.
+
+Full winner-selected stories/endings remain unqualified, and native cold-save
+duel-winner persistence is not implemented. Current-build save/load is separate
+and validated; older snapshots are disposable. This is an alpha testing build,
+with diagnostics, debug support and private setup commands for the supplied QA
+recipes. It is not a full-campaign or competitive-balance certification.
+
+Bring your own USA SLUS-01334 disc. Bundled OpenBIOS is included. CD Speed and
+Fast Loading packages/controls are absent. Prepared offline QA states are
+build-specific and keep native campaign saves separate. No remote publication.
+
+# v0.2.0-coop-alpha-debug (Windows prerelease)
+
+Mega Man X5 now offers experimental simultaneous X + Zero co-op, default off.
+Enable **X + Zero Co-op** in Mods and use OpenGL. Local play shares one camera;
+netplay can use Unified or opt-in Split cameras, with independent displays of
+the same world. Both peers must use this exact build and the USA SLUS-01334 disc.
+
+- Configure separate Player 1 and Player 2 devices in the launcher for local
+  play. In netplay, each peer binds its local device as Player 1 and the room
+  assigns seats. LAN/Direct IP and Online Host/Join are included.
+- P1 uses the natively selected X or Zero; P2 uses the counterpart when story
+  availability permits. Health/resources and menus remain per player. P1 alone
+  uses Ride Armor. Ride Chasers support both riders, surviving-player control
+  and one shared retry after a team wipe; voluntary withdrawal is locked during
+  the forced car sequence.
+- Native arrival poses, stacked shared-screen meters, independent online HUDs,
+  spectator fallback and resource-preserving departure/return are implemented.
+- Measured fortress entry and controlled separated-player windows reached
+  approximately 60 updates per second after reducing state-copy overhead and
+  removing costly optional QA verification from ordinary playtests. Guest timing
+  remains unchanged; other stages and hardware may perform differently.
+
+Validation includes X/Zero selections, shared and independent displays, peer
+state agreement, simulated jitter and render restoration, checkpoint/team retry,
+P1-only Armor, both car death orders, survivor jumping, Select lock and shared
+car retry. The owner accepted Grizzly's native defeat/rewards and subsequent
+return with C-Slash and the defeated portrait retained. Full campaign completion,
+late-game scripts and Internet transport are not certified; Internet play is
+explicitly available for alpha user testing.
+
+This Windows build includes debug support but excludes qualification cheats.
+The co-op mod starts disabled and Unified is the default camera preference.
+Bring your own disc; bundled OpenBIOS is included. No disc, retail BIOS or test
+save is distributed. Existing saves should be backed up before alpha testing.
+Co-op saves/settings use the launcher's isolated mod profile. Rewind/savestates
+are unavailable while co-op is active. Widescreen/interpolation combinations
+have not been qualified with co-op; use their defaults for initial testing.
+
 # v0.1.0-alpha
 
 - Windows and Linux packages include native shards freshly extracted from 53 original-disc code images, plus the BIOS resident helper.

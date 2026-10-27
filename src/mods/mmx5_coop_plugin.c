@@ -1206,6 +1206,13 @@ static int enroll(CPUState *cpu) {
     section_pending=stage_departed=0;ever_enrolled=1;last_stage=psx_mod_read_byte(PLAY+0x0C);
     last_section=psx_mod_read_byte(PLAY+0x0D);
     enrolled=1;psx_mod_counter_add("mmx5.coop.enrolled",1);
+    /* Enrollment can follow this frame's camera update. Seed both private
+     * views now so the first arrival/HUD frame can already publish a pair. */
+    if(split_views && !split_valid) {
+        capture(CAMERA,split_cameras[0],sizeof saved_camera);
+        memcpy(split_cameras[1],split_cameras[0],sizeof saved_camera);
+        split_valid=1;
+    }
     /* Like X4/X6, keep initialization private and introduce an absent
      * counterpart with its own original incoming/resolving animation. Native
      * forced vehicle arrival stays separate; retained absent/fallen seats
@@ -4823,6 +4830,14 @@ static void hud_packets(uint32_t base) {
 }
 static int draw_hud(CPUState *cpu,uint32_t address) {
     if(hud_call || !enrolled || failed || psx_mod_read_byte(PLAY)!=10)return 0;
+    /* The flat fallback is duplicated into both panes. During paired arrival
+     * it must not contain the shared two-player meters; each private draw
+     * emits its own native HUD, at its final position, from the first frame. */
+    if(local_split && !psx_mod_local_view_scope() && join_phase>=3 &&
+       life.status[1]==MMX5_COOP_JOINING && !scene_owner && !car_context()) {
+        psx_mod_counter_add("mmx5.coop.spawn-shared-hud-suppressed",1);
+        cpu->gpr[2]=0;return 1;
+    }
     /* The original introduction still fills its48/96HP shell privately.
      * Reveal both PvP meters together once actual controls return, instead
      * of leaking an entrant bar or displaying the shell's fill as damage. */
@@ -5074,7 +5089,7 @@ static int present_local_view(CPUState *cpu,uint32_t address) {
     if(local_split && !local_aspect_set)
         local_aspect_set=(unsigned)psx_mod_set_fixed_display_aspect(4,3);
     int paired_incoming=join_phase>=3 && life.status[1]==MMX5_COOP_JOINING &&
-        psx_mod_read_byte(PLAYER+4)==1 && !psx_mod_read_byte(PLAYER+5);
+        psx_mod_read_byte(PLAYER+4)==1;
     /* Native delayed health freezes the world, not either saved view.
      * Keep publishing the draw-only pair throughout the native heal. */
     if((!menu && !split_available()) || local_view_call || projected || busy ||
@@ -5101,6 +5116,7 @@ static int present_local_view(CPUState *cpu,uint32_t address) {
         psx_mod_set_local_pair_presentation(1);
         committed=psx_mod_render_local_pair(cpu,&pair,draw_local_pair,&buffer);
         psx_mod_counter_add(committed?"mmx5.coop.local-pair-committed":"mmx5.coop.local-pair-refused",1);
+        if(paired_incoming && committed)psx_mod_counter_add("mmx5.coop.spawn-pair-committed",1);
     }else committed=psx_mod_render_local_view(cpu,&rectangle,draw_local_view,&buffer);
     /* Restore on an aborted callback/watchdog path too. */
     local_context_restore(&context);

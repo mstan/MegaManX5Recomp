@@ -13,6 +13,30 @@ exclusions. Selection and audited sites enter execution identity, without a
 player-facing switch. The actual generated caller is checked by
 `mmx5_vwait_contract`; game code is private regenerated input.
 
-This repository update is a PR only. No X5 release or whole-game speed claim
-is implied. Evidence and qualification limits are recorded in central Bead
-`beads-eio.10.37`, related to campaign `beads-2wy8.1`.
+The original PR-only audit is recorded in `beads-eio.10.37`. On 2026-10-27 the
+owner requested integrating PR 14 with the accepted local co-op work and cutting
+a new Nextcloud release; the owning task is `beads-eio.10.39`, related to
+`beads-2wy8.1` (optimization campaign). Source changes remain local.
+
+The latest game master and PR heads are frozen at c8fde08b and 1267f57e.
+The accepted co-op tree is transplanted unchanged from 3ed23ec onto that base;
+its original branch/history remains intact. The framework combines PR pin
+ffbd9d1c with the 22 retained co-op lineage commits through 59cae0a9. The launcher
+also retains separate-controller, instance-zero capture and hidden diagnostic
+support. Local-pair rendering keeps its native canvas, two-eye indexing,
+presentation scope and exemption from VR frame shedding. Current-build host
+snapshots and watchdog behavior remain part of qualification.
+
+The subsequent owner check found a brief shared HUD during initial local
+arrival. The game now seeds both private cameras at enrollment, keeps the
+paired arrival draw active through the native landing phases, and prevents
+the duplicated fallback from showing both meters during that handoff. This
+is the only gameplay-source change after the accepted tree was transplanted.
+
+Built performance is compared with the delivered v0.2.4 co-op executable on
+matched X5 workloads. This is a combined framework/title package comparison;
+do not attribute any measured change solely to wait induction. Keep neutral or
+inconclusive results explicit, and do not adopt a reproducible X5 regression.
+Controlled gameplay and current-build save/load must pass on the integration.
+The older campaign, physical LAN and native-card unlock gap remain separately
+tracked; this uptake is not a full campaign parity claim.

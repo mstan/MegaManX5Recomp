@@ -16,8 +16,11 @@ if ($Duel -or $Grizzly -or $Gaea) {
     $coopFixtureName = if ($Grizzly) { 'grizzly-start' } elseif ($Gaea) { 'gaea-start' } else { 'duel-start' }
     $coopRunName = if ($Grizzly) { 'grizzly-runs' } elseif ($Gaea) { 'gaea-runs' } else { 'duel-runs' }
     $coopSlot = if ($Grizzly) { '6' } elseif ($Gaea) { '9' } else { '7' }
-    $coopState = 'state_8005894C_slot0' + $coopSlot + '.pst'
-    $coopExpected = '309dced11919e51abfe9f37a6589ee8f1dddf7afcf91fa9d5b506eff7c792601'
+    $coopFixture = Join-Path $coopRoot ('qa/' + $coopFixtureName)
+    $coopStates = @(Get-ChildItem -LiteralPath $coopFixture -File -Filter ('state_8005894C*_slot0' + $coopSlot + '.pst'))
+    if ($coopStates.Count -ne 1) { throw 'Expected one exact-build snapshot for this encounter.' }
+    $coopState = $coopStates[0].Name
+    $coopExpected = 'f93e1410955f0834b36636855c72b25b51a61e28eee3a8c13d7193288a3f9cf9'
     if ((Get-FileHash -LiteralPath $coopExe -Algorithm SHA256).Hash.ToLowerInvariant() -ne $coopExpected) {
         throw 'The prepared snapshot requires the exact executable shipped in this QA package.'
     }

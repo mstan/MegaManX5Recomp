@@ -1,3 +1,30 @@
+# v0.2.5-coop-alpha-debug (local Windows alpha)
+
+This release combines game master and performance PR 14 with the accepted
+v0.2.4 co-op work. It selects the audited native SDK frame-wait path and updates
+the shared framework and launcher while retaining separate inputs, paired
+cameras, diagnostics, native menu behavior and all accepted gameplay fixes.
+Each local pane now keeps its own health bar throughout teleport-in and the
+complete intro animation, including the interval between the heroes landing.
+
+Original-disc overlay code is freshly regenerated and hash-audited for this
+runtime. The portable package includes that cache; no compiler or disc is
+included. Prepared intro, Grizzly and duel snapshots are recreated for this
+exact build. Older snapshots are disposable; native campaign saves remain
+separate. See docs/COOP_NATIVE_WAIT_RELEASE.md for qualification and measured
+scope. Performance results describe the combined framework package.
+
+The previous campaign, solo Grizzly pause and physical LAN gaps remain deferred.
+Native cold memory-card Save/Load of the Black Zero capsule unlock remains
+unverified. Full winner-selected stories/endings and native cold-save duel-winner
+persistence remain unqualified. This release does not claim full campaign parity
+or netplay compatibility with older builds.
+
+Local split-screen, Either-player doors, diagnostics and Alia suppression retain
+their defaults. P1 uses keyboard and P2 targets DualSense, with normal window
+and audio settings. CD Speed and Fast Loading remain absent. Source integration
+and delivery are local; no PR merge, push or remote release is performed.
+
 # v0.2.4-coop-alpha-debug (local Windows alpha)
 
 This build completes the latest eight opening-stage owner reports. Each split

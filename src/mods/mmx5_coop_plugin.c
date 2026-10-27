@@ -4828,13 +4828,21 @@ static void hud_packets(uint32_t base) {
     psx_mod_counter_add("mmx5.coop.hud-secondary-sprites",(sprites-base)/16u);
     psx_mod_counter_add("mmx5.coop.hud-secondary-bars",(bars-base-0x2000u)/36u);
 }
+static int paired_stage_arrival(void) {
+    if(scene_owner || car_context() || psx_mod_read_byte(PLAYER+4)!=1)return 0;
+    if(join_phase>=3 && life.status[1]==MMX5_COOP_JOINING)return 1;
+    /* The partner can finish resolving before P1's native action0 releases
+     * the stage-entry hold. Keep private panes through that final interval;
+     * otherwise one shared two-meter frame interrupts the arriving pair. */
+    return life.status[1]==MMX5_COOP_ALIVE && !psx_mod_read_byte(PLAYER+5) &&
+        psx_mod_read_byte(PLAY+0x1C) && !psx_mod_read_byte(PLAY+0x10);
+}
 static int draw_hud(CPUState *cpu,uint32_t address) {
     if(hud_call || !enrolled || failed || psx_mod_read_byte(PLAY)!=10)return 0;
     /* The flat fallback is duplicated into both panes. During paired arrival
      * it must not contain the shared two-player meters; each private draw
      * emits its own native HUD, at its final position, from the first frame. */
-    if(local_split && !psx_mod_local_view_scope() && join_phase>=3 &&
-       life.status[1]==MMX5_COOP_JOINING && !scene_owner && !car_context()) {
+    if(local_split && !psx_mod_local_view_scope() && paired_stage_arrival()) {
         psx_mod_counter_add("mmx5.coop.spawn-shared-hud-suppressed",1);
         cpu->gpr[2]=0;return 1;
     }
@@ -5088,8 +5096,7 @@ static int present_local_view(CPUState *cpu,uint32_t address) {
     if(!local_split && !psx_mod_netplay_is_active())psx_mod_set_local_pair_presentation(local_menu);
     if(local_split && !local_aspect_set)
         local_aspect_set=(unsigned)psx_mod_set_fixed_display_aspect(4,3);
-    int paired_incoming=join_phase>=3 && life.status[1]==MMX5_COOP_JOINING &&
-        psx_mod_read_byte(PLAYER+4)==1;
+    int paired_incoming=paired_stage_arrival();
     /* Native delayed health freezes the world, not either saved view.
      * Keep publishing the draw-only pair throughout the native heal. */
     if((!menu && !split_available()) || local_view_call || projected || busy ||

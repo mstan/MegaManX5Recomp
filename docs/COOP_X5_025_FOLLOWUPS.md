@@ -9,7 +9,7 @@ Owner settings use split local cameras, Both doors, separate E-tanks, keep Zero
 and Black Zero preference, with the optional widescreen feature disabled.
 The linked YouTube page could not be fetched; do not claim video review.
 
-This is a twelve-item follow-up, independent of the parked historical comparison
+This is a thirteen-item follow-up, independent of the parked historical comparison
 campaign. Grizzly looks good to the owner; their additional testing is pending.
 
 | ID | Individual report / intended behavior | Bounded check | Status |
@@ -26,6 +26,7 @@ campaign. Grizzly looks good to the owner; their additional testing is pending.
 | V10 | Provide a second Ride Armor for the armor-only route in Dinorex part2. | Two original suits with separate riders and controls; native mounting, steering, first lava drop and dismount without transferring ownership. | Passed, bounded native checks on ebde0959 and owner acceptance: "2x ride warmor works." `two-armor-final-controls-report.json`. Complete alternate-route traversal and late backup recovery are outside this acceptance claim. |
 | V11 | After X drops in Dinorex part1, Zero cannot follow through the floor. | Original floor seal waits for both living bodies to descend; actual follower movement opens the original native copy/retirement. A dead partner must not block the seal. | Passed on83044bec. Old ebde0959 reproduces the trapped follower. Current candidate admits both living heroes; the one-living check observes the original20 map words copied and controller retirement. `drop-follow-candidate-report.json`, `drop-one-living-ram-report.json`. |
 | V12 | X alone dying to lava appears to restart Dinorex despite a surviving Zero. | Observe the actual death order, then test native lethal contact with a known living survivor and retained control. | Exact lava case unverified. The owner's recording has Zero die before X in all three retry pairs. Current native primary flame death leaves P2 alive, advancing and controllable for90 ticks. `drop-follow-candidate-report.json`; this is not a literal lava pass. |
+| V13 | P2 shows the smaller flames but misses the full-screen Dinorex fire sheet. | Both heroes in the same native covered burst; compare the background-layer sheet in both private draws without advancing fire AI twice. Also check P2 ownership with P1 above, native clearing and current-build active-fire cold restore. | Passed, bounded visual/runtime checks on715005eb. The original83044bec failure and owner's separate V11 acceptance are retained. Actual full-fire coverage matches both panes; distant upper P1 stays clear during a P2-owned burst. `fire-overlay-final-report.json`, `fire-overlay-p2-cold-final-report.json`. Quick owner visual retest prepared. |
 
 First check the current native-overlay path against the previously accepted
 interpreter-backed co-op fixes. Do not accumulate independent patches before
@@ -41,7 +42,7 @@ V08/V09 use native raw4/0 fire/gate mechanics; V10 uses raw4/1 original Armor.
 
 ## Current local evidence
 
-Eight bounded validated / four unverified / twelve total.
+Nine bounded validated / four unverified / thirteen total.
 Four entries remain open: V05/V06 share one genuine intro-climb episode;
 V09 needs the real flame-barrier approach/destruction; V12 needs confirmation
 of the exact X-only lava death with a surviving Zero. The owner tentatively places the
@@ -204,3 +205,33 @@ Every card starts globally paused with Resume test / Pause both buttons;
 native Start alone does not freeze both heroes. Prior notes, recordings and
 the exact ebde0959 owner-tested binary/configuration remain retained outside
 delivery folders. No Nextcloud archive or remote tracker was changed.
+
+## Full Dinorex fire sheet in the second view
+
+The owner confirmed the follower drop and supplied a new same-location image:
+P1 has the large fire sheet while P2 draws only the smaller effect actors.
+The retained83044bec baseline reproduces this in a real native covered burst.
+Native F302C/F3338/F354C publishes one background layer's visibility, origin,
+wrapping and parent relationship to the admitting camera. Private P2 draws
+retained the inactive cave layer instead. Project those already computed fire
+fields only inside the affected lower-corridor draw transaction. Preserve its
+native parent relation, actual fire range and per-view foreground camera;
+do not rerun the hazard or change its timing, damage or map state.
+
+An initial candidate accidentally used the simulation-only stage guard, which
+excludes private draw scope and made the correction a no-op. Its captured image
+is retained; it is not a V13 pass. The corrected candidate separates the shared
+content/signature predicate from simulation admission. Its same-viewpoint
+captures have matching fire-sheet coverage in both panes, native clearing
+remains matched, and no simulation-digest leak or render-journal fault occurs.
+A separate real P2 admission shows its full fire while the distant upper P1
+view remains clear. Current-build active-fire cold restore and a whole-game
+pause also pass. All images were inspected;25/25 title CTests pass.
+
+Final executable SHA256:
+`715005eb2a12bb4e0720b82ce96b7741cfad628d44afb58448b00b660d90fede`.
+The quick owner card starts with the actual burst in progress and both heroes
+in original cover, globally paused. It bypasses route setup only. The launcher
+allows three restored frames before pausing, so its initial view shows the
+actual game instead of retaining the black startup surface. Keep the prior
+door/reveal, barrier and exact lava-retry checks individually unverified.

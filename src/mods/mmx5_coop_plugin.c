@@ -3837,13 +3837,16 @@ static int grizzly_stage(void) {
         psx_mod_read_word(0x800EF3ACu)==0x27BDFFE8u &&
         psx_mod_read_word(0x800FBFBCu)==0x800EF424u;
 }
-static int dinorex_fire_stage(void) {
-    return split_available() && psx_mod_read_byte(PLAY+12)==4 &&
+static int dinorex_fire_content(void) {
+    return psx_mod_read_byte(PLAY)==10 && psx_mod_read_byte(PLAY+12)==4 &&
         !psx_mod_read_byte(PLAY+13) && psx_mod_read_word(0x800EE970u)==9u &&
         psx_mod_read_word(0x800F3C48u)==0x8462A0AAu &&
         psx_mod_read_word(0x800F3C58u)==0x28420471u &&
         psx_mod_read_word(0x800F58F8u)==0x800F3B54u &&
         psx_mod_read_word(0x800F5804u)==0x800F25BCu;
+}
+static int dinorex_fire_stage(void) {
+    return split_available() && dinorex_fire_content();
 }
 static int dinorex_fire_actor(uint32_t actor) {
     return psx_mod_read_byte(actor+1)==0x25 && !psx_mod_read_byte(actor+2);
@@ -5256,6 +5259,33 @@ static void intro_boss_draw_layer(const uint8_t canonical[0x54]) {
     psx_mod_write_byte(CAMERA+0xA6,canonical[0x52]);
     psx_mod_counter_add("mmx5.coop.local-view-intro-boss-layer",1);
 }
+static void dinorex_fire_draw_layer(void) {
+    if(!psx_mod_local_view_scope() || !split_views || !split_valid || !enrolled || failed ||
+       !dinorex_fire_content() ||
+       !dinorex_fire.owner || dinorex_fire.owner>2 ||
+       !psx_mod_read_byte(dinorex_fire.actor) || !dinorex_fire_actor(dinorex_fire.actor) ||
+       !psx_mod_read_byte(dinorex_fire.actor+5) || !dinorex_fire.camera[0x57] ||
+       psx_mod_read_word(0x800F31A0u)!=0xA0A200A1u ||
+       psx_mod_read_word(0x800F35D4u)!=0xA0E00057u ||
+       (int16_t)psx_mod_read_half(CAMERA+14)<2656)return;
+    int left=(int16_t)psx_mod_read_half(0x800F5960u);
+    int right=(int16_t)psx_mod_read_half(0x800F5962u);
+    int x=(int16_t)psx_mod_read_half(CAMERA+10);
+    if(right<=left || x>=right || x+320<=left)return;
+    /* F302C/F3338/F354C animate one background fire sheet as well as the
+     * smaller effect actors. Their visibility, origin, wrap and parent
+     * commands belong to the shared burst. Replay those already computed
+     * fields inside this private draw only. The native parent relation
+     * handles the view's foreground origin; do not copy its camera, rerun
+     * fire AI, or paint a distant upper/otherwise unaffected region. */
+    static const unsigned bytes[]={0x57,0x98,0xA0,0xA1,0xA2,0xA6};
+    for(unsigned i=0;i<sizeof bytes/sizeof bytes[0];++i)
+        psx_mod_write_byte(CAMERA+bytes[i],dinorex_fire.camera[bytes[i]]);
+    for(unsigned offset=0x5E;offset<=0x62;offset+=4)
+        psx_mod_write_half(CAMERA+offset,(uint16_t)(dinorex_fire.camera[offset]|
+            dinorex_fire.camera[offset+1]<<8));
+    psx_mod_counter_add("mmx5.coop.local-view-dinorex-fire-layer",1);
+}
 static int draw_local_view(CPUState *cpu,void *user,uint32_t alpha) {
     (void)alpha;uint32_t buffer=*(uint32_t *)user;
     int menu=personal_menu_present();
@@ -5263,6 +5293,7 @@ static int draw_local_view(CPUState *cpu,void *user,uint32_t alpha) {
         uint8_t layer[0x54];capture(CAMERA+0x54,layer,sizeof layer);
         project(CAMERA,split_cameras[local_view_seat],sizeof saved_camera);
         intro_boss_draw_layer(layer);
+        dinorex_fire_draw_layer();
         split_scenery_origins(cpu);
     }
     if(!menu && !mmx5_widescreen_project_region_atlas())return 0;

@@ -186,3 +186,21 @@ Current floor-fix executable SHA256:
 `83044bec7e7cd9d35214903a9714bad9fb4574d41819a1d5244a31a7ad374d6c`.
 Snapshot schema remains15;25/25 title CTests pass. The owner finished the run,
 so the prepared station can be refreshed without interrupting active testing.
+
+The station is refreshed to83044bec with newly saved current-build fixtures.
+Four fresh-process checks pass: whole-game pause retains both living heroes,
+resume works, synthetic P1/P2 inputs move only their owning hero, and no render
+watchdog, aborted journal or VRAM leak is reported. Evidence:
+`owner-floor-current-setups-report.json` and
+`owner-floor-global-pause-qualification.json`. This verifies prepared setup and
+TCP input ownership; the brief physical keyboard/DualSense isolation check is
+still part of the owner handoff. Per-launch scanning selects the actually
+connected USB/Bluetooth DualSense; development input merging is disabled.
+
+The on-screen checklist has three required cards: genuine intro climb/door/
+reveal, the reported follower-drop/single-hero-death location, and the real
+flame-barrier approach. Its fourth mounted-Armor route card is optional.
+Every card starts globally paused with Resume test / Pause both buttons;
+native Start alone does not freeze both heroes. Prior notes, recordings and
+the exact ebde0959 owner-tested binary/configuration remain retained outside
+delivery folders. No Nextcloud archive or remote tracker was changed.

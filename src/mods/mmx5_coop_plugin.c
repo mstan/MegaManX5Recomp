@@ -3848,6 +3848,32 @@ static int dinorex_fire_stage(void) {
 static int dinorex_fire_actor(uint32_t actor) {
     return psx_mod_read_byte(actor+1)==0x25 && !psx_mod_read_byte(actor+2);
 }
+static int dinorex_floor_seal(CPUState *cpu,uint32_t address) {
+    uint32_t actor=cpu->gpr[4];
+    if(!enrolled || failed || psx_mod_local_view_scope() ||
+       psx_mod_read_byte(PLAY)!=10 || psx_mod_read_byte(PLAY+12)!=4 ||
+       psx_mod_read_byte(PLAY+13) || psx_mod_read_word(0x800EE970u)!=9u ||
+       address!=0x800EEAF0u || psx_mod_read_word(address)!=0x27BDFFE0u ||
+       psx_mod_read_word(0x800EEB50u)!=0x0C00A2C6u ||
+       actor<0x8009E7A0u || actor>=0x8009F9A0u || (actor-0x8009E7A0u)%0x30u ||
+       !psx_mod_read_byte(actor) || psx_mod_read_byte(actor+1)!=1 ||
+       psx_mod_read_byte(actor+2)!=1 || psx_mod_read_byte(actor+4)!=1 ||
+       psx_mod_read_word(actor+0x18)!=0x800F4836u ||
+       psx_mod_read_half(0x800F483Eu)!=20 || psx_mod_read_half(0x800F4842u)!=2656)return 0;
+    /* Subtype1 closes the one floor row at Y2640 after the native body
+     * passes Y2692. Closing it for the leader traps a living follower on
+     * top. Subtype0's earlier map/atlas transition must remain independent.
+     * Wait only for living heroes; then let the original map copy, state
+     * advance and retirement run, without setting their success fields. */
+    for(unsigned seat=0;seat<2;++seat) {
+        if(mmx5_coop_living(&life,seat) && (both_body_byte(seat,0x5C)&127u) &&
+           (int16_t)(both_body_word(seat,12)>>16)<2692) {
+            psx_mod_counter_add("mmx5.coop.dinorex-floor-seal-waits",1);
+            cpu->gpr[2]=0;return 1;
+        }
+    }
+    return 0;
+}
 static unsigned dinorex_fire_recipient(uint32_t actor,
         const Mmx5CoopViewActor actors[2],unsigned target) {
     if(!dinorex_fire_stage() || !dinorex_fire_actor(actor))return target;
@@ -5688,6 +5714,7 @@ PSX_MOD_CONSTRUCTOR(mmx5_register_coop) {
     psx_mod_register_function_filter_plugin(ID,0x80054000,pickup_collect);
     psx_mod_register_function_filter_plugin(ID,0x800EF7A4,refight_pad_admission);
     psx_mod_register_function_filter_plugin(ID,0x800F588C,falling_slab_trigger);
+    psx_mod_register_function_filter_plugin(ID,0x800EEAF0,dinorex_floor_seal);
     psx_mod_register_function_filter_plugin(ID,0x800F65C8,intro_structure_trigger);
     psx_mod_register_function_filter_plugin(ID,0x800F8170,intro_reunion_skip);
     psx_mod_register_function_filter_plugin(ID,0x800F26AC,corridor_arrow_admission);

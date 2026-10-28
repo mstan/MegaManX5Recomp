@@ -9,7 +9,7 @@ Owner settings use split local cameras, Both doors, separate E-tanks, keep Zero
 and Black Zero preference, with the optional widescreen feature disabled.
 The linked YouTube page could not be fetched; do not claim video review.
 
-This is a ten-item follow-up, independent of the parked historical comparison
+This is a twelve-item follow-up, independent of the parked historical comparison
 campaign. Grizzly looks good to the owner; their additional testing is pending.
 
 | ID | Individual report / intended behavior | Bounded check | Status |
@@ -23,7 +23,9 @@ campaign. Grizzly looks good to the owner; their additional testing is pending.
 | V07 | Dinorex background becomes corrupt. Preserve each region's native atlas, origins and upload sequence. | P1 triggers the original lower-area map/atlas while P2 stays on the starting ledge. Compare both images; verify canonical replacement bytes, private journal and current-build cold restore. | Passed on39c21d7c for the reproduced part1 atlas boundary. `dinorex-atlas-corrected-v2-report.json` records the corrected image and native upload hash; `dinorex-atlas-cold-final-report.json` passes restore. No full-stage graphics claim. |
 | V08 | P2 does not trigger the Dinorex flame wall. | P1 stays on the checkpoint ledge while P2 crosses1137 and descends naturally. Original240/180-tick admission runs, then an actual burst; separate cover, death and current-build cold-restore checks. | Passed, bounded flame/cover checks onca61eab6; death and current-build live/dead cold restores also pass onb11c5082. `dinorex-fire-atomic-cover-report.json`, `dinorex-fire-postchecks-final-report.json`. Actual barrier destruction is V09, still unverified. |
 | V09 | P2 camera bypasses the barrier the flame wall must destroy. | P2 camera remains at the authored gate, then releases after actual native destruction. | Unverified. Source-qualified class24/sub1 uses F25BC's singleton CAMERA; forward its native commands to the same view as its body. The fire-effect allocator creates class14 in the separate60-byte effect pool; those effects are not this barrier. Exact native barrier approach remains a setup gap. |
-| V10 | Provide a second Ride Armor for the armor-only route in Dinorex part2. | Two original suits with separate riders and controls; mount, traverse the lava route and dismount without transferring ownership. | Implemented; bounded mechanics pass on ebde0959. Separate native initializers and placement sources, both complete native boarding animations, independent steering, first lava-section movement/jump, separate dismounts and current-build mounted cold restore pass. Natural boarding approach and the complete armor-only branch remain unverified. `two-armor-final-controls-report.json`. |
+| V10 | Provide a second Ride Armor for the armor-only route in Dinorex part2. | Two original suits with separate riders and controls; native mounting, steering, first lava drop and dismount without transferring ownership. | Passed, bounded native checks on ebde0959 and owner acceptance: "2x ride warmor works." `two-armor-final-controls-report.json`. Complete alternate-route traversal and late backup recovery are outside this acceptance claim. |
+| V11 | After X drops in Dinorex part1, Zero cannot follow through the floor. | Original floor seal waits for both living bodies to descend; actual follower movement opens the original native copy/retirement. A dead partner must not block the seal. | Passed on83044bec. Old ebde0959 reproduces the trapped follower. Current candidate admits both living heroes; the one-living check observes the original20 map words copied and controller retirement. `drop-follow-candidate-report.json`, `drop-one-living-ram-report.json`. |
+| V12 | X alone dying to lava appears to restart Dinorex despite a surviving Zero. | Observe the actual death order, then test native lethal contact with a known living survivor and retained control. | Exact lava case unverified. The owner's recording has Zero die before X in all three retry pairs. Current native primary flame death leaves P2 alive, advancing and controllable for90 ticks. `drop-follow-candidate-report.json`; this is not a literal lava pass. |
 
 First check the current native-overlay path against the previously accepted
 interpreter-backed co-op fixes. Do not accumulate independent patches before
@@ -39,10 +41,10 @@ V08/V09 use native raw4/0 fire/gate mechanics; V10 uses raw4/1 original Armor.
 
 ## Current local evidence
 
-Six validated / one partially validated / three unverified / ten total.
+Eight bounded validated / four unverified / twelve total.
 Four entries remain open: V05/V06 share one genuine intro-climb episode;
-V09 needs the real flame-barrier approach/destruction; V10 needs natural
-boarding and the complete armor-only branch. The owner tentatively places the
+V09 needs the real flame-barrier approach/destruction; V12 needs confirmation
+of the exact X-only lava death with a surviving Zero. The owner tentatively places the
 Dinorex corruption in part1, matching the reproduced V07 atlas boundary.
 Atlas candidate is39c21d7c6bc013781d39569cebf2846173fd843718eef5526aaac2bcae87e18f;
 flame candidate isca61eab614ed66bf29d958f4c45a74f0a771e39edb5b54906f05e073c50d8ec3,
@@ -148,7 +150,39 @@ journals remain clean. No immunity, rider, occupancy or result flag is set.
 Earlier failed probes are retained. Falling directly onto the extra suit's
 helmet does not establish its native boarding overlap; the successful bounded
 check uses a disclosed position-only overlap and waits for the full original
-animation. This is not a pass for normal boarding or the entire alternate
-route. Those checks are bundled for owner QA rather than another setup matrix.
+animation. The owner subsequently accepted the requested two-suit behavior.
+This does not establish the entire alternate route, and another complete-route
+playthrough is not required to accept the requested second usable suit.
 Full-route recovery after losing a suit and the authored late backup also
 remain outside this first-window mechanics check.
+
+## Dinorex follower drop and apparent premature retry
+
+The owner's frame2015 screenshot places X at1685,2843 and Zero at1573,2618.
+The subtype1 EEAF0 controller seals a20-tile row atY2640 after its projected
+player descends below2692, so the leading player can close the trailing hero's
+floor. The correction holds only that exact native seal while any living,
+positive-health co-op body remains above2692. When all living bodies are below,
+the original callback performs its original map copy and retires. Subtype0's
+earlier atlas transition and the native floor-copy/result fields are untouched.
+
+`drop-follow-baseline-report.json` reproduces the blocked follower on ebde0959.
+On83044bec, actual P2 Right crosses the opening, both heroes remain alive and
+the native controller completes. `drop-one-living-ram-report.json` separately
+observes the original20 destination map words copied from the original source
+when only P1 is alive. Two earlier probes incorrectly expected a function trace
+entry for the directly executed native copy; they are observer failures, and
+the decisive check reads the actual map row instead. No success flag is set.
+
+The owner's recording contains three retries: Zero reaches zero health at
+native-input620/2169/3189, before X at624/2175/3190. Therefore that recording
+does not establish a retry with a living survivor. A separate current-build
+primary flame death keeps P2 alive, advances the world90 ticks and permits its
+native jump. Preserve the exact lava report as unverified instead of applying
+a speculative progression change. The later read-only live capture was taken
+after the owner had switched to part2 and is not the screenshot's failure RAM.
+
+Current floor-fix executable SHA256:
+`83044bec7e7cd9d35214903a9714bad9fb4574d41819a1d5244a31a7ad374d6c`.
+Snapshot schema remains15;25/25 title CTests pass. The owner finished the run,
+so the prepared station can be refreshed without interrupting active testing.

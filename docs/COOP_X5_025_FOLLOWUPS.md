@@ -21,8 +21,8 @@ campaign. Grizzly looks good to the owner; their additional testing is pending.
 | V05 | P2 freezes during Both-player boss-door carry. Both bodies must retain the native animation while shared movement advances once. | Actual native Both door, animation cursor changes through carry and native control recovery. | Unverified on this candidate. Earlier accepted implementation is retained, but checkpoint/teleport shortcuts did not establish the native roof floor/closing-structure prerequisite; no forced result or carry pass. |
 | V06 | Skip opening-stage boss dialogue in co-op. Preserve intact statue, reveal/explosion, boss initialization and control return. | Actual door-to-reveal-to-fight sequence without counterpart meeting or subsequent dialogue stops; solo unchanged. | Implemented, runtime unverified. Binds only the exact original Sigma post-reveal text request; same roof prerequisite as V05. |
 | V07 | Dinorex background becomes corrupt. Preserve each region's native atlas, origins and upload sequence. | P1 triggers the original lower-area map/atlas while P2 stays on the starting ledge. Compare both images; verify canonical replacement bytes, private journal and current-build cold restore. | Passed on39c21d7c for the reproduced part1 atlas boundary. `dinorex-atlas-corrected-v2-report.json` records the corrected image and native upload hash; `dinorex-atlas-cold-final-report.json` passes restore. No full-stage graphics claim. |
-| V08 | P2 does not trigger the Dinorex flame wall. | P1 stays behind while P2 crosses the original fire trigger; observe native fire motion and barrier destruction. | New owner report, unverified. |
-| V09 | P2 camera bypasses the barrier the flame wall must destroy. | Bundle with V08: P2 camera remains at the authored gate, then releases after actual native destruction. | New owner report, unverified. |
+| V08 | P2 does not trigger the Dinorex flame wall. | P1 stays on the checkpoint ledge while P2 crosses1137 and descends naturally. Original240/180-tick admission runs, then an actual burst; separate cover, death and current-build cold-restore checks. | Passed, bounded flame/cover checks onca61eab6; death and current-build live/dead cold restores also pass onb11c5082. `dinorex-fire-atomic-cover-report.json`, `dinorex-fire-postchecks-final-report.json`. Actual barrier destruction is V09, still unverified. |
+| V09 | P2 camera bypasses the barrier the flame wall must destroy. | P2 camera remains at the authored gate, then releases after actual native destruction. | Unverified. Source-qualified class24/sub1 uses F25BC's singleton CAMERA; forward its native commands to the same view as its body. The fire-effect allocator creates class14 in the separate60-byte effect pool; those effects are not this barrier. Exact native barrier approach remains a setup gap. |
 | V10 | Provide a second Ride Armor for the armor-only route in Dinorex part2. | Two original suits with separate riders and controls; mount, traverse the lava route and dismount without transferring ownership. | Requested feature, unimplemented. Current code deliberately supports P1-only Armor; requires a bounded ownership change. |
 
 First check the current native-overlay path against the previously accepted
@@ -39,11 +39,41 @@ V08/V09 use native raw4/0 fire/gate mechanics; V10 uses raw4/1 original Armor.
 
 ## Current local evidence
 
-Five validated / five open / ten total. Current candidate is39c21d7c6bc013781d39569cebf2846173fd843718eef5526aaac2bcae87e18f,
+Six validated / four open / ten total. Atlas candidate is39c21d7c6bc013781d39569cebf2846173fd843718eef5526aaac2bcae87e18f;
+flame candidate isca61eab614ed66bf29d958f4c45a74f0a771e39edb5b54906f05e073c50d8ec3,
+final fire candidate isb11c50823c164c86b397c06c671bf32e199dd11377cacee7234a5debf13f0960,
 versionv0.2.6-coop-alpha-debug;25/25 title CTests pass. V01/V03/V04 were bounded
 checks on the earlier2f7cef8a candidate. The generalized atlas code also passes
 the original native intro boundary on39c21d7c (`native-boundary-dino-regression-report.json`).
 These results do not authorize replacing the delivered0.2.5 archive.
+
+The literal fire is primary enemy25, distinct from the closing-map area.
+Nearest-body AI kept selecting P1 behind the controller even after P2 entered
+the corridor. Select its actual admitting hero and run the original controller
+once against that hero's camera. Retain that camera through an active burst
+when its hero dies; a distant survivor's view must not relocate the fire.
+The retained context is in snapshot schema14 and the simulation digest. Old
+states remain disposable; new schema14 setups were booted from real native
+card/selector confirmations, not converted or forced through validation.
+
+An intermediate camera wrapper copied an old P1 view over current native layer
+initialization and disabled the layers. Before/after camera-byte comparison
+identified the error; P1 now keeps the current authoritative camera. Failed
+reports and the unqualified intermediate binaries' hashes remain in the local
+evidence. The corrected native descent reaches the lower corridor with both
+heroes alive. A meaningful setup stop is the original lower camera2656 and
+X>=1408; a previous arbitrary1536-pixel stop also timed out after enemy knockback.
+
+For the active burst, read the original80028FF0 map/block indexing and F29B4
+cover bit8000. A position-only cheat moves P2 into authored cover near2336,2842;
+no immunity, fire, timer, map, barrier or result flag is granted. Prepare that
+position fixture before the burst and publish its single sequence byte when
+the native flame starts: assembling it over many TCP/frame round trips after
+the lethal front starts was too slow. This is setup timing, not another game
+variant. Both heroes survive the actual covered burst. Separate unprotected
+P2 burn death and current-build live/dead-owner cold restores pass without
+moving the fire into P1's distant camera. LAN and full-stage traversal remain
+unqualified.
 
 The Dinorex original subtype0 callback repeats request1 while the upload
 completes2. Two initial cold-restore observers incorrectly required an

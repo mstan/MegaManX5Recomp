@@ -110,6 +110,9 @@ static uint32_t split_table;
 static unsigned ai_pool_call,ai_call,ai_owner,ai_suspended;
 static uint32_t ai_pool,ai_pending,ai_function;
 static uint8_t ai_first_freeze;
+/* A running fire burst outlives its admitting hero. Its native scrolling
+ * context must survive that hero's death/spectator-camera reassignment. */
+static struct {uint32_t actor;uint8_t owner,camera[0xFC];} dinorex_fire;
 #define AI_DISPATCH 0x8F7FFF00u
 static unsigned stage_call, player_call, world_owner, render_call;
 static unsigned camera_update_call;
@@ -1206,6 +1209,7 @@ static int enroll(CPUState *cpu) {
     }
     section_pending=stage_departed=0;ever_enrolled=1;last_stage=psx_mod_read_byte(PLAY+0x0C);
     last_section=psx_mod_read_byte(PLAY+0x0D);
+    memset(&dinorex_fire,0,sizeof dinorex_fire);
     enrolled=1;psx_mod_counter_add("mmx5.coop.enrolled",1);
     /* Enrollment can follow this frame's camera update. Seed both private
      * views now so the first arrival/HUD frame can already publish a pair. */
@@ -3745,6 +3749,49 @@ static int grizzly_stage(void) {
         psx_mod_read_word(0x800EF3ACu)==0x27BDFFE8u &&
         psx_mod_read_word(0x800FBFBCu)==0x800EF424u;
 }
+static int dinorex_fire_stage(void) {
+    return split_available() && psx_mod_read_byte(PLAY+12)==4 &&
+        !psx_mod_read_byte(PLAY+13) && psx_mod_read_word(0x800EE970u)==9u &&
+        psx_mod_read_word(0x800F3C48u)==0x8462A0AAu &&
+        psx_mod_read_word(0x800F3C58u)==0x28420471u &&
+        psx_mod_read_word(0x800F58F8u)==0x800F3B54u &&
+        psx_mod_read_word(0x800F5804u)==0x800F25BCu;
+}
+static int dinorex_fire_actor(uint32_t actor) {
+    return psx_mod_read_byte(actor+1)==0x25 && !psx_mod_read_byte(actor+2);
+}
+static unsigned dinorex_fire_recipient(uint32_t actor,
+        const Mmx5CoopViewActor actors[2],unsigned target) {
+    if(!dinorex_fire_stage() || !dinorex_fire_actor(actor))return target;
+    if(dinorex_fire.actor!=actor || !psx_mod_read_byte(actor+4))
+        memset(&dinorex_fire,0,sizeof dinorex_fire);
+    if(dinorex_fire.owner) {
+        if(actors[dinorex_fire.owner-1].active)return dinorex_fire.owner-1;
+        /* F354C clears phase5 only after the actual burst retracts. Keep
+         * its camera through that event; the next idle admission may belong
+         * to the surviving hero. Never restart an active burst at their X. */
+        if(psx_mod_read_byte(actor+5))return target;
+        memset(&dinorex_fire,0,sizeof dinorex_fire);
+    }
+    /* This is a shared forward-moving hazard, not an enemy targeting its
+     * nearest victim. F3C44's original admission tests X>=1137. A trailing
+     * P1 remains nearer its initial position even after P2 crosses that X.
+     * Choose the leading living hero whose native camera reached this route;
+     * upper-region heroes must not admit the lower fire through X alone. */
+    int found=0;
+    for(unsigned seat=0;seat<2;++seat) {
+        if(!actors[seat].active ||
+           (int16_t)(split_cameras[seat][14]|split_cameras[seat][15]<<8)<2416)continue;
+        if(!found || actors[seat].x>actors[target].x) {target=seat;found=1;}
+    }
+    if(found && actors[target].x>=1137) {
+        dinorex_fire.actor=actor;dinorex_fire.owner=(uint8_t)(target+1);
+        memcpy(dinorex_fire.camera,split_cameras[target],sizeof dinorex_fire.camera);
+        psx_mod_counter_add(target?"mmx5.coop.p2-dinorex-fire-admissions":
+                                  "mmx5.coop.p1-dinorex-fire-admissions",1);
+    }
+    return target;
+}
 static void grizzly_cannon_camera(uint32_t actor,const uint8_t before[8]) {
     if(!split_available() || !grizzly_stage() || psx_mod_read_byte(actor+1)!=0x10)return;
     /* F58BC arms a shared train stop once, and releases it on real defeat.
@@ -3784,9 +3831,30 @@ static void ai_update(CPUState *cpu,uint32_t address) {
     if(!scene_owner) {
         target=field_recipient(actor,target);
         target=grab_recipient(actor,target);
+        target=dinorex_fire_recipient(actor,actors,target);
     }
     ai_call=1;ai_owner=target;uint32_t result=0;
     if(actors[target].active) {
+        uint8_t canonical_camera[0xFC];unsigned camera_owner=split_owner;
+        unsigned camera_seat=target;
+        int retained_fire=dinorex_fire_stage() && dinorex_fire_actor(actor) &&
+            dinorex_fire.actor==actor && dinorex_fire.owner;
+        if(retained_fire)camera_seat=dinorex_fire.owner-1;
+        int fire_camera=dinorex_fire_stage() &&
+            (dinorex_fire_actor(actor) ||
+             (psx_mod_read_byte(actor+1)==0x24 && psx_mod_read_byte(actor+2)==1));
+        if(fire_camera) {
+            /* Fire scroll and wall stops are authored CAMERA commands. Run
+             * them once against the same view as their body predicate. */
+            capture(CAMERA,canonical_camera,sizeof canonical_camera);
+            const uint8_t *view=retained_fire && !actors[camera_seat].active?
+                dinorex_fire.camera:split_cameras[camera_seat];
+            /* P1 already owns the current native camera. Its retained view
+             * may predate this frame's layer initialization/area command. */
+            if(camera_seat || (retained_fire && !actors[camera_seat].active))
+                project(CAMERA,view,sizeof canonical_camera);
+            split_owner=camera_seat+1;
+        }
         /* Native grabs/status changes can call player-part helpers too.
          * Select the matching body AND character resources, preserving the
          * whole-stage palette and campaign. Nested contacts restore the
@@ -3806,6 +3874,14 @@ static void ai_update(CPUState *cpu,uint32_t address) {
             psx_mod_counter_add(target?"mmx5.coop.p2-native-ai":"mmx5.coop.p1-native-ai",1);
         }
         if(target) {leave_second_context(1);world_owner=0;}
+        if(fire_camera) {
+            if(retained_fire)capture(CAMERA,dinorex_fire.camera,sizeof canonical_camera);
+            if(actors[camera_seat].active)
+                capture(CAMERA,split_cameras[camera_seat],sizeof canonical_camera);
+            if(camera_seat || !actors[camera_seat].active)
+                project(CAMERA,canonical_camera,sizeof canonical_camera);
+            split_owner=camera_owner;
+        }
     }
     ai_first_freeze=psx_mod_read_byte(PLAYER+0xCC);psx_mod_write_byte(PLAYER+0xCC,0);
     ai_call=ai_owner=0;cpu->gpr[2]=result;
@@ -5187,6 +5263,7 @@ static void activate(void) {
     split_valid=split_owner=split_camera_call=split_scan_call=split_supplemental=split_bounds_call=0;
     local_view_call=local_view_seat=local_hud_seat=0;split_table=0;
     ai_pool_call=ai_call=ai_owner=ai_suspended=0;ai_pool=ai_pending=ai_function=0;ai_first_freeze=0;
+    memset(&dinorex_fire,0,sizeof dinorex_fire);
     spatial_call=0;
     personal_effect_call=personal_visual_call=0;memset(personal_effect_owner,0,sizeof personal_effect_owner);
     memset(personal_visual_ticks,0,sizeof personal_visual_ticks);
@@ -5310,6 +5387,8 @@ static uint32_t state_digest(void) {
         story_duel.health[0],story_duel.health[1]};
     for(unsigned i=0;i<sizeof words/sizeof words[0];++i)hash=hash_word(hash,words[i]);
     hash=hash_bytes(hash,armor_native_roster,sizeof armor_native_roster);
+    hash=hash_word(hash,dinorex_fire.actor);hash=hash_word(hash,dinorex_fire.owner);
+    hash=hash_bytes(hash,dinorex_fire.camera,sizeof dinorex_fire.camera);
     for(unsigned seat=0;seat<2;++seat) {
         hash=hash_bytes(hash,personal_menus[seat].native,sizeof personal_menus[seat].native);
         hash=hash_word(hash,personal_menus[seat].original_weapon);

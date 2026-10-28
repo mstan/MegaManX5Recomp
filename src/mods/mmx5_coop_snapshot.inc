@@ -193,7 +193,7 @@ static void snapshot_duel(Mmx5SnapshotIO *s) {
 }
 static void snapshot_walk(Mmx5SnapshotIO *s) {
     mmx5_snapshot_fixed(s,0x42503558u); /* X5PB */
-    mmx5_snapshot_fixed(s,13); /* Sequential campaign-fixed native unit choices. */
+    mmx5_snapshot_fixed(s,14); /* Retained native Dinorex fire camera. */
     mmx5_snapshot_fixed(s,split_views);mmx5_snapshot_fixed(s,local_split);
     mmx5_snapshot_fixed(s,both_door_players);mmx5_snapshot_fixed(s,keep_zero);
     mmx5_snapshot_fixed(s,separate_etanks);
@@ -258,6 +258,7 @@ static void snapshot_walk(Mmx5SnapshotIO *s) {
     BYTES(split_cameras);BYTES(split_visits);
     MMX5_SNAPSHOT_FIELD(s,ai_owner,1,1);U32(ai_pool);U32(ai_pending);U32(ai_function);
     MMX5_SNAPSHOT_U8(s,ai_first_freeze);U32(area_actor);U32(area_function);
+    U32(dinorex_fire.actor);MMX5_SNAPSHOT_FIELD(s,dinorex_fire.owner,1,2);BYTES(dinorex_fire.camera);
     for(unsigned c=0;c<2;++c)U32(personal_visual_ticks[c]);
     for(unsigned i=0;i<96;++i)MMX5_SNAPSHOT_FIELD(s,personal_effect_owner[i],1,2);
     for(unsigned i=0;i<128;++i) {

@@ -9,7 +9,7 @@ Owner settings use split local cameras, Both doors, separate E-tanks, keep Zero
 and Black Zero preference, with the optional widescreen feature disabled.
 The linked YouTube page could not be fetched; do not claim video review.
 
-This is a fourteen-item follow-up, independent of the parked historical comparison
+This is a fifteen-item follow-up, independent of the parked historical comparison
 campaign. Grizzly looks good to the owner; their additional testing is pending.
 
 | ID | Individual report / intended behavior | Bounded check | Status |
@@ -21,14 +21,14 @@ campaign. Grizzly looks good to the owner; their additional testing is pending.
 | V05 | P2 freezes during Both-player boss-door carry. Both bodies must retain the native animation while shared movement advances once. | Actual native Both door, animation cursor changes through carry and native control recovery. | Passed by owner: "both player boss door animation works." Preserve the new backward-drift/death report separately as V14; this is not blanket door acceptance. |
 | V06 | Skip opening-stage boss dialogue in co-op. Preserve intact statue, reveal/explosion, boss initialization and control return. | Actual door-to-reveal-to-fight sequence without counterpart meeting or subsequent dialogue stops; solo unchanged. | Passed by owner: "statue reveal and diagloue skip pass." Prior setup failures remain evidence of unqualified shortcuts, not successful route checks. |
 | V07 | Dinorex background becomes corrupt. Preserve each region's native atlas, origins and upload sequence. | P1 triggers the original lower-area map/atlas while P2 stays on the starting ledge. Compare both images; verify canonical replacement bytes, private journal and current-build cold restore. | Passed on39c21d7c for the reproduced part1 atlas boundary. `dinorex-atlas-corrected-v2-report.json` records the corrected image and native upload hash; `dinorex-atlas-cold-final-report.json` passes restore. No full-stage graphics claim. |
-| V08 | P2 does not trigger the Dinorex flame wall. | P1 stays on the checkpoint ledge while P2 crosses1137 and descends naturally. Original240/180-tick admission runs, then an actual burst; separate cover, death and current-build cold-restore checks. | Passed, bounded flame/cover checks onca61eab6; death and current-build live/dead cold restores also pass onb11c5082. `dinorex-fire-atomic-cover-report.json`, `dinorex-fire-postchecks-final-report.json`. Actual barrier destruction is V09, still unverified. |
-| V09 | P2 camera bypasses the barrier the flame wall must destroy. | P2 camera remains at the authored gate, then releases after actual native destruction. | Partial owner confirmation: "dinorex fire barrier camera seems to work." Stop/destruction/release clarification pending; do not infer all three from that statement. Class24/sub1 is the actual barrier; class14 smaller flame effects are separate. |
+| V08 | P2 does not trigger the Dinorex flame wall. | P1 stays on the checkpoint ledge while P2 crosses1137 and descends naturally. Original240/180-tick admission runs, then an actual burst; separate cover, death and current-build cold-restore checks. | Passed, bounded flame/cover checks onca61eab6; death and current-build live/dead cold restores also pass onb11c5082. `dinorex-fire-atomic-cover-report.json`, `dinorex-fire-postchecks-final-report.json`. Barrier acceptance is recorded separately as V09. |
+| V09 | P2 camera bypasses the barrier the flame wall must destroy. | P2 camera remains at the authored gate, then releases after actual native destruction. | Owner accepted on2026-10-28 with qualified recollection that the prepared checks all pass, following the earlier "dinorex fire barrier camera seems to work." This closes the owner follow-up; the three individual phases were not separately recorded by automation. Class24/sub1 is the actual barrier; class14 smaller flame effects are separate. |
 | V10 | Provide a second Ride Armor for the armor-only route in Dinorex part2. | Two original suits with separate riders and controls; native mounting, steering, first lava drop and dismount without transferring ownership. | Passed, bounded native checks on ebde0959 and owner acceptance: "2x ride warmor works." `two-armor-final-controls-report.json`. Complete alternate-route traversal and late backup recovery are outside this acceptance claim. |
 | V11 | After X drops in Dinorex part1, Zero cannot follow through the floor. | Original floor seal waits for both living bodies to descend; actual follower movement opens the original native copy/retirement. A dead partner must not block the seal. | Passed on83044bec. Old ebde0959 reproduces the trapped follower. Current candidate admits both living heroes; the one-living check observes the original20 map words copied and controller retirement. `drop-follow-candidate-report.json`, `drop-one-living-ram-report.json`. |
-| V12 | X alone dying to lava appears to restart Dinorex despite a surviving Zero. | Observe the actual death order, then test native lethal contact with a known living survivor and retained control. | Exact lava case unverified. The owner's recording has Zero die before X in all three retry pairs. Current native primary flame death leaves P2 alive, advancing and controllable for90 ticks. `drop-follow-candidate-report.json`; this is not a literal lava pass. |
-| V13 | P2 shows the smaller flames but misses the full-screen Dinorex fire sheet; owner later reports the sheet disappears after X dies. | Same-location living/living burst, P2 ownership with P1 above, native clearing and cold restore; additionally reproduce the recorded early X death before Zero enters the lower corridor. | Bounded passes on715005eb and owner "burn is fixed" covered the living/living case. The later owner survivor failure reproduces by exact original replay (2181 verified inputs). Draw-only correction258e2aa7 uses the survivor world's authoritative native layer instead of stale pre-death fields. Both spectator panes show matching full fire and native clearing; Zero survives and the world continues. `survivor-draw-fixed-report.json`. Owner survivor retest pending. |
-| V14 | Zero drifts backward at intro Both-door admission, walks into the closing door and dies after the scene. | Retain the original opening/carry, apply a disclosed backward position setup, observe collision suspension and actual closing-plane clearance. Full scene/death validation remains separate. | Implemented; bounded native opening/carry/clearance pass on7530c12e. Both collision boxes share the original suspension, conveyor drift stops, the companion retains its native animation, and one actual crossing restores both boxes with positive closing-plane clearance. Full authored cutscene and post-release survival need owner retest. `intro-door-drift-clearance-report.json`. |
-| V15 | Substantial slowdown while Dinorex's fire effect is active. | Match the actual covered burst across LLE/HLE builds, then separately check non-fire gameplay and the final owner's setups. | Partial: existing HLE batching substantially improves the matched loaded-host fire workload in both ABBA comparisons. Final candidate also confirms the lower cost;25/25 tests, current cold states, native clearing and input isolation pass. Stable60fps and the owner's smoothness judgment remain unverified. LLE remains explicitly buildable; no shared-engine source change. `fire-batch-matched-abba-report.json`, `batch-nonfire-control-report.json`, `final-fire-owner-setups-report.json`. |
+| V12 | X alone dying to lava appears to restart Dinorex despite a surviving Zero. | Observe the actual death order, then test native lethal contact with a known living survivor and retained control. | Owner accepted on2026-10-28: "lava death I think I saw fixed," followed by acceptance of the prepared checks. Exact literal lava reproduction remains unestablished by automation. The original recording has Zero die before X in all three retry pairs; current native primary flame death leaves P2 alive, advancing and controllable for90 ticks. `drop-follow-candidate-report.json`. No speculative retry patch was added. |
+| V13 | P2 shows the smaller flames but misses the full-screen Dinorex fire sheet; owner later reports the sheet disappears after X dies. | Same-location living/living burst, P2 ownership with P1 above, native clearing and cold restore; additionally reproduce the recorded early X death before Zero enters the lower corridor. | Bounded passes on715005eb and owner "burn is fixed" covered the living/living case. The later owner survivor failure reproduces by exact original replay (2181 verified inputs). Draw-only correction258e2aa7 uses the survivor world's authoritative native layer instead of stale pre-death fields. Both spectator panes show matching full fire and native clearing; Zero survives and the world continues. `survivor-draw-fixed-report.json`. Finalabafd6b6 also passes; owner accepted cards1-2 on2026-10-28 with qualified recollection. |
+| V14 | Zero drifts backward at intro Both-door admission, walks into the closing door and dies after the scene. | Retain the original opening/carry, apply a disclosed backward position setup, observe collision suspension and actual closing-plane clearance. Full scene/death validation remains separate. | Owner accepted on2026-10-28: "I know zero worked on intro door." Bounded native opening/carry/clearance passes on7530c12e: both collision boxes share the original suspension, conveyor drift stops, the companion retains its native animation, and one actual crossing restores both boxes with positive closing-plane clearance. `intro-door-drift-clearance-report.json`. Full-scene acceptance is owner evidence rather than an automated full-route pass. |
+| V15 | Substantial slowdown while Dinorex's fire effect is active. | Match the actual covered burst across LLE/HLE builds, then separately check non-fire gameplay and the final owner's setups. | Owner accepted fire cards1-2 on2026-10-28 with qualified recollection that all prepared checks pass. Existing HLE batching substantially improves the matched loaded-host fire workload in both ABBA comparisons. Final candidate confirms lower cost;25/25 tests, current cold states, native clearing and input isolation pass. Stable60fps is not established or promised. LLE remains explicitly buildable; no shared-engine source change. `fire-batch-matched-abba-report.json`, `batch-nonfire-control-report.json`, `final-fire-owner-setups-report.json`. |
 
 First check the current native-overlay path against the previously accepted
 interpreter-backed co-op fixes. Do not accumulate independent patches before
@@ -44,13 +44,14 @@ V08/V09 use native raw4/0 fire/gate mechanics; V10 uses raw4/1 original Armor.
 
 ## Current local evidence
 
-Eleven bounded validated / three partial / one unverified / fifteen total.
-Four entries remain open: V09 needs clarification of stop/destruction/release;
-V12 needs confirmation of the exact X-only lava death with a surviving Zero;
-V14 needs full authored cutscene/post-release confirmation of the implemented
-backward-drift correction; V15 needs owner confirmation of the measured slowdown
-improvement. V13's new
-survivor case passes bounded automation but still awaits owner confirmation.
+Fifteen of fifteen current user-report items are closed: eleven previously
+validated entries and four remaining entries accepted by the owner on2026-10-28.
+The final acceptance also covers V13's automated survivor-fire correction.
+Preserve the owner's qualified recollection, recorded verbatim below; this is
+practical owner acceptance, not a claim that every original failure now has an
+independent automated reproduction. Literal lava-death isolation, individually
+recorded barrier phases, automated full-scene survival and stable60fps remain
+limits of the evidence. The historical parity campaign remains parked.
 The owner tentatively places the
 Dinorex corruption in part1, matching the reproduced V07 atlas boundary.
 Atlas candidate is39c21d7c6bc013781d39569cebf2846173fd843718eef5526aaac2bcae87e18f;
@@ -349,7 +350,36 @@ The current normal-window/audio owner station groups survivor fire and two-live
 fire into two short repeatable cards, followed by the three older optional
 checks. The exact survivor seed contains a genuine earlier X death, so both
 panes correctly spectate Zero. P1 remains keyboard and P2 the actual DualSense
-selected at launch. Prior notes and native saves are preserved. The owner still
-needs to confirm the new survivor appearance and practical smoothness; do not
-claim full parity or stable60fps. Owning local game issuebeads-eio.10.40 is related
+selected at launch. Prior notes and native saves are preserved. The owner later
+accepted the survivor appearance and practical smoothness with the qualified
+recollection recorded below; do not claim full parity or stable60fps.
+Owning local game issuebeads-eio.10.40 is related
 to optimization campaignbeads-2wy8.1; raw package-specific samples remain local.
+
+## Owner closeout, 2026-10-28
+
+After the remaining five prepared cards were explained, the owner said:
+
+> lava death I think I saw fixed. fire on cards 1-2 I think worked too? I know zero worked on intro door. and I think 4 too. I'm pretty sure these all actually pass
+
+Count this as acceptance of the remaining prepared checks, retaining the
+uncertainty rather than rewriting it as five individually recorded firm passes.
+No additional test launch or timing matrix is needed for this batch. The
+on-screen checklist's earlier Not tested fields are retained as historical
+observations; conversational acceptance is saved separately so an open panel
+cannot overwrite its note cache or erase earlier failures.
+
+The separate Resume test fault was a launcher error: it acquired a global hold,
+then rejected the intentional fallen-X/alive-Zero fixture before persisting
+the hold. A later Resume trusted the stale unpaused status. The local runner
+now accepts the intended lifecycle, persists acquired holds immediately, and
+queries actual pause depth for Pause/Resume. The original live run recovered
+from depth1 to0, frame4 to19 with world/native counters advancing, no input
+override and the same lifecycle. The owner separately confirmed the recovery.
+Evidence: `owner-resume-fix-note.json`, station `resume-recovery.json` and the
+retained corrected `validation_runner.py`.
+
+Accepted binary isabafd6b63f1bdd01dba9c1d733064c2a424c5299c859d2304bf4acb2f5635df2;
+game sourcea58d7a04c87466dad39cdca94115d1b8e1632bc0. Final title checks are25/25.
+This closeout changes documentation and local QA metadata only. The single
+Nextcloud0.2.5 archive stays in place; cutting its replacement is separate.

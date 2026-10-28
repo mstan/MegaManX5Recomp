@@ -1,4 +1,6 @@
-/* Reuse the original selector: campaign hero/P1, then partner/P2. */
+/* Reuse the original six-slot selector. P1 chooses either hero; P2 chooses
+ * the remaining hero. State2 lets P1 choose Normal/Black after choosing Zero,
+ * without overwriting native control bytes immediately after the six slots. */
 int mmx5_coop_zero_form(void) {
     /* Availability belongs to the genuine capsule/code progress byte, which
      * the original memory-card serializer already preserves. A preference
@@ -6,7 +8,8 @@ int mmx5_coop_zero_form(void) {
     if(!(psx_mod_read_byte(PLAY+0x4A)&0x10u))return 0;
     if(armor_roster_active && psx_mod_read_word(0x800EE970u)==24u &&
        psx_mod_read_byte(PLAY)==4 && psx_mod_read_byte(PLAY+1)==4 &&
-       (psx_mod_read_byte(PLAY+0x44)^armor_selecting_seat)==1u)
+       (armor_selecting_seat==2 ||
+        (armor_selecting_seat==1 && !psx_mod_read_byte(PLAY+0x44))))
         return psx_mod_read_byte(PLAY+0x30)==1;
     return selected_zero_form!=0;
 }
@@ -21,8 +24,9 @@ static void armor_filter_list(void) {
         memcpy(armor_native_roster,list,sizeof list);armor_native_count=count;
         armor_roster_active=1;changed=1;
     }
-    unsigned character=psx_mod_read_byte(PLAY+0x44)^armor_selecting_seat,next=0;
-    if(character) {
+    unsigned character=armor_selecting_seat==2?1:
+        armor_selecting_seat==1?(psx_mod_read_byte(PLAY+0x44)^1u):2u,next=0;
+    if(character==1) {
         /* Both use genuine roster5. Native Black Zero reads select its
          * authored preview palette and name animation7, without roster6. */
         memset(list,0,sizeof list);list[0]=5;
@@ -31,9 +35,12 @@ static void armor_filter_list(void) {
         next=changed?selected_zero_form:cursor<count?cursor:0;
         if(next>=count)next=0;
     } else {
-        if(changed || selected>4)selected=selected_x_armor;
+        if(changed || (selected>4 && character!=2))selected=selected_x_armor;
         memcpy(list,armor_native_roster,sizeof list);
         count=mmx5_coop_armor_list(list,armor_native_count);
+        if(character==2 && mmx5_coop_zero_available(psx_mod_read_byte(PLAY+0x79),
+                psx_mod_read_byte(PLAY+0xCB),keep_zero))list[count++]=5;
+        if(character==2 && changed && psx_mod_read_byte(PLAY+0x44))selected=5;
         for(unsigned i=0;i<count;++i)if(list[i]==selected) {next=i;break;}
     }
     armor_list_seat=armor_selecting_seat+1;
@@ -80,8 +87,9 @@ static int armor_stage_ui(CPUState *cpu,uint32_t address) {
     if(psx_mod_read_byte(PLAY+1)==4)armor_filter_list();else armor_restore_list();
     unsigned zero_before=(unsigned)mmx5_coop_zero_form();
     if(choosing) {
-        psx_mod_write_half(PAD+4,mmx5_coop_armor_input(edges[armor_selecting_seat],edges[armor_selecting_seat]));
-        psx_mod_counter_add(armor_selecting_seat?"mmx5.coop.armor-p2-input-frames":"mmx5.coop.armor-p1-input-frames",1);
+        unsigned seat=armor_selecting_seat==1;
+        psx_mod_write_half(PAD+4,mmx5_coop_armor_input(edges[seat],edges[seat]));
+        psx_mod_counter_add(seat?"mmx5.coop.armor-p2-input-frames":"mmx5.coop.armor-p1-input-frames",1);
     }
     armor_ui_call=1;
     uint32_t result=guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);
@@ -91,14 +99,24 @@ static int armor_stage_ui(CPUState *cpu,uint32_t address) {
         unsigned next=psx_mod_read_byte(PLAY+2);
         if(next==6) {
             unsigned choice=psx_mod_read_byte(PLAY+0x49);
-            if((primary^armor_selecting_seat)==1u)selected_zero_form=psx_mod_read_byte(PLAY+0x30)==1;
-            else if(choice<5)selected_x_armor=choice;
-            /* Native confirmation also writes the campaign hero. Restore
-             * the established identity after each choice and for entry. */
-            psx_mod_write_byte(PLAY+0x44,(uint8_t)primary);
-            psx_mod_write_byte(PLAY+0x49,(uint8_t)(primary?5:selected_x_armor));
             if(!armor_selecting_seat) {
-                armor_selecting_seat=1;psx_mod_write_byte(PLAY+2,4);
+                /* Keep the original confirmation's chosen P1 hero. The
+                 * partner selector must not replace that campaign identity. */
+                primary=choice==5;
+                psx_mod_write_byte(PLAY+0x44,(uint8_t)primary);
+                if(!primary)selected_x_armor=choice;
+                else if(!(psx_mod_read_byte(PLAY+0x4A)&0x10u))selected_zero_form=0;
+                armor_selecting_seat=primary && (psx_mod_read_byte(PLAY+0x4A)&0x10u)?2:1;
+                psx_mod_write_byte(PLAY+2,4);
+            } else {
+                if(armor_selecting_seat==2 || !primary)
+                    selected_zero_form=psx_mod_read_byte(PLAY+0x30)==1;
+                else if(choice<5)selected_x_armor=choice;
+                psx_mod_write_byte(PLAY+0x44,(uint8_t)primary);
+                psx_mod_write_byte(PLAY+0x49,(uint8_t)(primary?5:selected_x_armor));
+                if(armor_selecting_seat==2) {
+                    armor_selecting_seat=1;psx_mod_write_byte(PLAY+2,4);
+                }
             }
             psx_mod_counter_add("mmx5.coop.armor-confirmed",1);
         } else if(next==8 && armor_selecting_seat) {

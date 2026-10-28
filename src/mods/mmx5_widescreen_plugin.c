@@ -14,17 +14,18 @@
 #define FEATURE "widescreen"
 #define LAYERS 0x8009a1f8u
 static uint32_t arena;
-/* Immutable DAT100 initial scenery. Native camera-area subtype80 replaces
- * the shared VRAM atlas when the leading hero reaches the second region.
+/* Immutable initial scenery for the intro and Dinorex's first section.
+ * Native area controllers replace the shared atlas at their next region.
  * A retained old-region camera still requires the original sheet. Keep only
  * ROM-derived host words here; there is no new mutable simulation state. */
-static uint16_t intro_initial_atlas[512u * 256u];
-static unsigned intro_initial_atlas_ready;
+static uint16_t initial_region_atlases[2][512u * 256u];
+static unsigned initial_region_atlas_ready[2];
 
-int mmx5_widescreen_prepare_intro_atlas(const uint8_t *dat, uint32_t bytes) {
-    if (intro_initial_atlas_ready) return 1;
+static int prepare_region_atlas(const uint8_t *dat,uint32_t bytes,
+                                unsigned slot,unsigned record,unsigned asset) {
+    if (initial_region_atlas_ready[slot]) return 1;
     Mmx5AssetView image;
-    if (!mmx5_coop_dat_asset(dat, bytes, 100, 5, &image) ||
+    if (!mmx5_coop_dat_asset(dat, bytes, record, asset, &image) ||
         image.type != 0x10000u || image.size != 0x40000u) return 0;
     /* Original type10000 uploads64-word by16-row blocks down each column,
      * beginning at VRAM320,256. Type16 is already linear and is different.
@@ -34,35 +35,53 @@ int mmx5_widescreen_prepare_intro_atlas(const uint8_t *dat, uint32_t bytes) {
         for (unsigned row = 0; row < 16u; ++row)
             for (unsigned col = 0; col < 64u; ++col) {
                 unsigned source = block * 2048u + (row * 64u + col) * 2u;
-                intro_initial_atlas[(y + row) * 512u + x + col] =
+                initial_region_atlases[slot][(y + row) * 512u + x + col] =
                     (uint16_t)(image.data[source] | (uint16_t)image.data[source + 1u] << 8);
             }
     }
-    intro_initial_atlas_ready = 1;
+    initial_region_atlas_ready[slot] = 1;
     return 1;
 }
+int mmx5_widescreen_prepare_region_atlases(const uint8_t *dat,uint32_t bytes) {
+    int intro=prepare_region_atlas(dat,bytes,0,100,5);
+    int dinorex=prepare_region_atlas(dat,bytes,1,105,3);
+    return intro && dinorex;
+}
 
-int mmx5_widescreen_project_intro_atlas(void) {
+int mmx5_widescreen_project_region_atlas(void) {
     /* Only an existing private-view RAM/VRAM transaction may substitute this
      * old-region sheet. The original world request, progression, map,
      * descriptors, palette, camera and the other view remain untouched. */
     if (!psx_mod_local_view_scope() ||
         !mmx5_coop_split_views() || psx_mod_read_byte(0x800d1c00u) != 10u ||
-        psx_mod_read_byte(0x800d1c0cu) || psx_mod_read_byte(0x800d1c0du) ||
-        psx_mod_read_word(0x800ee970u) != 4u ||
-        psx_mod_read_word(0x80056070u) != 0xac6292f8u ||
-        psx_mod_read_word(0x8007c758u) != 0x0abf0aa8u ||
-        psx_mod_read_word(0x8007c760u) != 0xffff0a08u ||
-        psx_mod_read_word(0x800e92f8u) != 2u ||
-        (int16_t)psx_mod_read_half(0x8009a202u) >= 2568) return 1;
-    if (!intro_initial_atlas_ready) {
-        psx_mod_counter_add("mmx5.renderer.intro-atlas-unavailable", 1);
+        psx_mod_read_byte(0x800d1c0du) ||
+        psx_mod_read_word(0x800e92f8u) != 2u) return 1;
+    unsigned slot;
+    if (!psx_mod_read_byte(0x800d1c0cu)) {
+        if (psx_mod_read_word(0x800ee970u)!=4u ||
+            psx_mod_read_word(0x80056070u)!=0xac6292f8u ||
+            psx_mod_read_word(0x8007c758u)!=0x0abf0aa8u ||
+            psx_mod_read_word(0x8007c760u)!=0xffff0a08u ||
+            (int16_t)psx_mod_read_half(LAYERS+10u)>=2568) return 1;
+        slot=0;
+    } else if (psx_mod_read_byte(0x800d1c0cu)==4u) {
+        if (psx_mod_read_word(0x800ee970u)!=9u ||
+            psx_mod_read_word(0x800eeb8cu)!=0xac8392f8u ||
+            psx_mod_read_word(0x800f4828u)!=0x08800020u ||
+            psx_mod_read_half(0x800f4834u)!=2192u ||
+            (int16_t)psx_mod_read_half(LAYERS+14u)>=2192) return 1;
+        slot=1;
+    } else return 1;
+    if (!initial_region_atlas_ready[slot]) {
+        psx_mod_counter_add(slot?"mmx5.renderer.dinorex-atlas-unavailable":
+                                 "mmx5.renderer.intro-atlas-unavailable",1);
         return 0;
     }
     /* Same native rectangle800718D8. The renderer transfer journals the old
      * words BEFORE touching the CPU mirror and preserves queued ordering;
      * a GP0 A0 payload would mutate that mirror before journal protection. */
-    gr_vram_transfer_in(320, 256, 512, 256, intro_initial_atlas);
+    gr_vram_transfer_in(320,256,512,256,initial_region_atlases[slot]);
+    if(slot)psx_mod_counter_add("mmx5.renderer.dinorex-old-region-atlas",1);
     return 1;
 }
 static const PSXCapcomBackground background = {0x80093f78u, 0x80091d60u, 3u, 17u, 0x7900u};

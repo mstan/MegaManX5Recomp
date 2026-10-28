@@ -235,8 +235,8 @@ static void snapshot_walk(Mmx5SnapshotIO *s) {
     MMX5_SNAPSHOT_FIELD(s,selected_x_armor,1,4);
     MMX5_SNAPSHOT_BOOL(s,selected_zero_form);
     MMX5_SNAPSHOT_BOOL(s,armor_selection_seen);
-    MMX5_SNAPSHOT_BOOL(s,armor_selecting_seat);
-    MMX5_SNAPSHOT_FIELD(s,armor_list_seat,1,2);
+    MMX5_SNAPSHOT_FIELD(s,armor_selecting_seat,1,2);
+    MMX5_SNAPSHOT_FIELD(s,armor_list_seat,1,3);
     for(unsigned seat=0;seat<2;++seat)MMX5_SNAPSHOT_U16(s,armor_previous_input[seat]);
     MMX5_SNAPSHOT_BOOL(s,armor_roster_active);
     MMX5_SNAPSHOT_FIELD(s,armor_native_count,1,6);

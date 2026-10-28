@@ -9,7 +9,7 @@ typedef struct {
 void mmx5_widescreen_view_save(Mmx5WidescreenViewContext *context);
 void mmx5_widescreen_view_restore(const Mmx5WidescreenViewContext *context);
 
-/* Immutable original intro sheet; project only inside an existing private draw. */
-int mmx5_widescreen_prepare_intro_atlas(const uint8_t *dat,uint32_t bytes);
+/* Immutable pre-transition sheets; project only inside an existing private draw. */
+int mmx5_widescreen_prepare_region_atlases(const uint8_t *dat,uint32_t bytes);
 /* Success also includes scopes that do not need a substitution. */
-int mmx5_widescreen_project_intro_atlas(void);
+int mmx5_widescreen_project_region_atlas(void);

@@ -272,6 +272,7 @@ static int snapshot_resolve_bank(uint16_t id);
 static void scene_begin(unsigned seat);
 static int grizzly_stage(void);
 static void intro_private_layer_region(void);
+static int intro_boss_text_skip(CPUState *cpu,uint32_t address);
 static void both_door_maintain(CPUState *cpu);
 static int duel_scope(void);
 static int duel_loser_body(void);
@@ -477,7 +478,7 @@ static int load_assets(int initialize_guest) {
      * Disabled/reference loaders keep the original effective-disc fallback. */
     if(!dat)dat=owned=disc_file("ROCK_X5.DAT",&bytes);
     if(!dat)return 0;
-    (void)mmx5_widescreen_prepare_intro_atlas(dat,bytes);
+    (void)mmx5_widescreen_prepare_region_atlases(dat,bytes);
     psx_mod_counter_add(owned?"mmx5.coop.assets-disc-fallback":"mmx5.coop.assets-resident-reuse",1);
     for(unsigned c=0;c<2;++c)if(!mmx5_coop_audio_prepare(c,dat,bytes,0)) {free(owned);return 0;}
     for(unsigned c=0;c<MMX5_COOP_ARMOR_SOURCES;++c) {
@@ -3323,6 +3324,22 @@ static int falling_slab_trigger(CPUState *cpu,uint32_t address) {
     psx_mod_counter_add("mmx5.coop.p2-falling-slab-triggers",1);
     cpu->gpr[2]=result;return 1;
 }
+static int intro_boss_text_skip(CPUState *cpu,uint32_t address) {
+    if(address!=0x8002385Cu || !enrolled || failed || psx_mod_local_view_scope() ||
+       psx_mod_read_byte(PLAY)!=10 || psx_mod_read_byte(PLAY+12) || psx_mod_read_byte(PLAY+13) ||
+       cpu->gpr[31]!=0x800F825Cu || cpu->gpr[4] || cpu->gpr[5]!=255u ||
+       psx_mod_read_word(0x800EE970u)!=4u ||
+       psx_mod_read_word(0x800FB4E4u)!=0x800F8224u ||
+       psx_mod_read_word(0x800F8244u)!=0x10600011u ||
+       psx_mod_read_word(0x800F8254u)!=0x0C008E17u ||
+       psx_mod_read_word(0x800F82A0u)!=0x3C028009u ||
+       psx_mod_read_byte(0x80091C44u))return 0;
+    /* Skip only Sigma's original post-reveal text request. The statue,
+     * explosions and white flash have already completed; the original next
+     * callback sees idle text, clears its own holds and starts the fight. */
+    psx_mod_counter_add("mmx5.coop.intro-boss-dialogue-skips",1);
+    cpu->gpr[2]=0;return 1;
+}
 static int intro_reunion_skip(CPUState *cpu,uint32_t address) {
     uint32_t actor=cpu->gpr[4];
     if(address!=0x800F8170u || area_call || !enrolled || failed ||
@@ -5058,7 +5075,7 @@ static int draw_local_view(CPUState *cpu,void *user,uint32_t alpha) {
         intro_boss_draw_layer(layer);
         split_scenery_origins(cpu);
     }
-    if(!menu && !mmx5_widescreen_project_intro_atlas())return 0;
+    if(!menu && !mmx5_widescreen_project_region_atlas())return 0;
     gpu_set_gp0_source(0);
     gpu_write_gp0(0x02000000u|psx_mod_read_byte(buffer+0x2D)|
         (uint32_t)psx_mod_read_byte(buffer+0x2E)<<8|(uint32_t)psx_mod_read_byte(buffer+0x2F)<<16);

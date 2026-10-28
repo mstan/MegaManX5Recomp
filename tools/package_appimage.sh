@@ -185,7 +185,8 @@ psx_add_mod_catalog --build-path "$build_dir" --stage "$payload" \
 mkdir -p "$payload/licenses"
 [ ! -f "$fw/runtime/licenses/libchdr-NOTICES.txt" ] || cp "$fw/runtime/licenses/libchdr-NOTICES.txt" "$payload/licenses/"
 
-# --- prebuilt overlay cache + overlay toolchain ---------------------------
+# Stage native overlays only when the title has qualified its trusted hooks.
+if grep -Eq '^[[:space:]]*overlay_cache[[:space:]]*=[[:space:]]*true([[:space:]]|#|$)' "$player_toml"; then
 python3 "$fw/tools/aot_overlay_pipeline.py" release \
     --profile "$root/aot/overlays.json" --game-toml "$root/game.toml" \
     --runtime-config "$player_toml" --runtime-build-dir "$build_dir" \
@@ -198,6 +199,9 @@ psx_add_overlay_toolchain --stage "$payload" \
                           --recomp-include "$fw/runtime/include" \
                           --dl-cache "$tools_dir" \
                           --platform linux
+else
+    echo "Using interpreted overlays; resident native execution is unchanged."
+fi
 cp "$player_toml" "$payload/game.toml"
 cp "$root/packaging/release/input.ini" "$root/packaging/release/START_HERE.txt" "$payload/"
 cp "$root/LICENSE" "$root/README.md" "$payload/"

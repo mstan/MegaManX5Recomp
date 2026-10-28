@@ -34,11 +34,11 @@ def main():
                         help='Require both launcher controller seats, debug tools and the netplay lobby')
     args=parser.parse_args()
     root=Path(__file__).resolve().parent.parent
+    native=tomllib.loads((root/'game.toml').read_text(encoding='utf-8'))
+    args.no_overlay_cache |= not native.get('runtime',{}).get('overlay_cache',False)
     build=args.build.resolve()
     out=args.out.resolve()
     cache_source=args.cache_source.resolve() if args.cache_source else build/'cache'
-    if os.name=='nt' and any(p.drive.upper()=='C:' for p in (build,out,cache_source)):
-        parser.error('Build and playtest outputs must be on non-C: storage')
     if not args.no_overlay_cache and not cache_source.is_dir():
         parser.error(f'Missing overlay cache: {cache_source}; supply --cache-source from a compatible local build')
     if out.exists():
@@ -58,11 +58,8 @@ def main():
     package=build/'mods/bundled/mmx5.coop/0.0.1/manifest.toml'
     for path in (exe,bios,package):
         if not path.is_file():parser.error(f'Missing built input: {path}')
-    native=tomllib.loads((root/'game.toml').read_text(encoding='utf-8'))
     disc=args.disc.resolve() if args.disc else (root/native['game']['disc']).resolve()
     if not disc.is_file():parser.error(f'Missing original disc: {disc}')
-    if os.name=='nt' and disc.drive.upper()=='C:':
-        parser.error('Use an original disc on non-C: storage')
     if native['game'].get('players')!=2:
         parser.error('Co-op launcher must declare game.players=2 for P1/P2 bindings')
     cache_path=build/'CMakeCache.txt'

@@ -2,7 +2,7 @@ param(
     [string]$Version = "",
     [string]$BuildDir = "build-release",
     [string]$RecompilerBuildDir = "recompiler/build",
-    [int]$Jobs = 4,
+    [int]$Jobs = 2,
     [ValidateSet('ENHANCED', 'REFERENCE')]
     [string]$ExecutionProfile = 'ENHANCED',
     [switch]$SkipRegen,
@@ -279,11 +279,9 @@ bios_hle = true
 turbo_loads = false
 offer_turbo_loads = false
 
-# Overlay cache: keeps converted native code for game areas in the cache folder,
-# and records newly visited areas into overlay_captures.json so your own cache
-# grows as you play. Keep that file private - it contains game code from your
-# disc (see README).
-overlay_cache = true
+# Trusted co-op hooks currently require interpreted overlays. Resident native
+# execution and the audited frame-wait optimization remain enabled.
+overlay_cache = false
 
 # ---- Visual quality -----------------------------------------------------
 [video]
@@ -370,22 +368,27 @@ a1_sites = [
 ]
 "@ | Set-Content -Encoding ASCII (Join-Path $Stage "game.toml")
 
-# Fresh original-disc AOT is mandatory, including when base regeneration is skipped.
+# Stage native overlays only when the title has qualified that execution path.
+# Co-op currently requires the interpreted path for its trusted hooks.
 $RecompTools = (Resolve-Path -LiteralPath (Join-Path $FrameworkRoot "tools")).Path
 $RecompInc = (Resolve-Path -LiteralPath (Join-Path $FrameworkRoot "runtime/include")).Path
 $StagedGameToml = Join-Path $Stage 'game.toml'
 $AotPython = Join-Path $MingwBin 'python.exe'
+if ((Get-TomlScalar -GameToml $StagedGameToml -Table 'runtime' -Key 'overlay_cache') -eq 'true') {
 Invoke-Native {
     & $AotPython (Join-Path $RecompTools 'aot_overlay_pipeline.py') release `
         --profile (Join-Path $Root 'aot/overlays.json') `
         --game-toml (Join-Path $Root 'game.toml') --runtime-config $StagedGameToml `
         --runtime-build-dir $BuildPath --runtime-target psx-runtime `
         --recompiler $RecompBin --work-dir (Join-Path $Root 'build-aot') `
-        --stage $Stage --gcc (Join-Path $MingwBin 'gcc.exe') --workers 3
+        --stage $Stage --gcc (Join-Path $MingwBin 'gcc.exe') --workers 2
 } 'original-disc AOT extraction, compilation and audit'
 Add-OverlayToolchain -Stage $Stage -RecompDir $RecompDir -RecompTools $RecompTools `
                      -RecompInc $RecompInc -MingwBin $MingwBin `
                      -DlCache (Join-Path $Root "tools\_toolchain_cache") | Out-Null
+} else {
+    Write-Host 'Using interpreted overlays; resident native execution is unchanged.'
+}
 # The Release build is statically linked (PSX_STATIC_RUNTIME defaults ON for
 # MinGW Release), so the exe imports ONLY Windows system DLLs -- nothing to
 # bundle. Assert self-containment rather than trust it (mismatched side-by-side

@@ -36,7 +36,9 @@ bios_hle = true
 # <exe>/cache/SLUS-01334/ -> loader rescans + loads. Priority: static > gcc shard
 # > tcc shard > interp. backend "auto" = gcc if a gcc toolchain is present, else
 # the bundled toolchain-free tcc.
-overlay_cache = true
+# Native overlay units currently bypass trusted co-op function/instruction
+# hooks. Keep the compatible overlay interpreter; resident native waits remain.
+overlay_cache = false
 overlay_backend = "auto"
 # Compile RECIPE only (compiler + tool paths). The WRITE cache + READ captures are
 # injected by the runtime (PSX_OVERLAY_CACHE_DIR / PSX_OVERLAY_CAPTURES) so they

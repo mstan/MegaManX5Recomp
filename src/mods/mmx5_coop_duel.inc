@@ -512,6 +512,7 @@ static int duel_personal_hud(CPUState *cpu,uint32_t address) {
 }
 
 static int duel_text(CPUState *cpu,uint32_t address) {
+    if(intro_boss_text_skip(cpu,address))return 1;
     unsigned id=cpu->gpr[4]&0x7FFFu;
     if(duel_text_call || story_duel.phase!=4 || !story_duel.winner ||
        !duel_story_character || duel_story_character>2 ||

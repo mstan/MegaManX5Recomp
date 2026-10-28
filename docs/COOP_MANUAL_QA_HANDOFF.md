@@ -1,6 +1,46 @@
 # X5 co-op manual QA handoff
 
-Current opening-report candidate: **92866EAD**, local only. Gameplay is the
+Current follow-up candidate: **EBDE0959 / source404ec42**, local only, with
+25/25 title CTests passing. The [v0.2.5 follow-up board](COOP_X5_025_FOLLOWUPS.md)
+has **6 validated / 1 partial / 3 unverified / 10 total**. Four entries remain
+open; historical comparison coverage and LAN remain parked.
+
+The established station at
+`G:/Temp/Codex/psxrecomp/x5-parity/current-owner-candidate/Validation.ps1`
+now groups those entries into three episodes:
+
+| Prepared episode | Individual acceptance still needed |
+|---|---|
+| Intro, at the foot of the genuine roof climb | V05 actual Both-door carry animation, closure and control recovery; V06 intact statue, reveal, skipped co-op dialogue and Sigma initialization. Climb normally: earlier roof teleports did not establish native floor prerequisites. |
+| Dinorex part1, checkpoint2 ledge | V09 P2 camera stops at the intact fire barrier and releases after actual flame destruction. Also inspect the part1 atlas and P2 flame-trigger fixes along that route. |
+| Dinorex part2, two original native suits | V10 normal boarding and the full armor-only branch, with separate controls/riders. An optional fourth card starts with both original boarding animations completed if setup is difficult; it does not pass normal boarding. |
+
+All four current-schema15 snapshots were prepared on the current executable,
+then loaded in fresh muted processes from the actual station profile. Native
+pause exit, living heroes and separately addressed synthetic input pass for
+each. This establishes fixture readiness, not the outstanding mechanics.
+No floor, barrier, door, rider, occupancy or success flag was authored; the
+mounted fallback uses disclosed position-only boarding overlap. Automatic HP
+refill and contact protection are off. Earlier native cards and owner notes
+are preserved. Each case has its own candidate-specific observation key.
+
+P1 is keyboard and P2 targets the owner's USB DualSense. Owner launches use
+normal windows/audio, exclude the development input merge, and begin paused.
+Previous physical input-isolation acceptance is retained because routing code
+is unchanged; verify the connected device in the current launch log. Record
+each named check separately, including Not reached. Close the game before
+switching/restarting cards. The delivered Nextcloud0.2.5 archive is unchanged.
+
+Setup/qualification evidence is retained under
+`G:/Temp/Codex/psxrecomp/x5-parity/owner-025-reports-20261027`:
+`owner-current-setups-report.json`, `owner-current-cold-qualification.json`
+and `two-armor-final-controls-report.json`. The original overlay-cache package
+is unqualified and disabled; matched performance evidence for the corrected
+candidate remains a future release gate.
+
+## Earlier opening-report handoff
+
+Earlier opening-report candidate: **92866EAD**, local only. Gameplay is the
 tested765AC663 scene/scenery candidate; the rebuild changes a source comment
 and its diagnostic identity. All24 CTests pass. The
 [v0.2.2 opening-report board](COOP_X5_022_OPENING_BURNDOWN.md) has

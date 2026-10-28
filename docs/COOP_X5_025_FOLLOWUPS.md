@@ -26,8 +26,9 @@ campaign. Grizzly looks good to the owner; their additional testing is pending.
 | V10 | Provide a second Ride Armor for the armor-only route in Dinorex part2. | Two original suits with separate riders and controls; native mounting, steering, first lava drop and dismount without transferring ownership. | Passed, bounded native checks on ebde0959 and owner acceptance: "2x ride warmor works." `two-armor-final-controls-report.json`. Complete alternate-route traversal and late backup recovery are outside this acceptance claim. |
 | V11 | After X drops in Dinorex part1, Zero cannot follow through the floor. | Original floor seal waits for both living bodies to descend; actual follower movement opens the original native copy/retirement. A dead partner must not block the seal. | Passed on83044bec. Old ebde0959 reproduces the trapped follower. Current candidate admits both living heroes; the one-living check observes the original20 map words copied and controller retirement. `drop-follow-candidate-report.json`, `drop-one-living-ram-report.json`. |
 | V12 | X alone dying to lava appears to restart Dinorex despite a surviving Zero. | Observe the actual death order, then test native lethal contact with a known living survivor and retained control. | Exact lava case unverified. The owner's recording has Zero die before X in all three retry pairs. Current native primary flame death leaves P2 alive, advancing and controllable for90 ticks. `drop-follow-candidate-report.json`; this is not a literal lava pass. |
-| V13 | P2 shows the smaller flames but misses the full-screen Dinorex fire sheet. | Both heroes in the same native covered burst; compare the background-layer sheet in both private draws without advancing fire AI twice. Also check P2 ownership with P1 above, native clearing and current-build active-fire cold restore. | Passed, bounded visual/runtime checks on715005eb, then owner confirmation: "burn is fixed." The original83044bec failure and owner's separate V11 acceptance are retained. Actual full-fire coverage matches both panes; distant upper P1 stays clear during a P2-owned burst. `fire-overlay-final-report.json`, `fire-overlay-p2-cold-final-report.json`. |
+| V13 | P2 shows the smaller flames but misses the full-screen Dinorex fire sheet; owner later reports the sheet disappears after X dies. | Same-location living/living burst, P2 ownership with P1 above, native clearing and cold restore; additionally reproduce the recorded early X death before Zero enters the lower corridor. | Bounded passes on715005eb and owner "burn is fixed" covered the living/living case. The later owner survivor failure reproduces by exact original replay (2181 verified inputs). Draw-only correction258e2aa7 uses the survivor world's authoritative native layer instead of stale pre-death fields. Both spectator panes show matching full fire and native clearing; Zero survives and the world continues. `survivor-draw-fixed-report.json`. Owner survivor retest pending. |
 | V14 | Zero drifts backward at intro Both-door admission, walks into the closing door and dies after the scene. | Retain the original opening/carry, apply a disclosed backward position setup, observe collision suspension and actual closing-plane clearance. Full scene/death validation remains separate. | Implemented; bounded native opening/carry/clearance pass on7530c12e. Both collision boxes share the original suspension, conveyor drift stops, the companion retains its native animation, and one actual crossing restores both boxes with positive closing-plane clearance. Full authored cutscene and post-release survival need owner retest. `intro-door-drift-clearance-report.json`. |
+| V15 | Substantial slowdown while Dinorex's fire effect is active. | Measure matched native covered bursts with existing runtime/driver profiling; evaluate the existing painter-ordered transparent batching implementation before adding bespoke rendering work. Preserve composed pixels, native clearing, controls and simulation. | Failed by owner observation; improvement not yet qualified. LLE pilot locates large graphics-driver cost, but host saturation/build overlap invalidates a benchmark claim. Existing `PSX_GL_BATCH_IMPL=HLE` qualification is in progress; LLE remains the reference. `fire-cost-baseline-report.json`. |
 
 First check the current native-overlay path against the previously accepted
 interpreter-backed co-op fixes. Do not accumulate independent patches before
@@ -43,11 +44,13 @@ V08/V09 use native raw4/0 fire/gate mechanics; V10 uses raw4/1 original Armor.
 
 ## Current local evidence
 
-Eleven bounded validated / two partial / one unverified / fourteen total.
-Three entries remain open: V09 needs clarification of stop/destruction/release;
+Eleven bounded validated / two partial / one unverified / one failed / fifteen total.
+Four entries remain open: V09 needs clarification of stop/destruction/release;
 V12 needs confirmation of the exact X-only lava death with a surviving Zero;
 V14 needs full authored cutscene/post-release confirmation of the implemented
-backward-drift correction. The owner tentatively places the
+backward-drift correction; V15 needs a measured slowdown correction. V13's new
+survivor case passes bounded automation but still awaits owner confirmation.
+The owner tentatively places the
 Dinorex corruption in part1, matching the reproduced V07 atlas boundary.
 Atlas candidate is39c21d7c6bc013781d39569cebf2846173fd843718eef5526aaac2bcae87e18f;
 flame candidate isca61eab614ed66bf29d958f4c45a74f0a771e39edb5b54906f05e073c50d8ec3,
@@ -277,3 +280,39 @@ independent matrix.
 
 Candidate SHA256:
 `7530c12e79968e9c1bad20121aa4d5676109ede72665becaaba815fed3e8a446`.
+
+## Fire after early X death and active-effect cost
+
+Owner frame1309 shows Zero in cover after X's earlier death, with only the small
+flames in both spectator panes. Session1793219669283364 reproduces it on the
+original7530c12e runtime:2181 native inputs and state hashes verify. The exact
+failure snapshot is obtained through the original replay, with no authored
+death, hazard or result fields. The first replay launch needed its bundled BIOS
+and the baseline placed in the normal slot; those preparation failures are not
+mechanics failures or successful reproductions.
+
+When P1 dies, P2's survivor world executes the original AI directly. The ordinary
+two-body AI scope no longer refreshes `dinorex_fire.camera`. Private draws still
+replayed those stale fields over the actual native layer, suppressing a later
+burst. Use the authoritative canonical layer in that survivor draw, retaining
+the existing spatial/signature guards and the ordinary two-body retained path.
+This changes only the private rendering transaction: no extra AI, hazard clock,
+map update, immunity, ownership state or snapshot fields. A simulation-scope
+experiment was rejected after two covered-survivor setup failures; its reports
+are retained, and none of its native-controller changes remain in the candidate.
+
+On258e2aa7, cold restore of the exact failed snapshot produces full-sheet orange
+coverage0.75842 in each spectator pane, clears through the native retraction,
+and leaves Zero alive without retry. Images were inspected. Render journals,
+watchdog and simulation-digest checks are clean;25/25 title CTests pass. The
+original two-living and upper/distant-view checks remain separately traceable.
+Evidence: `owner-survivor-full-replay-verification.json`,
+`owner-survivor-exact-replay-report.json`, `survivor-draw-fixed-report.json`.
+
+The separate slowdown report is V15. Existing host sampling shows substantial
+driver time during full fire; the current LLE graphics build isolates each
+transparent primitive. Evaluate the already implemented HLE painter-order batch
+tier, preserving LLE as a build-time reference, rather than introducing another
+renderer. Initial timings were taken on a saturated host and overlapped a build;
+they locate a cost but establish no performance gain. Keep measured adoption
+under the owning local game issue and optimization campaign beads-2wy8.1.

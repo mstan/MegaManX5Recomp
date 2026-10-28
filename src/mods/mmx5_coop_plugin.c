@@ -5291,12 +5291,19 @@ static void intro_boss_draw_layer(const uint8_t canonical[0x54]) {
     psx_mod_write_byte(CAMERA+0xA6,canonical[0x52]);
     psx_mod_counter_add("mmx5.coop.local-view-intro-boss-layer",1);
 }
-static void dinorex_fire_draw_layer(void) {
+static void dinorex_fire_draw_layer(const uint8_t canonical[0xFC]) {
+    /* The P2 survivor world runs the original AI directly, rather than the
+     * two-body ai_update scope that retains dinorex_fire.camera. Its current
+     * canonical layer is authoritative; replaying the pre-death retained
+     * sheet can erase an entire later burst from both spectator panes. */
+    int survivor=(life.status[0]==MMX5_COOP_DYING || life.status[0]==MMX5_COOP_FALLEN) &&
+        life.status[1]==MMX5_COOP_ALIVE;
+    const uint8_t *fire=survivor?canonical:dinorex_fire.camera;
     if(!psx_mod_local_view_scope() || !split_views || !split_valid || !enrolled || failed ||
        !dinorex_fire_content() ||
-       !dinorex_fire.owner || dinorex_fire.owner>2 ||
-       !psx_mod_read_byte(dinorex_fire.actor) || !dinorex_fire_actor(dinorex_fire.actor) ||
-       !psx_mod_read_byte(dinorex_fire.actor+5) || !dinorex_fire.camera[0x57] ||
+       (!survivor && (!dinorex_fire.owner || dinorex_fire.owner>2 ||
+        !psx_mod_read_byte(dinorex_fire.actor) || !dinorex_fire_actor(dinorex_fire.actor) ||
+        !psx_mod_read_byte(dinorex_fire.actor+5))) || !fire[0x57] ||
        psx_mod_read_word(0x800F31A0u)!=0xA0A200A1u ||
        psx_mod_read_word(0x800F35D4u)!=0xA0E00057u ||
        (int16_t)psx_mod_read_half(CAMERA+14)<2656)return;
@@ -5312,20 +5319,19 @@ static void dinorex_fire_draw_layer(void) {
      * fire AI, or paint a distant upper/otherwise unaffected region. */
     static const unsigned bytes[]={0x57,0x98,0xA0,0xA1,0xA2,0xA6};
     for(unsigned i=0;i<sizeof bytes/sizeof bytes[0];++i)
-        psx_mod_write_byte(CAMERA+bytes[i],dinorex_fire.camera[bytes[i]]);
+        psx_mod_write_byte(CAMERA+bytes[i],fire[bytes[i]]);
     for(unsigned offset=0x5E;offset<=0x62;offset+=4)
-        psx_mod_write_half(CAMERA+offset,(uint16_t)(dinorex_fire.camera[offset]|
-            dinorex_fire.camera[offset+1]<<8));
+        psx_mod_write_half(CAMERA+offset,(uint16_t)(fire[offset]|fire[offset+1]<<8));
     psx_mod_counter_add("mmx5.coop.local-view-dinorex-fire-layer",1);
 }
 static int draw_local_view(CPUState *cpu,void *user,uint32_t alpha) {
     (void)alpha;uint32_t buffer=*(uint32_t *)user;
     int menu=personal_menu_present();
     if(!menu) {
-        uint8_t layer[0x54];capture(CAMERA+0x54,layer,sizeof layer);
+        uint8_t canonical[0xFC];capture(CAMERA,canonical,sizeof canonical);
         project(CAMERA,split_cameras[local_view_seat],sizeof saved_camera);
-        intro_boss_draw_layer(layer);
-        dinorex_fire_draw_layer();
+        intro_boss_draw_layer(canonical+0x54);
+        dinorex_fire_draw_layer(canonical);
         split_scenery_origins(cpu);
     }
     if(!menu && !mmx5_widescreen_project_region_atlas())return 0;

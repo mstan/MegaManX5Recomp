@@ -146,7 +146,7 @@ static int snapshot_ready(void) {
         local_view_call,spatial_call,personal_effect_call,personal_visual_call,area_call,
         ai_pool_call,ai_call,ai_suspended,effect_allocate_call,effect_init_call,
         hud_call,hud_icon_call,upload_call,allocation_call,solid_call,contact_call,pickup_call,
-        scene_call,door_call,door_traversal_call,door_terrain_call,ride_call,
+        scene_call,door_call,door_traversal_call,door_terrain_call,ride_call,ride_spawn_call,
         balance_current,balance_call,balance_contact_call,balance_draw_call,
         balance_pending_actor,balance_pending_function,balance_prepared,balance_attempted,
         duel_contact_call,duel_native_contact,duel_native_injury,duel_render_art!=NULL,duel_opponent_call,duel_text_call,
@@ -193,7 +193,7 @@ static void snapshot_duel(Mmx5SnapshotIO *s) {
 }
 static void snapshot_walk(Mmx5SnapshotIO *s) {
     mmx5_snapshot_fixed(s,0x42503558u); /* X5PB */
-    mmx5_snapshot_fixed(s,14); /* Retained native Dinorex fire camera. */
+    mmx5_snapshot_fixed(s,15); /* Independent native Ride Armor placement. */
     mmx5_snapshot_fixed(s,split_views);mmx5_snapshot_fixed(s,local_split);
     mmx5_snapshot_fixed(s,both_door_players);mmx5_snapshot_fixed(s,keep_zero);
     mmx5_snapshot_fixed(s,separate_etanks);
@@ -217,6 +217,12 @@ static void snapshot_walk(Mmx5SnapshotIO *s) {
 #endif
     mmx5_snapshot_fixed(s,arena);mmx5_snapshot_fixed(s,primary_arena);
     mmx5_snapshot_fixed(s,hud_arena);mmx5_snapshot_fixed(s,diagnostic);
+    mmx5_snapshot_fixed(s,extra_ride_record);
+    uint8_t ride_record[8]={0};
+    if(extra_ride_record)capture(extra_ride_record,ride_record,sizeof ride_record);
+    mmx5_snapshot_bytes(s,ride_record,sizeof ride_record);
+    if(s->ok && s->mode==MMX5_SNAPSHOT_READ)
+        project(extra_ride_record,ride_record,sizeof ride_record);
     for(unsigned c=0;c<2;++c) {
         CharacterAssets *a=&assets[c];
         mmx5_snapshot_fixed(s,a->sprites);mmx5_snapshot_fixed(s,a->assembly);

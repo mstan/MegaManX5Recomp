@@ -27,7 +27,14 @@ static void mounted_return_rules(void) {
     rides[0].box=0x800FDE84u;rider.locked=1;CHECK(!mmx5_coop_armor_return_anchor(&rider,rides,&out));
     rider.locked=0;rider.owner=1;CHECK(!mmx5_coop_armor_return_anchor(&rider,rides,&out));
     rider.owner=0;rider.native_overlay=0;CHECK(!mmx5_coop_armor_return_anchor(&rider,rides,&out));
-    rider.native_overlay=1;rides[1]=rides[0];CHECK(!mmx5_coop_armor_return_anchor(&rider,rides,&out));
+    rider.native_overlay=1;rides[1]=rides[0];rides[1].x=160u<<16;
+    CHECK(mmx5_coop_armor_return_anchor(&rider,rides,&out));
+    CHECK(out.x==rides[0].x); /* Two occupied suits retain their rider. */
+    rider.owner=1;CHECK(!mmx5_coop_armor_return_anchor(&rider,rides,&out));
+    rider.mounted=254;CHECK(mmx5_coop_armor_return_anchor(&rider,rides,&out));
+    CHECK(out.x==rides[1].x);
+    rides[0].flags=0;CHECK(mmx5_coop_armor_return_anchor(&rider,rides,&out));
+    rider.owner=0;rider.mounted=255;CHECK(!mmx5_coop_armor_return_anchor(&rider,rides,&out));
     CHECK(mmx5_coop_return_probe_safe(8,0,27,27));
     CHECK(mmx5_coop_return_probe_safe(9,0,27,27));
     CHECK(!mmx5_coop_return_probe_safe(0,0,27,27));

@@ -23,7 +23,7 @@ campaign. Grizzly looks good to the owner; their additional testing is pending.
 | V07 | Dinorex background becomes corrupt. Preserve each region's native atlas, origins and upload sequence. | P1 triggers the original lower-area map/atlas while P2 stays on the starting ledge. Compare both images; verify canonical replacement bytes, private journal and current-build cold restore. | Passed on39c21d7c for the reproduced part1 atlas boundary. `dinorex-atlas-corrected-v2-report.json` records the corrected image and native upload hash; `dinorex-atlas-cold-final-report.json` passes restore. No full-stage graphics claim. |
 | V08 | P2 does not trigger the Dinorex flame wall. | P1 stays on the checkpoint ledge while P2 crosses1137 and descends naturally. Original240/180-tick admission runs, then an actual burst; separate cover, death and current-build cold-restore checks. | Passed, bounded flame/cover checks onca61eab6; death and current-build live/dead cold restores also pass onb11c5082. `dinorex-fire-atomic-cover-report.json`, `dinorex-fire-postchecks-final-report.json`. Actual barrier destruction is V09, still unverified. |
 | V09 | P2 camera bypasses the barrier the flame wall must destroy. | P2 camera remains at the authored gate, then releases after actual native destruction. | Unverified. Source-qualified class24/sub1 uses F25BC's singleton CAMERA; forward its native commands to the same view as its body. The fire-effect allocator creates class14 in the separate60-byte effect pool; those effects are not this barrier. Exact native barrier approach remains a setup gap. |
-| V10 | Provide a second Ride Armor for the armor-only route in Dinorex part2. | Two original suits with separate riders and controls; mount, traverse the lava route and dismount without transferring ownership. | Requested feature, unimplemented. Current code deliberately supports P1-only Armor; requires a bounded ownership change. |
+| V10 | Provide a second Ride Armor for the armor-only route in Dinorex part2. | Two original suits with separate riders and controls; mount, traverse the lava route and dismount without transferring ownership. | Implemented; bounded mechanics pass on ebde0959. Separate native initializers and placement sources, both complete native boarding animations, independent steering, first lava-section movement/jump, separate dismounts and current-build mounted cold restore pass. Natural boarding approach and the complete armor-only branch remain unverified. `two-armor-final-controls-report.json`. |
 
 First check the current native-overlay path against the previously accepted
 interpreter-backed co-op fixes. Do not accumulate independent patches before
@@ -39,7 +39,12 @@ V08/V09 use native raw4/0 fire/gate mechanics; V10 uses raw4/1 original Armor.
 
 ## Current local evidence
 
-Six validated / four open / ten total. Atlas candidate is39c21d7c6bc013781d39569cebf2846173fd843718eef5526aaac2bcae87e18f;
+Six validated / one partially validated / three unverified / ten total.
+Four entries remain open: V05/V06 share one genuine intro-climb episode;
+V09 needs the real flame-barrier approach/destruction; V10 needs natural
+boarding and the complete armor-only branch. The owner tentatively places the
+Dinorex corruption in part1, matching the reproduced V07 atlas boundary.
+Atlas candidate is39c21d7c6bc013781d39569cebf2846173fd843718eef5526aaac2bcae87e18f;
 flame candidate isca61eab614ed66bf29d958f4c45a74f0a771e39edb5b54906f05e073c50d8ec3,
 final fire candidate isb11c50823c164c86b397c06c671bf32e199dd11377cacee7234a5debf13f0960,
 versionv0.2.6-coop-alpha-debug;25/25 title CTests pass. V01/V03/V04 were bounded
@@ -52,8 +57,9 @@ Nearest-body AI kept selecting P1 behind the controller even after P2 entered
 the corridor. Select its actual admitting hero and run the original controller
 once against that hero's camera. Retain that camera through an active burst
 when its hero dies; a distant survivor's view must not relocate the fire.
-The retained context is in snapshot schema14 and the simulation digest. Old
-states remain disposable; new schema14 setups were booted from real native
+The retained context entered snapshot schema14 and the simulation digest;
+the current two-Armor candidate uses schema15. Old states remain disposable;
+the fire setups were booted from real native
 card/selector confirmations, not converted or forced through validation.
 
 An intermediate camera wrapper copied an old P1 view over current native layer
@@ -119,8 +125,30 @@ under a distant P2: it can close terrain while P1 is still above. An initial
 unqualified wrapper was removed before staging. The atlas correction is draw
 only; identify and test the actual flame controller for V08/V09 separately.
 
-The native part2 start has one initialized Armor at296,400 in physical slot0;
-slot1 is empty there. The original content later spawns slot1 at3997,379.
-Adding an early second suit must preserve native slot pointers and handle that
-later placement, rather than overwriting an occupied rider. Two independent
-riders remain unimplemented (V10); current behavior is deliberately P1-only.
+The native part2 start has one Armor in physical slot0; the original content
+later creates slot1 at3997,379. The extra early suit uses the original EE988
+factory and its original initializer in physical slot1, with its own eight-byte
+placement record. It does not clone initialized pointers or consume the late
+backup. A later placeholder cannot overwrite an already active physical slot.
+Each co-op seat controls only its matching physical suit. The original pool
+dispatcher retains scene/freeze policy; active P2 runs input, vehicle, then
+body, while inactive seats and scenes retain the shared dispatcher.
+
+Current candidate ebde0959f75001c50e1b6632ea7ecae4e3c0f7c76420b740c2842da59da56207
+passes25/25 title CTests. On the same candidate, actual native boarding ends
+with P1 FF and P2 FE, as original39AC8 negates pending slot1/2. Return anchors
+check the matching marker and occupied suit rather than borrowing another
+rider's floor. The unique placement record is explicitly serialized and hashed.
+The mounted snapshot restores in a fresh process; P1 steering leaves P2's
+suit stationary and vice versa, and coherent native/world clock deltas match.
+Both suits move and jump from the start across the first lava drop and dismount
+through the original controls. Composed images were inspected and private
+journals remain clean. No immunity, rider, occupancy or result flag is set.
+
+Earlier failed probes are retained. Falling directly onto the extra suit's
+helmet does not establish its native boarding overlap; the successful bounded
+check uses a disclosed position-only overlap and waits for the full original
+animation. This is not a pass for normal boarding or the entire alternate
+route. Those checks are bundled for owner QA rather than another setup matrix.
+Full-route recovery after losing a suit and the authored late backup also
+remain outside this first-window mechanics check.

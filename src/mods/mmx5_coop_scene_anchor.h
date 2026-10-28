@@ -21,21 +21,16 @@ typedef struct {
     uint8_t state,action,personal,mounted;
 } Mmx5CoopMountedReturn;
 
-/* Original X5 Armor is P1-owned. Its rider has no on-foot box. Require one
- * live occupied vehicle; stale or ambiguous occupancy cannot supply a floor. */
+/* Each co-op seat owns its physical Armor slot. Native39AC8 negates its
+ * pending slot1/2 marker to FF/FE. The rider has no on-foot box; never borrow
+ * the other occupied suit as a returning hero's floor. */
 static inline int mmx5_coop_armor_return_anchor(const Mmx5CoopMountedReturn *rider,
         const Mmx5CoopArmorSurface rides[2],Mmx5CoopReturnAnchor *out) {
-    if(!rider || !rides || !out || rider->owner || !rider->native_overlay ||
+    if(!rider || !rides || !out || rider->owner>1 || !rider->native_overlay ||
        rider->locked || rider->state!=1 || rider->action!=0x12 ||
-       rider->personal!=1 || rider->mounted!=255)return 0;
-    int occupied=-1;
-    for(unsigned i=0;i<2;++i)if(rides[i].active && (rides[i].flags&0x40u)) {
-        if(occupied>=0)return 0;
-        occupied=(int)i;
-    }
-    if(occupied<0)return 0;
-    const Mmx5CoopArmorSurface *ride=&rides[occupied];
-    if(ride->kind!=1 || ride->state!=1 || !(ride->ground&8u) ||
+       rider->personal!=1 || rider->mounted!=255u-rider->owner)return 0;
+    const Mmx5CoopArmorSurface *ride=&rides[rider->owner];
+    if(!ride->active || !(ride->flags&0x40u) || ride->kind!=1 || ride->state!=1 || !(ride->ground&8u) ||
        ride->box<0x80010000u || ride->box>0x801FFFFCu)return 0;
     out->x=ride->x;out->y=ride->y;out->box=ride->box;
     return 1;

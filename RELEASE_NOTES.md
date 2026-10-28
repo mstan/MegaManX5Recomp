@@ -1,3 +1,38 @@
+# v0.2.6-coop-alpha-debug (local Windows alpha)
+
+This build closes the latest fifteen owner reports with bounded automated
+evidence and owner playtest acceptance. The native unit selector lets P1 choose
+a hero/form, then P2 choose a form of the remaining hero. One X and one Zero
+remain; Black Zero still requires the Sigma stage 3 capsule unlock.
+
+- The intro building backgrounds, P2 debris triggers and personal wall dust
+  retain their own camera and owner. Both-player doors keep native companion
+  animation and safe closing clearance, including backward movement at entry.
+  Co-op skips the meeting dialogue while retaining the statue and Sigma reveal.
+- Dinorex retains each view's background, admits P2 to the flame corridor,
+  holds the shared floor open for a living follower and provides two native
+  Ride Armors. The large fire sheet appears in both affected panes, including
+  when X died before Zero reached the corridor, and clears with the native fire.
+- Existing transparent-effect batching substantially reduces the measured
+  fire-effect cost on the loaded test host. This is not a stable60fps guarantee.
+  The trusted overlay fallback remains selected to preserve the co-op hooks;
+  the unqualified native-overlay cache is not included or enabled.
+
+The remaining prepared door, lava, barrier and fire checks were accepted by
+the owner with qualified recollection; their exact statements and automated
+limits are retained in docs/COOP_X5_025_FOLLOWUPS.md. Final title tests pass25/25.
+The older parity audit, full campaign/endings, physical LAN and native cold-save
+unlock/duel persistence remain outside this release's qualification. Older
+save states are build-specific; preserve native memory-card saves separately.
+
+Local split-screen, Either-player doors, diagnostics and Alia suppression retain
+their release defaults. P1 uses keyboard and P2 targets DualSense; choose the
+connected device in the launcher if USB/Bluetooth changes. Normal window and
+audio are enabled. Bring your own USA SLUS-01334 disc; OpenBIOS is included.
+The package contains no disc, personal saves, recordings or obsolete QA states.
+CD Speed and Fast Loading packages/controls are absent. Delivery is local to
+Nextcloud; no remote release, push or PR is performed.
+
 # v0.2.5-coop-alpha-debug (local Windows alpha)
 
 This release combines game master and performance PR 14 with the accepted

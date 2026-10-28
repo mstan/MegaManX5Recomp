@@ -9,7 +9,7 @@ Owner settings use split local cameras, Both doors, separate E-tanks, keep Zero
 and Black Zero preference, with the optional widescreen feature disabled.
 The linked YouTube page could not be fetched; do not claim video review.
 
-This is a thirteen-item follow-up, independent of the parked historical comparison
+This is a fourteen-item follow-up, independent of the parked historical comparison
 campaign. Grizzly looks good to the owner; their additional testing is pending.
 
 | ID | Individual report / intended behavior | Bounded check | Status |
@@ -18,15 +18,16 @@ campaign. Grizzly looks good to the owner; their additional testing is pending.
 | V02 | P2 entering the falling-debris building changes P1's background. A shared atlas/controller command must not change the trailing view's region. | Fresh native New Game; wait for original camera/viewport admission, then P2 Right across2728..2751. Native atlas completes2; P1 camera remains city/mode6 and P2 building/mode2, both alive. Composed image inspected. | Passed on2f7cef8a. `native-boundary-report.json`, `native-boundary/after-atlas.png`. |
 | V03 | P2 does not trigger falling debris. The native placement/controller must admit either eligible hero. | P1 remains far behind; P2 position bypasses the block, then the original slab arms once with acceleration1000 and both heroes alive. | Passed on2f7cef8a. `intro-report-native-anchor.json`; no full-route or retry claim. |
 | V04 | P2 wall-contact dust appears at P1. Personal effect updates must retain their allocator and position. | Same episode as V03: actual P2 wall-contact input, native class3/sub1 effect near P2 and over500px from P1, deferred callback runs. | Passed, bounded owner/position check on2f7cef8a. `intro-report-native-anchor.json`, composed wall-dust capture. |
-| V05 | P2 freezes during Both-player boss-door carry. Both bodies must retain the native animation while shared movement advances once. | Actual native Both door, animation cursor changes through carry and native control recovery. | Unverified on this candidate. Earlier accepted implementation is retained, but checkpoint/teleport shortcuts did not establish the native roof floor/closing-structure prerequisite; no forced result or carry pass. |
-| V06 | Skip opening-stage boss dialogue in co-op. Preserve intact statue, reveal/explosion, boss initialization and control return. | Actual door-to-reveal-to-fight sequence without counterpart meeting or subsequent dialogue stops; solo unchanged. | Implemented, runtime unverified. Binds only the exact original Sigma post-reveal text request; same roof prerequisite as V05. |
+| V05 | P2 freezes during Both-player boss-door carry. Both bodies must retain the native animation while shared movement advances once. | Actual native Both door, animation cursor changes through carry and native control recovery. | Passed by owner: "both player boss door animation works." Preserve the new backward-drift/death report separately as V14; this is not blanket door acceptance. |
+| V06 | Skip opening-stage boss dialogue in co-op. Preserve intact statue, reveal/explosion, boss initialization and control return. | Actual door-to-reveal-to-fight sequence without counterpart meeting or subsequent dialogue stops; solo unchanged. | Passed by owner: "statue reveal and diagloue skip pass." Prior setup failures remain evidence of unqualified shortcuts, not successful route checks. |
 | V07 | Dinorex background becomes corrupt. Preserve each region's native atlas, origins and upload sequence. | P1 triggers the original lower-area map/atlas while P2 stays on the starting ledge. Compare both images; verify canonical replacement bytes, private journal and current-build cold restore. | Passed on39c21d7c for the reproduced part1 atlas boundary. `dinorex-atlas-corrected-v2-report.json` records the corrected image and native upload hash; `dinorex-atlas-cold-final-report.json` passes restore. No full-stage graphics claim. |
 | V08 | P2 does not trigger the Dinorex flame wall. | P1 stays on the checkpoint ledge while P2 crosses1137 and descends naturally. Original240/180-tick admission runs, then an actual burst; separate cover, death and current-build cold-restore checks. | Passed, bounded flame/cover checks onca61eab6; death and current-build live/dead cold restores also pass onb11c5082. `dinorex-fire-atomic-cover-report.json`, `dinorex-fire-postchecks-final-report.json`. Actual barrier destruction is V09, still unverified. |
-| V09 | P2 camera bypasses the barrier the flame wall must destroy. | P2 camera remains at the authored gate, then releases after actual native destruction. | Unverified. Source-qualified class24/sub1 uses F25BC's singleton CAMERA; forward its native commands to the same view as its body. The fire-effect allocator creates class14 in the separate60-byte effect pool; those effects are not this barrier. Exact native barrier approach remains a setup gap. |
+| V09 | P2 camera bypasses the barrier the flame wall must destroy. | P2 camera remains at the authored gate, then releases after actual native destruction. | Partial owner confirmation: "dinorex fire barrier camera seems to work." Stop/destruction/release clarification pending; do not infer all three from that statement. Class24/sub1 is the actual barrier; class14 smaller flame effects are separate. |
 | V10 | Provide a second Ride Armor for the armor-only route in Dinorex part2. | Two original suits with separate riders and controls; native mounting, steering, first lava drop and dismount without transferring ownership. | Passed, bounded native checks on ebde0959 and owner acceptance: "2x ride warmor works." `two-armor-final-controls-report.json`. Complete alternate-route traversal and late backup recovery are outside this acceptance claim. |
 | V11 | After X drops in Dinorex part1, Zero cannot follow through the floor. | Original floor seal waits for both living bodies to descend; actual follower movement opens the original native copy/retirement. A dead partner must not block the seal. | Passed on83044bec. Old ebde0959 reproduces the trapped follower. Current candidate admits both living heroes; the one-living check observes the original20 map words copied and controller retirement. `drop-follow-candidate-report.json`, `drop-one-living-ram-report.json`. |
 | V12 | X alone dying to lava appears to restart Dinorex despite a surviving Zero. | Observe the actual death order, then test native lethal contact with a known living survivor and retained control. | Exact lava case unverified. The owner's recording has Zero die before X in all three retry pairs. Current native primary flame death leaves P2 alive, advancing and controllable for90 ticks. `drop-follow-candidate-report.json`; this is not a literal lava pass. |
 | V13 | P2 shows the smaller flames but misses the full-screen Dinorex fire sheet. | Both heroes in the same native covered burst; compare the background-layer sheet in both private draws without advancing fire AI twice. Also check P2 ownership with P1 above, native clearing and current-build active-fire cold restore. | Passed, bounded visual/runtime checks on715005eb, then owner confirmation: "burn is fixed." The original83044bec failure and owner's separate V11 acceptance are retained. Actual full-fire coverage matches both panes; distant upper P1 stays clear during a P2-owned burst. `fire-overlay-final-report.json`, `fire-overlay-p2-cold-final-report.json`. |
+| V14 | Zero drifts backward at intro Both-door admission, walks into the closing door and dies after the scene. | Retain the original opening/carry, apply a disclosed backward position setup, observe collision suspension and actual closing-plane clearance. Full scene/death validation remains separate. | Implemented; bounded native opening/carry/clearance pass on7530c12e. Both collision boxes share the original suspension, conveyor drift stops, the companion keeps18 native animation variants, and one actual crossing restores both boxes with positive closing-plane clearance. Full authored cutscene and post-release survival need owner retest. `intro-door-drift-clearance-report.json`. |
 
 First check the current native-overlay path against the previously accepted
 interpreter-backed co-op fixes. Do not accumulate independent patches before
@@ -42,10 +43,10 @@ V08/V09 use native raw4/0 fire/gate mechanics; V10 uses raw4/1 original Armor.
 
 ## Current local evidence
 
-Nine bounded validated / four unverified / thirteen total.
-Four entries remain open: V05/V06 share one genuine intro-climb episode;
-V09 needs the real flame-barrier approach/destruction; V12 needs confirmation
-of the exact X-only lava death with a surviving Zero. The owner tentatively places the
+Eleven bounded validated / two partial / one unverified / fourteen total.
+Three entries remain open: V09 needs clarification of stop/destruction/release;
+V12 needs confirmation of the exact X-only lava death with a surviving Zero;
+V14 needs the backward-drift correction and validation. The owner tentatively places the
 Dinorex corruption in part1, matching the reproduced V07 atlas boundary.
 Atlas candidate is39c21d7c6bc013781d39569cebf2846173fd843718eef5526aaac2bcae87e18f;
 flame candidate isca61eab614ed66bf29d958f4c45a74f0a771e39edb5b54906f05e073c50d8ec3,
@@ -235,3 +236,42 @@ in original cover, globally paused. It bypasses route setup only. The launcher
 allows three restored frames before pausing, so its initial view shows the
 actual game instead of retaining the black startup surface. Keep the prior
 door/reveal, barrier and exact lava-retry checks individually unverified.
+
+## Backward drift during the native intro door
+
+The owner accepts V05's animation and V06's statue/dialogue behavior, but reports
+a distinct post-entry death if Zero moves backward when the door admits both.
+Original54D24 removes the entrant's collision box while opening/carrying; the
+held companion retained its box and still accepted the roof conveyor. The
+baseline native door at4464,352 reproduces that drift: after a disclosed16px
+backward position setup, X closes at4503.9 and Zero at4401.9, outside the room.
+This establishes the causal drift and unsafe arrival, not the reported death
+after a complete cutscene. That full scene did not complete in the route-bypass
+fixture, so no success flag or forced scene release was added.
+
+Suspend the companion's box when the original removes the entrant's box.
+The original restore and existing abort path reinstate native character boxes.
+At actual native carry completion, correct only any missing collision clearance
+beyond the closing plane/room minimum, preserving feet, animation and spacing.
+No invulnerability, extra world tick, cloned door controller or scene/result
+flag is introduced; snapshot schema remains15.
+
+On7530c12e, the same native opening/carry restores both boxes and commits one
+crossing. Zero stops drifting, retains18 native animation variants, and finishes
+at4489 with its left collision edge one pixel beyond the native right4480.
+X remains at4503.9. Both bodies remain alive through the bounded closure check;
+25/25 title CTests pass. The earlier observer incorrectly required a later
+full-scene release after its bounded check, and an earlier observer could miss
+phase4 when the boss acquired its scene in the same frame. Those observer
+failures remain retained; the final observer follows the actual crossing event.
+
+The actual roof approach is beside the door at4400,363, not the earlier4232
+climb shaft. This makes a bounded door check possible without synthesizing roof
+geometry. A full scene retest still starts from the genuine preclimb setup,
+so the owner executes the authored prerequisites. Test the backward movement
+once, then watch through the cutscene and verify both heroes survive and recover
+normal control. Do not repeat already accepted animation/statue checks as an
+independent matrix.
+
+Candidate SHA256:
+`7530c12e79968e9c1bad20121aa4d5676109ede72665becaaba815fed3e8a446`.

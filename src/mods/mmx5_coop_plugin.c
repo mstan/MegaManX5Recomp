@@ -2675,6 +2675,10 @@ static uint8_t both_body_byte(unsigned seat,unsigned at) {
 static uint32_t both_body_word(unsigned seat,unsigned at) {
     return seat==projected?psx_mod_read_word(PLAYER+at):le32((seat?second.body:first.body)+at);
 }
+static void both_body_word_write(unsigned seat,unsigned at,uint32_t value) {
+    if(seat==projected)psx_mod_write_word(PLAYER+at,value);
+    else put32((seat?second.body:first.body)+at,value);
+}
 static void both_gate(unsigned seat,uint8_t value) {
     if(seat==projected)psx_mod_write_byte(PLAYER+0xD4,value);
     else (seat?second.body:first.body)[0xD4]=value;
@@ -2814,6 +2818,26 @@ static int both_door_traversal(CPUState *cpu,uint32_t address) {
         }
         if(psx_mod_read_byte(both_door.actor+5)==4) {
             both_door.phase=4;both_gate(companion,0);both_restore_control(cpu,companion);
+            if(both_living(companion)) {
+                uint32_t box=both_body_word(companion,0x68);
+                int32_t x=(int32_t)both_body_word(companion,8);
+                int minimum=both_door.target_min+8;
+                if(box>=0x80010000u && box<=0x801FFFFCu) {
+                    int clear=both_door.right-(int8_t)psx_mod_read_byte(box)+
+                        psx_mod_read_byte(box+2)+1;
+                    if(clear>minimum)minimum=clear;
+                }
+                /* A backward dash/contact before the hold may leave the
+                 * companion behind the closing plane even after the same
+                 * carry delta. Correct only the missing collision clearance;
+                 * preserve feet, pose and the rest of the pair's spacing. */
+                if((int16_t)(x>>16)<minimum) {
+                    uint32_t anchor=(uint32_t)(minimum*65536),shift=anchor-(uint32_t)x;
+                    both_body_word_write(companion,8,anchor);
+                    both_body_word_write(companion,0x18,both_body_word(companion,0x18)+shift);
+                    psx_mod_counter_add("mmx5.coop.both-door-safe-arrivals",1);
+                }
+            }
             psx_mod_counter_add("mmx5.coop.both-door-crossings",1);
         }
         door_traversal_call=0;cpu->gpr[2]=result;return 1;
@@ -2913,6 +2937,14 @@ static int door_tick_canonical(CPUState *cpu,uint32_t address) {
         psx_mod_counter_add("mmx5.coop.both-door-starts",1);
     }
     if(both_door_active() && both_door.actor==actor) {
+        /* Original54D24 removes the entrant's collision box throughout its
+         * scripted opening/carry. Match that suspension for the companion:
+         * leaving its box live lets the roof conveyor keep dragging it
+         * backward while its ordinary player pass is held. Native restore
+         * and the existing abort path reinstate each character's own box. */
+        if(both_door_native_carry() && psx_mod_read_byte(actor+5)>=2 &&
+           !psx_mod_read_word(PLAYER+0x68) && both_living(seat^1u))
+            both_body_word_write(seat^1u,0x68,0);
         if(both_door.phase==1 && psx_mod_read_byte(actor+5)==3) {
             both_door.target_min=(int16_t)psx_mod_read_half(CAMERA+0x26);
             both_door.target_max=(int16_t)psx_mod_read_half(CAMERA+0x24);

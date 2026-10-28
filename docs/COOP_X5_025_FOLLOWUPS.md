@@ -27,7 +27,7 @@ campaign. Grizzly looks good to the owner; their additional testing is pending.
 | V11 | After X drops in Dinorex part1, Zero cannot follow through the floor. | Original floor seal waits for both living bodies to descend; actual follower movement opens the original native copy/retirement. A dead partner must not block the seal. | Passed on83044bec. Old ebde0959 reproduces the trapped follower. Current candidate admits both living heroes; the one-living check observes the original20 map words copied and controller retirement. `drop-follow-candidate-report.json`, `drop-one-living-ram-report.json`. |
 | V12 | X alone dying to lava appears to restart Dinorex despite a surviving Zero. | Observe the actual death order, then test native lethal contact with a known living survivor and retained control. | Exact lava case unverified. The owner's recording has Zero die before X in all three retry pairs. Current native primary flame death leaves P2 alive, advancing and controllable for90 ticks. `drop-follow-candidate-report.json`; this is not a literal lava pass. |
 | V13 | P2 shows the smaller flames but misses the full-screen Dinorex fire sheet. | Both heroes in the same native covered burst; compare the background-layer sheet in both private draws without advancing fire AI twice. Also check P2 ownership with P1 above, native clearing and current-build active-fire cold restore. | Passed, bounded visual/runtime checks on715005eb, then owner confirmation: "burn is fixed." The original83044bec failure and owner's separate V11 acceptance are retained. Actual full-fire coverage matches both panes; distant upper P1 stays clear during a P2-owned burst. `fire-overlay-final-report.json`, `fire-overlay-p2-cold-final-report.json`. |
-| V14 | Zero drifts backward at intro Both-door admission, walks into the closing door and dies after the scene. | Retain the original opening/carry, apply a disclosed backward position setup, observe collision suspension and actual closing-plane clearance. Full scene/death validation remains separate. | Implemented; bounded native opening/carry/clearance pass on7530c12e. Both collision boxes share the original suspension, conveyor drift stops, the companion keeps18 native animation variants, and one actual crossing restores both boxes with positive closing-plane clearance. Full authored cutscene and post-release survival need owner retest. `intro-door-drift-clearance-report.json`. |
+| V14 | Zero drifts backward at intro Both-door admission, walks into the closing door and dies after the scene. | Retain the original opening/carry, apply a disclosed backward position setup, observe collision suspension and actual closing-plane clearance. Full scene/death validation remains separate. | Implemented; bounded native opening/carry/clearance pass on7530c12e. Both collision boxes share the original suspension, conveyor drift stops, the companion retains its native animation, and one actual crossing restores both boxes with positive closing-plane clearance. Full authored cutscene and post-release survival need owner retest. `intro-door-drift-clearance-report.json`. |
 
 First check the current native-overlay path against the previously accepted
 interpreter-backed co-op fixes. Do not accumulate independent patches before
@@ -46,7 +46,8 @@ V08/V09 use native raw4/0 fire/gate mechanics; V10 uses raw4/1 original Armor.
 Eleven bounded validated / two partial / one unverified / fourteen total.
 Three entries remain open: V09 needs clarification of stop/destruction/release;
 V12 needs confirmation of the exact X-only lava death with a surviving Zero;
-V14 needs the backward-drift correction and validation. The owner tentatively places the
+V14 needs full authored cutscene/post-release confirmation of the implemented
+backward-drift correction. The owner tentatively places the
 Dinorex corruption in part1, matching the reproduced V07 atlas boundary.
 Atlas candidate is39c21d7c6bc013781d39569cebf2846173fd843718eef5526aaac2bcae87e18f;
 flame candidate isca61eab614ed66bf29d958f4c45a74f0a771e39edb5b54906f05e073c50d8ec3,
@@ -234,8 +235,9 @@ Final executable SHA256:
 The quick owner card starts with the actual burst in progress and both heroes
 in original cover, globally paused. It bypasses route setup only. The launcher
 allows three restored frames before pausing, so its initial view shows the
-actual game instead of retaining the black startup surface. Keep the prior
-door/reveal, barrier and exact lava-retry checks individually unverified.
+actual game instead of retaining the black startup surface. At that handoff,
+the prior door/reveal, barrier and exact lava-retry checks were still unverified;
+later owner acceptance of animation/reveal is recorded above.
 
 ## Backward drift during the native intro door
 
@@ -257,7 +259,7 @@ No invulnerability, extra world tick, cloned door controller or scene/result
 flag is introduced; snapshot schema remains15.
 
 On7530c12e, the same native opening/carry restores both boxes and commits one
-crossing. Zero stops drifting, retains18 native animation variants, and finishes
+crossing. Zero stops drifting and retains its native animation, and finishes
 at4489 with its left collision edge one pixel beyond the native right4480.
 X remains at4503.9. Both bodies remain alive through the bounded closure check;
 25/25 title CTests pass. The earlier observer incorrectly required a later

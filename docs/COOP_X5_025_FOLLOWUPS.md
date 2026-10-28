@@ -28,7 +28,7 @@ campaign. Grizzly looks good to the owner; their additional testing is pending.
 | V12 | X alone dying to lava appears to restart Dinorex despite a surviving Zero. | Observe the actual death order, then test native lethal contact with a known living survivor and retained control. | Exact lava case unverified. The owner's recording has Zero die before X in all three retry pairs. Current native primary flame death leaves P2 alive, advancing and controllable for90 ticks. `drop-follow-candidate-report.json`; this is not a literal lava pass. |
 | V13 | P2 shows the smaller flames but misses the full-screen Dinorex fire sheet; owner later reports the sheet disappears after X dies. | Same-location living/living burst, P2 ownership with P1 above, native clearing and cold restore; additionally reproduce the recorded early X death before Zero enters the lower corridor. | Bounded passes on715005eb and owner "burn is fixed" covered the living/living case. The later owner survivor failure reproduces by exact original replay (2181 verified inputs). Draw-only correction258e2aa7 uses the survivor world's authoritative native layer instead of stale pre-death fields. Both spectator panes show matching full fire and native clearing; Zero survives and the world continues. `survivor-draw-fixed-report.json`. Owner survivor retest pending. |
 | V14 | Zero drifts backward at intro Both-door admission, walks into the closing door and dies after the scene. | Retain the original opening/carry, apply a disclosed backward position setup, observe collision suspension and actual closing-plane clearance. Full scene/death validation remains separate. | Implemented; bounded native opening/carry/clearance pass on7530c12e. Both collision boxes share the original suspension, conveyor drift stops, the companion retains its native animation, and one actual crossing restores both boxes with positive closing-plane clearance. Full authored cutscene and post-release survival need owner retest. `intro-door-drift-clearance-report.json`. |
-| V15 | Substantial slowdown while Dinorex's fire effect is active. | Measure matched native covered bursts with existing runtime/driver profiling; evaluate the existing painter-ordered transparent batching implementation before adding bespoke rendering work. Preserve composed pixels, native clearing, controls and simulation. | Failed by owner observation; improvement not yet qualified. LLE pilot locates large graphics-driver cost, but host saturation/build overlap invalidates a benchmark claim. Existing `PSX_GL_BATCH_IMPL=HLE` qualification is in progress; LLE remains the reference. `fire-cost-baseline-report.json`. |
+| V15 | Substantial slowdown while Dinorex's fire effect is active. | Match the actual covered burst across LLE/HLE builds, then separately check non-fire gameplay and the final owner's setups. | Partial: existing HLE batching substantially improves the matched loaded-host fire workload in both ABBA comparisons. Final candidate also confirms the lower cost;25/25 tests, current cold states, native clearing and input isolation pass. Stable60fps and the owner's smoothness judgment remain unverified. LLE remains explicitly buildable; no shared-engine source change. `fire-batch-matched-abba-report.json`, `batch-nonfire-control-report.json`, `final-fire-owner-setups-report.json`. |
 
 First check the current native-overlay path against the previously accepted
 interpreter-backed co-op fixes. Do not accumulate independent patches before
@@ -44,11 +44,12 @@ V08/V09 use native raw4/0 fire/gate mechanics; V10 uses raw4/1 original Armor.
 
 ## Current local evidence
 
-Eleven bounded validated / two partial / one unverified / one failed / fifteen total.
+Eleven bounded validated / three partial / one unverified / fifteen total.
 Four entries remain open: V09 needs clarification of stop/destruction/release;
 V12 needs confirmation of the exact X-only lava death with a surviving Zero;
 V14 needs full authored cutscene/post-release confirmation of the implemented
-backward-drift correction; V15 needs a measured slowdown correction. V13's new
+backward-drift correction; V15 needs owner confirmation of the measured slowdown
+improvement. V13's new
 survivor case passes bounded automation but still awaits owner confirmation.
 The owner tentatively places the
 Dinorex corruption in part1, matching the reproduced V07 atlas boundary.
@@ -310,9 +311,45 @@ Evidence: `owner-survivor-full-replay-verification.json`,
 `owner-survivor-exact-replay-report.json`, `survivor-draw-fixed-report.json`.
 
 The separate slowdown report is V15. Existing host sampling shows substantial
-driver time during full fire; the current LLE graphics build isolates each
-transparent primitive. Evaluate the already implemented HLE painter-order batch
-tier, preserving LLE as a build-time reference, rather than introducing another
-renderer. Initial timings were taken on a saturated host and overlapped a build;
-they locate a cost but establish no performance gain. Keep measured adoption
-under the owning local game issue and optimization campaign beads-2wy8.1.
+driver time during full fire; LLE isolates each transparent primitive. X5 now
+selects the existing HLE painter-order batch tier on fresh configurations.
+`-DPSX_GL_BATCH_IMPL=LLE` retains the functioning reference. No live selector,
+shared-engine source change, resolution reduction or hazard change was added.
+Initial pilot timings overlapped a build and are excluded as gain evidence.
+
+The subsequent matched ABBA uses the same native covered-burst snapshot,
+settings, host and content, after this task's build completed. PackageA is
+258e2aa7 (survivor draw fix, native waits, trusted-overlay fallback, LLE batching).
+PackageB isb034e32f (same package with HLE batching). Both referenceA runs take
+156.25–260.83 process-CPU milliseconds per world tick and advance5.43–5.90 ticks
+per second; both HLE runs take20.42–24.38ms and advance30.97–36.37 ticks/s.
+This is a large loaded-host improvement, not an idle-machine60fps guarantee.
+Host load remains high and variable. A separate non-fire intro comparison finds
+20.15ms/tick reference versus16.87 candidate; treat that one pair as neutral/
+inconclusive, with no demonstrated regression, rather than another proven win.
+
+The original ABBA report's `idle` fields were sampled after canonical layer57
+cleared, which can precede the retained burst's actual retraction. Its images
+still contain fire. Do not present those fields as the non-fire control or a
+clearing pass. The separate intro sample above supplies the non-fire control;
+`final-fire-clear-and-remaining-report.json` waits for actual controller phase5
+and5965 to clear, then verifies both living heroes and inspects the cleared
+composed image. No completion flags are written.
+
+Final candidateabafd6b6 includes the identical HLE renderer implementation and
+the committed title default. Its own full-fire confirmation measures23.19ms
+per tick on the still busy host. The exact survivor image, actual P2 admission
+with upper P1 unaffected, current-build cold restores, global holds, strict
+per-seat TCP controls and25/25 CTests pass. Images were inspected. Watchdog and
+journal behavior are retained; the checked last-run report exits through
+`tcp_quit`/`atexit`, not an interpreter fault. Existing freeze captures remain
+available outside delivery folders rather than being suppressed.
+
+The current normal-window/audio owner station groups survivor fire and two-live
+fire into two short repeatable cards, followed by the three older optional
+checks. The exact survivor seed contains a genuine earlier X death, so both
+panes correctly spectate Zero. P1 remains keyboard and P2 the actual DualSense
+selected at launch. Prior notes and native saves are preserved. The owner still
+needs to confirm the new survivor appearance and practical smoothness; do not
+claim full parity or stable60fps. Owning local game issuebeads-eio.10.40 is related
+to optimization campaignbeads-2wy8.1; raw package-specific samples remain local.

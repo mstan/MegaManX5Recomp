@@ -12,6 +12,10 @@ option(PSX_NETPLAY "Build the shared two-player netplay stack" ON)
 set(PSXRECOMP_V4_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/psxrecomp-v4" CACHE PATH
     "Path to psxrecomp-v4")
 
+# Dinorex's transparent fire is expensive with one GL draw per primitive.
+# Use the existing painter-ordered batch tier for this title; explicit LLE
+# configurations remain available as the renderer reference.
+set(PSX_GL_BATCH_IMPL "HLE" CACHE STRING "OpenGL textured batching: LLE or HLE")
 include("${PSXRECOMP_V4_ROOT}/runtime/runtime.cmake")
 option(MMX5_NATIVE_IDLE_WAIT "Select the audited native PsyQ frame wait" ON)
 set(MMX5_NATIVE_IDLE_WAIT_SITES "")

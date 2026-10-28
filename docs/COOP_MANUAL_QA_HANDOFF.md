@@ -25,15 +25,23 @@ refill and contact protection are off. Earlier native cards and owner notes
 are preserved. Each case has its own candidate-specific observation key.
 
 P1 is keyboard and P2 targets the owner's USB DualSense. Owner launches use
-normal windows/audio, exclude the development input merge, and begin paused.
+normal windows/audio and exclude the development input merge. A global QA
+pause stops both heroes immediately after load; **Resume test** closes the
+prepared native inventory and starts play, and **Pause both** safely stops it.
+The native Start inventory pauses only its owner: the first handoff exposed
+Zero dying while X's menu was open. Do not use that alone to park a co-op test.
+The corrected setup hold and per-seat synthetic input are checked without
+`PSX_DEV_INPUT`. The current standalone scan sees no attached controller;
+reconnect the DualSense before playing, and verify its current launch log.
 Previous physical input-isolation acceptance is retained because routing code
-is unchanged; verify the connected device in the current launch log. Record
+is unchanged. Record
 each named check separately, including Not reached. Close the game before
 switching/restarting cards. The delivered Nextcloud0.2.5 archive is unchanged.
 
 Setup/qualification evidence is retained under
 `G:/Temp/Codex/psxrecomp/x5-parity/owner-025-reports-20261027`:
-`owner-current-setups-report.json`, `owner-current-cold-qualification.json`
+`owner-current-setups-report.json`, `owner-current-cold-qualification.json`,
+`owner-global-pause-qualification.json`
 and `two-armor-final-controls-report.json`. The original overlay-cache package
 is unqualified and disabled; matched performance evidence for the corrected
 candidate remains a future release gate.

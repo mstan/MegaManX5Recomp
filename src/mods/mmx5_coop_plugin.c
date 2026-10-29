@@ -2803,6 +2803,19 @@ static int both_door_cleared(void) {
     }
     return 1;
 }
+static void both_companion_animation(CPUState *cpu) {
+    if(!both_living(1) || both_body_byte(1,0x67) ||
+       (!psx_mod_read_byte(PLAY+0x10) && !psx_mod_read_byte(PLAY+0x1C)))return;
+    unsigned was=projected,old_busy=busy;busy=1;both_project(1);
+    guest(cpu,0x80017248,PLAYER,0);
+    if((int8_t)psx_mod_read_byte(PLAYER+0x46)<0) {
+        guest(cpu,0x8003B33C,PLAYER,0x26);
+        guest(cpu,0x80017248,PLAYER,0);
+    }
+    if(!was)leave_second();
+    busy=old_busy;
+    psx_mod_counter_add("mmx5.coop.both-door-companion-animation-ticks",1);
+}
 static int both_door_traversal(CPUState *cpu,uint32_t address) {
     if(door_traversal_call || psx_mod_local_view_scope() || !both_door_active() ||
        both_door.actor!=cpu->gpr[4] || both_door.phase<2)return 0;
@@ -2812,7 +2825,6 @@ static int both_door_traversal(CPUState *cpu,uint32_t address) {
          * living companion by the same actual displacement; never synthesize
          * a room/cutscene completion or replay the shared door controller. */
         unsigned companion=projected^1u;
-        int companion_held=psx_mod_read_byte(PLAY+0x10) || psx_mod_read_byte(PLAY+0x1C);
         uint32_t before=psx_mod_read_word(PLAYER+8);
         door_traversal_call=1;
         uint32_t result=guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);
@@ -2830,15 +2842,7 @@ static int both_door_traversal(CPUState *cpu,uint32_t address) {
              * switch that ended transient to native399D4's authored entry
              * loop26 instead of decrementing its terminal timer forever.
              * The original door remains the sole movement/clock owner. */
-            if(companion==1 && companion_held && !body[0x67]) {
-                unsigned old_busy=busy;busy=1;
-                enter_second();guest(cpu,0x80017248,PLAYER,0);
-                if((int8_t)psx_mod_read_byte(PLAYER+0x46)<0)
-                    guest(cpu,0x8003B33C,PLAYER,0x26);
-                leave_second();
-                busy=old_busy;
-                psx_mod_counter_add("mmx5.coop.both-door-companion-animation-ticks",1);
-            }
+            if(companion==1)both_companion_animation(cpu);
         }
         if(psx_mod_read_byte(both_door.actor+5)==4) {
             both_door.phase=4;both_gate(companion,0);both_restore_control(cpu,companion);
@@ -2962,6 +2966,11 @@ static int door_tick_canonical(CPUState *cpu,uint32_t address) {
         psx_mod_counter_add("mmx5.coop.both-door-starts",1);
     }
     if(both_door_active() && both_door.actor==actor) {
+        /* P2's ordinary pass is already suspended during opening, before
+         * native54D9C begins the carry. Consume its new entry program now;
+         * otherwise its old standing sprite persists until walking starts.
+         * The carry advances the same body once through its own callback. */
+        if(both_door.phase==1 && both_door_native_carry())both_companion_animation(cpu);
         /* Original54D24 removes the entrant's collision box throughout its
          * scripted opening/carry. Match that suspension for the companion:
          * leaving its box live lets the roof conveyor keep dragging it
@@ -4657,6 +4666,13 @@ static int intro_counterpart_draw(uint32_t actor) {
         psx_mod_read_word(actor+0x30)==0x800FAA14u;
 }
 static int cull_sprite_draw(CPUState *cpu,uint32_t address) {
+    /* PLAYER's retained painter emits X's complete body and armor together.
+     * The later singleton armor pass samples live VRAM, which can contain
+     * Zero while X is the returning passenger of a P2-owned hint. */
+    if(address==0x80027370u && cpu->gpr[4]==PLAYER && enrolled && !failed &&
+       psx_mod_read_byte(PLAY)==10 && psx_mod_texture_banks_supported()) {
+        cpu->gpr[2]=0;return 1;
+    }
     if(duel_authored_draw(cpu->gpr[4])) {cpu->gpr[2]=0;return 1;}
     if(address==0x80024C60u && intro_counterpart_draw(cpu->gpr[4])) {
         cpu->gpr[2]=0;return 1;
@@ -4781,13 +4797,13 @@ static void render_actor(CPUState *cpu,uint32_t actor,uint32_t base_arena) {
     if(actor!=PLAYER || story_duel.phase<2 || !duel_scope() ||
        seat!=(story_duel.entrant^1u) || psx_mod_read_byte(actor+4)!=1) {
         render_actor_piece(cpu,actor,base_arena,-1);
-        if(actor==PLAYER && !psx_mod_read_byte(actor+2) &&
-           (!render_primary || (world_owner && projected))) {
+        if(actor==PLAYER && !psx_mod_read_byte(actor+2)) {
             /* Native26CAC indexes the global assembly directory, unlike the
              * base-body painter which follows actor3C. P1 may be Zero. A
-             * P1/X passenger painted during P2's world pass also needs these
-             * pieces: native24698 sees resident Zero and skips27370. Beam
-             * frames include armor pieces as well as the compressed body. */
+             * P1/X also needs these pieces in private redraws: the singleton
+             * native armor painter otherwise reads Zero's most recent VRAM
+             * upload during an Alia return. Beam frames include armor pieces
+             * as well as the compressed body. Keep the whole owner together. */
             uint32_t sprites=psx_mod_read_word(SCRATCH+0x14),assembly=psx_mod_read_word(SCRATCH+0x1C);
             if(!render_primary) {
                 psx_mod_write_word(SCRATCH+0x14,assets[0].sprites);

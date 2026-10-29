@@ -2,8 +2,10 @@
 
 Local branch: `feature/mmx5-master-native-waits-local`.
 Owning local issue: `beads-eio.10.44`. No remote publication or tracker sync.
-The original comparative campaign remains parked. This list preserves the four
-new reports individually; a bounded pass does not qualify every stage or route.
+The original comparative campaign remains parked. This list preserves each
+owner report individually; a bounded pass does not qualify every stage or route.
+The multi-stage batch adds20 entries below, for24 tracked reports total. A01's
+recurring armor complaint remains one issue with additional stage checks.
 
 | ID | Owner report / earlier reference | Bounded check and evidence | Status |
 |---|---|---|---|
@@ -11,6 +13,74 @@ new reports individually; a bounded pass does not qualify every stage or route.
 | A02 | P2's view focuses on P1 while P1 teleports after a P2-owned hint. Owner clarified that Zero's pane actually moves away from Zero. | Exact original replay, all four P2-owned hints; retain500 consecutive presented images per interaction, with body/camera observations. Matched original/current building-state continuations also retain presented history while P2 moves during X's return. | Open owner-observed focus failure; not reproduced by these checks. Inspected views follow Zero. Requested the video's exact failing timestamp; the video itself remains inaccessible. No camera policy change or claimed fix. |
 | A03 | Both doors work, but P2 returns to standing before the walk. Extends R02. | Actual Both admission/open/carry/close after original building and climb-area commands. Compare displayed sprite frames during opening separately from carry. | Fixed; bounded opening and carry checks passed. The final run sampled12 distinct displayed P2 frames in opening and13 in carry. No additional position/collision or door-clock changes. |
 | A04 | With Alia skip enabled, trailing P1 misses respawning intro cars after leading P2 advances. | Silent-hint current setup: P2 encounters original class0D car736, advances the actual checkpoint0 to1, the original car retires offscreen, and trailing P1 reenters. | Car736 native offscreen-retirement/respawn passes, with both heroes alive. Broader reported recurrence and a defeated-car path remain unverified; exact failing encounter still needed. The new ZIP has skip off and cannot qualify the earlier skip-on run. No speculative spawn changes. `supplied-report/car-cycle-report.json`. |
+
+## Multi-stage owner batch
+
+Source: `E:/Downloads/Multiple stage bugs 0.2.7.zip`, SHA256
+`3da85afa8e37570a9efa2d2c16ede8e360965fb21d8af4b96ebebf50950b0e2c`.
+Session1793294523194715: original v0.2.7/bed0aeca, Both doors, split cameras,
+Alia skip enabled, original starting cards and27MB input trace. It predates
+the A01/A03 fixes. Evidence root:
+`G:/Temp/Codex/psxrecomp/x5-parity/owner-027-multistage-20261029`.
+Video: <https://youtu.be/VcSXm8-Isx0>; web fetch failed, not reviewed.
+
+| ID | Individual report | Bounded reproduction / acceptance | Status |
+|---|---|---|---|
+| G10 | P2 train background is static and incomplete before the countdown area. | Original destructible train; compare animation intervals and complete layer art in both panes. | Open; require both animation and missing-part checks. |
+| G11 | First P2-owned boss introduction kills hovering Fourth Armor P1 through the floor; retries return safely. | The supplied recording's first living-P1/P2-owned Grizzly introduction, native dialogue and passenger return. | Fixed in current local candidate; bounded recorded-state continuation passes after23 actual pages. X returns at9676.375/379 with native collision, Zero at9658.5/378; both alive. Original/door-only continuation instead lets airborne X keep falling during the hold. Fresh admission and owner visual retest remain useful. |
+| K01 | Riders draw over the other hero's Ride Chaser. | Overlap both native bikes; check rider/bike packet order in both panes. | Open. |
+| K02 | P2 cannot shoot bike blockades until P1 dies. | Both alive, real P2 bike shots, actual blockade HP/destruction; compare survivor path. | Open. |
+| K03 | Alia dialogue still appears after bikes with skip enabled. | Execute that native hint, preserve orb-shooting action and progression while suppressing text/hold. | Open; an authored action does not by itself justify displaying the hint. |
+| K04 | P2 Zero gets X's capsule dialogue when P1 X is dead. | Original capsule, dead P1, live P2 Zero; inspect actual recipient message bank. | Open. |
+| K05 | The same surviving Zero cannot collect the capsule part. | After real conversation, actual top contact and native grant/return without setting progress flags. | Open. |
+| K06 | Kraken boss doors do not use scripted traversal. | Original Both admission/open/carry/close and native control recovery. | Implemented through generic native Both carry; actual Kraken door check remains open. Grizzly native carry closes after both movement inputs are released, with both heroes alive. |
+| M01 | P2 camera sticks during whale sequence. | Actual first whale sequence; check camera follows the eligible hero and retains authored stops. | Open. |
+| M02 | Whale parts float after being hit. | Actual attacks/HP change and subsequent native part positions/parent relation. | Open. |
+| M03 | Checkpoint respawn leaves P2 in a free-roam area. | Actual retry/next-checkpoint initialization and both authored camera limits. | Open. |
+| M04 | First whale miniboss has missing P2 graphics. | Native fight admission and animated whale/layer art in both views. | Open. |
+| M05 | Second vertical-scrolling section breaks. | Its original controller, scrolling, transitions and both views. | Open. |
+| M06 | Both heroes die after jumping down. | Actual drop after the vertical section, native destination/collision and individual survival. | Open. |
+| I01 | P2 cannot stand on chained spike platforms. | Native jump/landing/contact/carry on one original platform. | Open. |
+| I02 | Leading P2 does not trigger stair-area Sigma viruses. | P2 crosses the real admission boundary; observe actual native virus allocations. | Open. |
+| I03 | Leading P2 does not trigger the stair-area miniboss. | Real admission, fight start and control recovery with P1 behind. | Open. |
+| I04 | P2 stair background is not animated. | Original stair controller across animation intervals in both panes. | Open. |
+| I05 | Glow boss doors do not use scripted traversal. | Reuse native Both-door carry check at Glow's actual door. | Implemented through generic native Both carry; actual Glow door check remains open. |
+| I06 | Defeating Izzy Glow with both alive freezes the game. | Actual native boss defeat, paired victory and real reward/return transition. | Open; progression blocker. |
+
+Shared A01 follow-up: repeat retained-armor return qualification for a real
+P2-owned stage dialogue, alongside G11. Keep original report history and do not
+count release0.2.7 as containing the later source fix. All new entries remain
+unverified until their mechanics run; loading a checkpoint does not pass them.
+
+First multi-stage milestone: candidate SHA256
+`2dd6574de46594f7b73b729c5d8f84da06eba2653f8f9fd9e18b5365494993f7`.
+The native Both carry now applies to ordinary doors across stages rather than
+only the intro. Nearby airborne companions use the existing outgoing/return
+sequence; proximity alone no longer leaves a hovering/falling actor ticking
+under the owner's room lock. On-foot returns discard the departed collision
+suspension, restore the native standing box and release the passenger's old
+command through original3D2C4. Duel-specific release remains separate.
+
+`return-complete-candidate-check-report.json` passes the supplied Grizzly scene
+through all23 pages, native beam/materialization and grounded recovery.
+`return-fix-candidate-check-report.json` passes actual Grizzly Both admission,
+opening animation, native carry and closing after input release. Its separate
+scene case ended at a60-second observer limit while pages were still advancing;
+the same binary passes with the established longer native-dialogue allowance.
+Do not count that observer timeout as an additional game regression.25/25 CTests
+pass after the source changes. Returned X armor is visually intact; the full
+new-stage incoming-art path is not blanket-qualified from that final image.
+
+The exact original multi-stage replay verifies a prefix through input150538,
+then diverges at150539/game frame63968 during the post-Kraken transition. No
+full-recording pass is claimed. Five original Grizzly/Kraken snapshots from the
+verified prefix remain usable for bounded checks. Later stages will use native
+checkpoint setup rather than repeated full-route replay variants. The initial
+content inspection retained original placement tables, overlay bytes and images
+for Grizzly, Kraken and McWhalen, but its requested snapshot slots21..23 were
+outside the supported0..11 range; those are harness setup failures. The later
+stage requests were rejected while McWhalen's authored scene was active. Neither
+failure qualifies a stage mechanic. Use isolated native setups next.
 
 Owner acceptance from2026-10-29: boss counterpart dialogue skip and complete
 character whitening during the explosion pass; Both-door functional traversal

@@ -293,10 +293,12 @@ static int both_door_scope(void) {
 }
 static int both_door_active(void) {return both_door_scope() && both_door.phase<4;}
 static int both_door_native_carry(void) {
-    /* Intro subtype1 couples its native carry to the statue's layer offset
-     * (54DD8..54DE8). Free traversal would skip those authored scroll ticks. */
-    return both_door_scope() && !both_door.stage && !both_door.section &&
-        psx_mod_read_word(0x800EE970u)==4u && psx_mod_read_byte(both_door.actor+2)==1u;
+    /* Both changes admission, not the original door's traversal. Reuse its
+     * one scripted carry for ordinary doors in every stage, including their
+     * camera/layer commands and native closing test. The companion receives
+     * the same displacement through both_door_traversal, without another
+     * world tick or a free-movement interval inside the aperture. */
+    return both_door_scope() && psx_mod_read_byte(both_door.actor+1)==8;
 }
 static int scene_passenger(unsigned seat) {return scene_owner && !paired_victory && scene_owner!=seat+1;}
 static void clear_personal_drawables(unsigned seat);
@@ -2249,6 +2251,14 @@ static int pickup_tick(CPUState *cpu,uint32_t address) {
     }
     return 0;
 }
+static int scene_companion_grounded(unsigned seat) {
+    uint8_t body[0x158];
+    if(seat==projected)capture(PLAYER,body,sizeof body);
+    else memcpy(body,seat?second.body:first.body,sizeof body);
+    return life.status[seat]==MMX5_COOP_ALIVE && body[4]==1 &&
+        !body[0x67] && !body[0xD5] && le32(body+0x68) &&
+        ((body[0x70]&8u) || body_on_support(seat,body));
+}
 static void scene_begin(unsigned seat) {
     /* Both native cars stop with the one world/script lock. A rider cannot
      * use the ordinary passenger beam while its vehicle remains behind. */
@@ -2273,7 +2283,8 @@ static void scene_begin(unsigned seat) {
         int y=passenger==projected?(int16_t)psx_mod_read_half(PLAYER+14):
             (int16_t)(le32(body+12)>>16);
         int left=(int16_t)psx_mod_read_half(CAMERA+10),top=(int16_t)psx_mod_read_half(CAMERA+14);
-        paired_intro=x>=left-24 && x<left+344 && y>=top-24 && y<top+264;
+        paired_intro=x>=left-24 && x<left+344 && y>=top-24 && y<top+264 &&
+            scene_companion_grounded(passenger);
         both_door.phase=0;
         psx_mod_counter_add(paired_intro?"mmx5.coop.both-door-intro-without-warp":
                                          "mmx5.coop.both-door-intro-with-warp",1);
@@ -2329,7 +2340,8 @@ static void script_begin(CPUState *cpu,uint32_t address) {
             int y=passenger==projected?(int16_t)psx_mod_read_half(PLAYER+14):
                 (int16_t)(le32(body+12)>>16);
             int left=(int16_t)psx_mod_read_half(CAMERA+10),top=(int16_t)psx_mod_read_half(CAMERA+14);
-            if(x>=left+16 && x<left+304 && y>=top+8 && y<top+232)scene_phase=0;
+            if(x>=left+16 && x<left+304 && y>=top+8 && y<top+232 &&
+               scene_companion_grounded(passenger))scene_phase=0;
             else psx_mod_counter_add("mmx5.coop.distant-hint-gathers",1);
         }
     }
@@ -2569,6 +2581,14 @@ static void scene_tick(CPUState *cpu) {
         if(!locked) {scene_owner=0;if(final_release)paired_victory=0;}
         return;
     }
+    /* A nearby companion may have been hovering or still dropping from the
+     * door ledge when a native introduction acquired its camera. Proximity
+     * alone cannot safely retain that body's suspended physics. Gather it
+     * through the existing native beam instead of ticking an airborne body
+     * indefinitely under somebody else's room/script lock. */
+    if(!scene_phase && locked && life.status[passenger]==MMX5_COOP_ALIVE &&
+       !(passenger?second.body:first.body)[0xD5] &&
+       !scene_companion_grounded(passenger))scene_phase=1;
     if(!scene_phase) {
         /* Both-door and nearby introductions retain the visible companion.
          * Its normal player pass is suspended during this shared hold; leaving
@@ -2625,7 +2645,11 @@ static void scene_tick(CPUState *cpu) {
         if(psx_mod_read_byte(PLAYER+4)==3)scene_phase=3;
     } else if(scene_phase==3) {
         uint8_t hidden[0x158];capture(PLAYER,hidden,sizeof hidden);
-        project(PLAYER,scene_body,sizeof scene_body);guest(cpu,0x8003CD08,PLAYER,0);
+        project(PLAYER,scene_body,sizeof scene_body);
+        /* Hover/jump collision suspension belongs to the departed pose.
+         * Materialization returns an on-foot actor at a grounded anchor. */
+        if(!psx_mod_read_byte(PLAYER+0xD5))psx_mod_write_byte(PLAYER+0x67,0);
+        guest(cpu,0x8003CD08,PLAYER,0);
         uint32_t x=anchor.x,landing=foot_aligned_y(anchor.y,anchor.box,psx_mod_read_word(PLAYER+0x68));
         psx_mod_write_byte(PLAYER+0x14,duel_scope()?story_duel.facing[0]:leader[0x14]);
         psx_mod_write_byte(PLAYER+0x15,duel_scope()?story_duel.facing[1]:leader[0x15]);
@@ -2656,7 +2680,9 @@ static void scene_tick(CPUState *cpu) {
             if(y>=scene_y) {y=scene_y;guest(cpu,0x8003B33C,PLAYER,2);scene_phase=5;}
             psx_mod_write_word(PLAYER+12,(uint32_t)y);
         } else if(!psx_mod_read_byte(PLAYER+0x46)) {
-            guest(cpu,0x8003A670,PLAYER,0);guest(cpu,0x8002FB58,PLAYER,0);
+            if(!duel_scope())guest(cpu,0x8003D2C4,0,0);
+            guest(cpu,0x8003A670,PLAYER,0);guest(cpu,0x8003CD08,PLAYER,0);
+            guest(cpu,0x8002FB58,PLAYER,0);
             if(duel_scope()) {
                 story_duel.arrived=1;scene_phase=6;
             } else {arrival_grace(cpu);scene_owner=scene_phase=0;}

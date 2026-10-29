@@ -34,6 +34,24 @@ static int skip_hint_hold(CPUState *cpu,uint32_t address) {
 }
 static int skip_hint_text(CPUState *cpu, uint32_t address) {
     (void)address;
+    /* BIN7's post-bike orb tutorial is authored inside its stage controller,
+     * rather than category3/type14. Suppress only those three Alia requests;
+     * the original controller still creates the orb, issues shoot command1F,
+     * waits for its real completion and releases control through3D2C4. */
+    uint32_t caller=cpu->gpr[31];
+    if(psx_mod_read_byte(0x800D1C0Cu)==5 && !psx_mod_read_byte(0x800D1C0Du) &&
+       psx_mod_read_word(0x800EE970u)==11 &&
+       ((caller==0x800F1058u && cpu->gpr[4]==0x37u) ||
+        (caller==0x800F1130u && cpu->gpr[4]==0x38u) ||
+        (caller==0x800F1144u && cpu->gpr[4]==0x39u)) &&
+       psx_mod_read_word(0x800F1050u)==0x0C008E17u &&
+       psx_mod_read_word(0x800F1128u)==0x0C008E17u &&
+       psx_mod_read_word(0x800F113Cu)==0x0C008E17u &&
+       psx_mod_read_word(0x800F119Cu)==0x0C00F4B1u) {
+        cpu->gpr[2]=0;
+        psx_mod_counter_add("mmx5.skip-alia.orb-tutorial-text",1);
+        return 1;
+    }
     if (cpu->gpr[31] != 0x80056e4cu ||
         psx_mod_read_word(0x80056e44u) != 0x0c008e17u ||
         psx_mod_read_word(0x80056e4cu) != 0x92430005u ||

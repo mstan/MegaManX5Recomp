@@ -4,7 +4,7 @@ Local branch: `feature/mmx5-master-native-waits-local`.
 Owning local issue: `beads-eio.10.44`. No remote publication or tracker sync.
 The original comparative campaign remains parked. This list preserves each
 owner report individually; a bounded pass does not qualify every stage or route.
-The multi-stage batch adds20 entries below, for24 tracked reports total. A01's
+The multi-stage batch adds 20 entries below, for 24 tracked reports total. A01's
 recurring armor complaint remains one issue with additional stage checks.
 
 | ID | Owner report / earlier reference | Bounded check and evidence | Status |
@@ -34,18 +34,18 @@ Video: <https://youtu.be/VcSXm8-Isx0>; web fetch failed, not reviewed.
 | K04 | P2 Zero gets X's capsule dialogue when P1 X is dead. | Original capsule, dead P1, live P2 Zero; inspect actual recipient message bank. | Open. |
 | K05 | The same surviving Zero cannot collect the capsule part. | After real conversation, actual top contact and native grant/return without setting progress flags. | Open. |
 | K06 | Kraken boss doors do not use scripted traversal. | Original Both admission/open/carry/close and native control recovery. | Implemented through generic native Both carry; actual Kraken door check remains open. Grizzly native carry closes after both movement inputs are released, with both heroes alive. |
-| M01 | P2 camera sticks during whale sequence. | Actual first whale sequence; check camera follows the eligible hero and retains authored stops. | Open. |
+| M01 | P2 camera sticks during whale sequence. | Native first whale controller/room advances while P2 moves and shoots; compare both complete camera records and native bounds. | Fixed; bounded current31a04f12 pass, 300 real world updates with both alive and matching authored cameras. Original2dd6574d retained stale P2 bounds594/247 while native room reached661/263. |
 | M02 | Whale parts float after being hit. | Actual attacks/HP change and subsequent native part positions/parent relation. | Open. |
 | M03 | Checkpoint respawn leaves P2 in a free-roam area. | Actual retry/next-checkpoint initialization and both authored camera limits. | Open. |
-| M04 | First whale miniboss has missing P2 graphics. | Native fight admission and animated whale/layer art in both views. | Open. |
+| M04 | First whale miniboss has missing P2 graphics. | Actual first whale and its moving atlas in both presented views. | Fixed for the bounded first-whale view; current31a04f12 shows complete matching whale/background art. Actual part damage and later whale variants remain separate checks. |
 | M05 | Second vertical-scrolling section breaks. | Its original controller, scrolling, transitions and both views. | Open. |
 | M06 | Both heroes die after jumping down. | Actual drop after the vertical section, native destination/collision and individual survival. | Open. |
 | I01 | P2 cannot stand on chained spike platforms. | Native jump/landing/contact/carry on one original platform. | Open. |
 | I02 | Leading P2 does not trigger stair-area Sigma viruses. | P2 crosses the real admission boundary; observe actual native virus allocations. | Open. |
 | I03 | Leading P2 does not trigger the stair-area miniboss. | Real admission, fight start and control recovery with P1 behind. | Open. |
 | I04 | P2 stair background is not animated. | Original stair controller across animation intervals in both panes. | Open. |
-| I05 | Glow boss doors do not use scripted traversal. | Reuse native Both-door carry check at Glow's actual door. | Implemented through generic native Both carry; actual Glow door check remains open. |
-| I06 | Defeating Izzy Glow with both alive freezes the game. | Actual native boss defeat, paired victory and real reward/return transition. | Open; progression blocker. |
+| I05 | Glow boss doors do not use scripted traversal. | Actual raw6/1 CP4 door3824, release both movement inputs on admission, observe native opening/carry/closure and distinct P2 sprite frames. | Passed on current2dd6574d; `native-stage-doors-report.json`, stage6. Native introduction also fills HP and releases both heroes. |
+| I06 | Defeating Izzy Glow with both alive freezes the game. | Real X buster hit against one positive HP, both native victory poses, actual mission report and reward bit. | Bounded pass on current2dd6574d; the reported freeze did not recur. `native-door-stage6/actual-defeat/report.json` reaches mode12/1 and native defeated bit32 with both alive. Full attack-pattern/route and LAN remain separate. |
 
 Shared A01 follow-up: repeat retained-armor return qualification for a real
 P2-owned stage dialogue, alongside G11. Keep original report history and do not
@@ -213,3 +213,36 @@ original/current identities and prepared owner cards. The prepared checklist's
 stale candidate label and car-check description were corrected; owner notes
 were not changed. A04's broader missing-enemy route and defeated-car path also
 remain open. No further setup variants were attempted.
+
+## Authored whale room and survivor bike context milestone
+
+Current candidate SHA256 `31a04f125e9cb52dcf61b4f4c2f36da7bf5f923f23c3426db66770230245e44c`.
+All 25 CTests pass after configuring the three new original whale-boundary hooks.
+`whale-exit-report.json` qualifies the first whale's actual moving camera and
+complete paired presentation. BIN4 owns this one autoscrolling room: its native
+foreground bounds and whale atlas now feed both panes until final-boss CP6. The
+original per-player clamp/crush leaves run for both living foot actors; the whale
+controller, scroll clock and enemies still advance once.
+
+The separate CP4 check proves matching checkpoint bounds only. Its controller
+did not enter the vertical movement during neutral input; do not count the
+harness's generic success label as M05/M06 completion or an actual retry pass.
+`isolated-map-report.json` retains content/overlay/controller evidence for the
+remaining locations. These checkpoint inventories do not pass their mechanics.
+
+The supplied original recording independently demonstrates dead X retaining
+D5=FF after live Zero's real bike dismount at world55603. Dead bodies no longer
+keep the on-foot stage in vehicle mode. BIN7's three authored post-bike Alia
+requests are also suppressed by the enabled skip package; its original orb,
+shoot command and completion/release program remain intact. K03/K04/K05 still
+need runtime qualification and remain open. A short bike-exit position setup
+did not reach the native dismount; it is not a gameplay failure or a pass. Two
+prior fresh-checkpoint capsule approaches stopped before reaching the capsule
+and do not establish its dialogue or grant behavior. No completion flags were
+set to get around those setup failures.
+
+The Kraken door setup used CP2, whose intervening route did not reach the door.
+K06 remains unverified; use the actual nearby CP4 for the bounded door check.
+The rejected SERVER job had no matching local fixture/executable paths and never
+launched a game. Subsequent jobs reserve measured local capacity and pin their
+process tree to one logical CPU; no unrelated work is stopped.

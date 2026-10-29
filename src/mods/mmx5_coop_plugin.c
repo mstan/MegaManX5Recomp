@@ -247,11 +247,18 @@ static uint32_t extra_ride_record;
 static int native_armor_overlay(void);
 static uint32_t car_mirror[2];
 static uint8_t car_source_owner[272];
+static int chaser_body_active(const uint8_t *body) {
+    return body[4]==1 && body[0xD5]==0xFF;
+}
 static int car_context(void) {
+    /* A dead rider retains D5=FF after the survivor's native dismount.
+     * It must not keep on-foot dialogue/capsules in the vehicle context. */
     return psx_mod_read_byte(PLAY+0x0C)==5 && psx_mod_read_word(0x800EE970)==11 &&
-        (!psx_mod_read_byte(PLAY+0x1D) || psx_mod_read_byte(PLAYER+0xD5)==0xFF ||
-         first.body[0xD5]==0xFF || second.body[0xD5]==0xFF ||
-         (psx_mod_read_byte(CAR) && !psx_mod_read_byte(CAR+1)));
+        (!psx_mod_read_byte(PLAY+0x1D) ||
+         (psx_mod_read_byte(PLAYER+4)==1 && psx_mod_read_byte(PLAYER+0xD5)==0xFF) ||
+         chaser_body_active(first.body) || chaser_body_active(second.body) ||
+         (psx_mod_read_byte(CAR) && !psx_mod_read_byte(CAR+1) &&
+          psx_mod_read_byte(CAR+4)==1 && (psx_mod_read_byte(CAR+0x5C)&127u)));
 }
 static int car_source_index(uint32_t actor) {
     if(actor>=0x80092090u && actor<0x80093DD0u && !((actor-0x80092090u)%0x9C))
@@ -3301,6 +3308,31 @@ static int midboss_admission(CPUState *cpu,uint32_t address) {
     if(scene_owner==2)psx_mod_counter_add("mmx5.coop.p2-midboss-admissions",1);
     cpu->gpr[2]=result;return 1;
 }
+static int whale_authored_camera(void) {
+    /* BIN4's whale controller owns the entire autoscrolling room, including
+     * its current bounds and the whale/background atlas. A second ordinary
+     * follow camera retains obsolete bounds and separates the whale parts.
+     * Final boss CP6 uses the ordinary arena policy instead. */
+    return psx_mod_read_byte(PLAY+12)==3 && !psx_mod_read_byte(PLAY+13) &&
+        psx_mod_read_byte(PLAY+0x1D)<6 && psx_mod_read_word(0x800EE970u)==8 &&
+        psx_mod_read_word(0x800EF584u)==0x3C05800Au &&
+        psx_mod_read_word(0x800F0260u)==0x3C02800Au &&
+        psx_mod_read_word(0x800F02CCu)==0x3C02800Au;
+}
+static int whale_player_bounds(CPUState *cpu,uint32_t address) {
+    if(area_call || busy || projected || !enrolled || failed ||
+       psx_mod_local_view_scope() || !whale_authored_camera())return 0;
+    /* These three original leaves only constrain PLAYER against the one
+     * authored camera (including native crush damage). Apply the same rule
+     * to the other living foot actor, without replaying the whale controller,
+     * stage timer, scrolling or enemy update. */
+    area_call=1;uint32_t result=guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);
+    if(life.status[1]==MMX5_COOP_ALIVE && second.body[4]==1 && !scene_passenger(1)) {
+        enter_second();guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);leave_second();
+        psx_mod_counter_add("mmx5.coop.p2-whale-player-bounds",1);
+    }
+    area_call=0;cpu->gpr[2]=result;return 1;
+}
 static void area_redirect(CPUState *cpu,uint32_t address) {
     (void)address;
     uint32_t actor=cpu->gpr[4],function=cpu->gpr[3];
@@ -4341,7 +4373,8 @@ static int split_camera_finish(CPUState *cpu,uint32_t address) {
         split_valid=1;
     }
     memcpy(split_cameras[owner],canonical,sizeof canonical);split_owner=owner+1;
-    if(scene_owner || car_context() || (psx_mod_read_byte(PLAY+0x1C) && !personal_nova()) ||
+    if(scene_owner || car_context() || whale_authored_camera() ||
+       (psx_mod_read_byte(PLAY+0x1C) && !personal_nova()) ||
        psx_mod_read_byte(PLAY+0x10) ||
        (!mmx5_coop_living(&life,other) && life.status[other]!=MMX5_COOP_DYING)) {
         memcpy(split_cameras[other],canonical,sizeof canonical);
@@ -5927,6 +5960,9 @@ PSX_MOD_CONSTRUCTOR(mmx5_register_coop) {
     psx_mod_register_function_filter_plugin(ID,0x800F26AC,corridor_arrow_admission);
     psx_mod_register_function_filter_plugin(ID,0x800F48B4,descending_support_trigger);
     psx_mod_register_function_filter_plugin(ID,0x800EFC34,midboss_admission);
+    psx_mod_register_function_filter_plugin(ID,0x800EF584,whale_player_bounds);
+    psx_mod_register_function_filter_plugin(ID,0x800F0260,whale_player_bounds);
+    psx_mod_register_function_filter_plugin(ID,0x800F02CC,whale_player_bounds);
     psx_mod_register_function_filter_plugin(ID,0x800F48F8,later_support_controller);
     psx_mod_register_function_filter_plugin(ID,0x800F4968,later_support_controller);
     psx_mod_register_function_filter_plugin(ID,0x800F3930,later_support_controller);

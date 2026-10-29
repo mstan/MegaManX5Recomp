@@ -8,7 +8,7 @@ new reports individually; a bounded pass does not qualify every stage or route.
 | ID | Owner report / earlier reference | Bounded check and evidence | Status |
 |---|---|---|---|
 | A01 | Visible Alia still returns P1 X with corrupt armor. Reopens O03 for this build. | Native road/building episodes, then both corresponding states from the owner's exact v0.2.7 recording, with real page confirmations and P2 movement during return. | Fixed; bounded return graphics checks passed, including the supplied recording's states on current20e92f4c. Owner visual confirmation remains useful. |
-| A02 | P2's view focuses on P1 while P1 teleports after a P2-owned hint. | Original15,593-input verified replay includes all four P2-owned hints. Retain body positions, both cameras and composed return images; current owner-state continuations also move P2 during the return. | Unverified reported focus error: captured P2 views follow Zero. Both panes sharing the scene owner's camera until X finishes returning is confirmed. Owner asked whether they want independent cameras immediately when text closes, or see P2's pane actually lose Zero. No camera policy change pending that clarification. |
+| A02 | P2's view focuses on P1 while P1 teleports after a P2-owned hint. Owner clarified that Zero's pane actually moves away from Zero. | Exact original replay, all four P2-owned hints; retain500 consecutive presented images per interaction, with body/camera observations. Matched original/current building-state continuations also retain presented history while P2 moves during X's return. | Open owner-observed focus failure; not reproduced by these checks. Inspected views follow Zero. Requested the video's exact failing timestamp; the video itself remains inaccessible. No camera policy change or claimed fix. |
 | A03 | Both doors work, but P2 returns to standing before the walk. Extends R02. | Actual Both admission/open/carry/close after original building and climb-area commands. Compare displayed sprite frames during opening separately from carry. | Fixed; bounded opening and carry checks passed. The final run sampled12 distinct displayed P2 frames in opening and13 in carry. No additional position/collision or door-clock changes. |
 | A04 | With Alia skip enabled, trailing P1 misses respawning intro cars after leading P2 advances. | Silent-hint current setup: P2 encounters original class0D car736, advances the actual checkpoint0 to1, the original car retires offscreen, and trailing P1 reenters. | Car736 native offscreen-retirement/respawn passes, with both heroes alive. Broader reported recurrence and a defeated-car path remain unverified; exact failing encounter still needed. The new ZIP has skip off and cannot qualify the earlier skip-on run. No speculative spawn changes. `supplied-report/car-cycle-report.json`. |
 
@@ -116,3 +116,30 @@ The local diagnostic replay's composed captures are the visual evidence.
 Useful exact owner setups, baseline/current images and reports remain local;
 temporary download metadata/cache is disposable. Owner notes and the sole
 delivered Nextcloud archive remain unchanged.
+
+## Clarified camera report and displayed history
+
+The owner confirmed actual loss of focus on Zero, rather than requesting earlier
+independent cameras. A02 stays open. `supplied-report/focus-ring-report.json`
+records matched original/current building-state continuations: each retains the
+existing600-entry presentation ring after Zero moves during X's return. These
+captures do not reproduce the reported focus loss.
+
+`supplied-report/focus-full-history-report.json` verifies the original15,593
+inputs again and retains500 consecutive presented swaps around each of the four
+actual Alia interactions. A host-only hold after each completed interaction lets
+the existing ring be exported without losing later gameplay frames. Overviews
+and the largest adjacent-frame changes during recovery were visually inspected;
+neither that review nor sampled cameras reproduced the failure. Image ranking
+is inspection triage, not an automatic correctness pass. Renderer watchdog,
+aborted-pass and VRAM-leak counters remain zero. No new instrumentation, engine
+change, camera policy change or new source fix was introduced.
+
+An earlier exploratory export froze the image ring while gameplay continued,
+leaving gaps during export. It is superseded by the full-history run and is not
+evidence of uninterrupted visual coverage. Its redundant payload/captures and
+task scratch are disposable; retain the decisive full-history images/reports,
+original/current identities and prepared owner cards. The prepared checklist's
+stale candidate label and car-check description were corrected; owner notes
+were not changed. A04's broader missing-enemy route and defeated-car path also
+remain open. No further setup variants were attempted.

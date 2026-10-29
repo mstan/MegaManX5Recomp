@@ -1,3 +1,37 @@
+# v0.2.7-coop-alpha-debug (local Windows alpha)
+
+This build includes the five latest owner-report fixes from `89a0e32`.
+The owner authorized delivery with the remaining Dinorex route validation
+recorded below; release authorization does not mark those checks passed.
+
+- The intro road keeps its original foreground objects while a distant P2
+  advances the building checkpoint. They retire after the last view leaves.
+- Both-player doors initialize the companion's native scripted entry and keep
+  animating after a transient brake/landing pose ends. The original door still
+  owns movement and timing, with safe clearance at closure.
+- A leading P2 triggers Dinorex's original lower-region graphics transition
+  while the trailing player's upper-region art remains intact.
+- Dinorex's three fire-breakable stone walls use the admitting player's camera
+  for their original stops, actual fire destruction and camera release.
+
+Three of the five latest report checks pass bounded runtime validation:
+intro foreground, companion door animation and all three stone-wall stops/
+destructions. Dinorex background and fire art look correct in captured checks,
+but one continuous P2-led descent into the fire corridor remains unverified.
+Position cheats bypassed shelter traversal/survival for the later wall checks.
+Full intro reveal/control recovery was not repeated by this bounded door check.
+See docs/COOP_X5_026_FOLLOWUPS.md for individual evidence and limitations.
+The existing 25 code checks pass. Full campaign parity, physical LAN and a
+new performance improvement are not claimed.
+
+The accepted native character selector is retained. Release defaults remain
+local split-screen, Either-player doors, diagnostics and Alia hint suppression,
+with P1 on keyboard and P2 targeting DualSense. Normal window/audio are enabled.
+Bring your own USA SLUS-01334 disc; OpenBIOS is included. No personal saves,
+recordings, QA states, CD Speed or Fast Loading packages are included. Older
+save states remain disposable; preserve native memory-card saves separately.
+Delivery is local to Nextcloud, with no push, PR or remote publication.
+
 # v0.2.6-coop-alpha-debug (local Windows alpha)
 
 This build closes the latest fifteen owner reports with bounded automated

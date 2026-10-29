@@ -1,6 +1,13 @@
 # X5 co-op parity with X4
 
-The current focused owner candidate is **82A36EAA**, local only.
+Current owner-report campaign (2026-10-29):
+[v0.2.7 follow-ups](COOP_X5_027_FOLLOWUPS.md) tracks **24 individual reports**.
+**12 have bounded passing checks; 12 remain open or partly implemented.**
+This includes the new Grizzly, Kraken, McWhalen and Glow reports. Keep setup
+failures and unverified mechanics visible; the frozen234-comparison campaign
+below remains parked. Work is local on `feature/mmx5-master-native-waits-local`.
+
+Earlier focused Grizzly campaign candidate: **82A36EAA**, local only.
 [Grizzly's individual stage list](COOP_X5_GRIZZLY_BURNDOWN.md) is
 **8 passed / 1 open / 9 total**. The owner accepted the co-op main-cannon
 and camera check; solo hidden-Alia cannon destruction remains manual.

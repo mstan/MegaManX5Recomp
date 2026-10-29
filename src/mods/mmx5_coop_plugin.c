@@ -113,6 +113,8 @@ static uint8_t ai_first_freeze;
 /* A running fire burst outlives its admitting hero. Its native scrolling
  * context must survive that hero's death/spectator-camera reassignment. */
 static struct {uint32_t actor;uint8_t owner,camera[0xFC];} dinorex_fire;
+/* BIN9's stair atlas has one native frame/remainder for each moving view. */
+static struct {uint32_t actor;uint8_t pose[4],valid;} glow_stair;
 #define AI_DISPATCH 0x8F7FFF00u
 static unsigned stage_call, player_call, world_owner, render_call;
 static unsigned camera_update_call;
@@ -254,7 +256,7 @@ static int car_context(void) {
     /* A dead rider retains D5=FF after the survivor's native dismount.
      * It must not keep on-foot dialogue/capsules in the vehicle context. */
     return psx_mod_read_byte(PLAY+0x0C)==5 && psx_mod_read_word(0x800EE970)==11 &&
-        (!psx_mod_read_byte(PLAY+0x1D) ||
+        ((!enrolled && !psx_mod_read_byte(PLAY+0x1D)) ||
          (psx_mod_read_byte(PLAYER+4)==1 && psx_mod_read_byte(PLAYER+0xD5)==0xFF) ||
          chaser_body_active(first.body) || chaser_body_active(second.body) ||
          (psx_mod_read_byte(CAR) && !psx_mod_read_byte(CAR+1) &&
@@ -1101,7 +1103,7 @@ static void world_tick(CPUState *cpu,uint32_t address) {
                     psx_mod_write_word(diagnostic+0x64,1);
                 }
             }
-            if(command==17 && enrolled && !failed && !busy && !projected &&
+            if(command==17 && enrolled && !failed && !busy && (!projected || world_owner) &&
                !psx_mod_local_view_scope() && !scene_owner && !car_context() &&
                psx_mod_read_byte(PLAY)==10 && !psx_mod_read_byte(PLAY+1) &&
                !psx_mod_read_byte(PLAY+0x0F) && !psx_mod_read_byte(PLAY+0x10) &&
@@ -1110,7 +1112,8 @@ static void world_tick(CPUState *cpu,uint32_t address) {
                  * native camera-edge scanner. Ask ORIGINAL 2B070 to scan a
                  * small authored region, retaining its allocation/cooldown
                  * and already-visited guards. No actor/grant/scene state is
-                 * fabricated. This does not qualify normal viewport entry. */
+                 * fabricated. The surviving P2 is already canonical in its
+                 * world-owner scope. This does not qualify viewport entry. */
                 int32_t left=(int32_t)psx_mod_read_word(diagnostic+0x90);
                 int32_t right=(int32_t)psx_mod_read_word(diagnostic+0x94);
                 int32_t top=(int32_t)psx_mod_read_word(diagnostic+0x98);
@@ -1220,6 +1223,7 @@ static int enroll(CPUState *cpu) {
     section_pending=stage_departed=0;ever_enrolled=1;last_stage=psx_mod_read_byte(PLAY+0x0C);
     last_section=psx_mod_read_byte(PLAY+0x0D);
     memset(&dinorex_fire,0,sizeof dinorex_fire);
+    memset(&glow_stair,0,sizeof glow_stair);
     enrolled=1;psx_mod_counter_add("mmx5.coop.enrolled",1);
     /* Enrollment can follow this frame's camera update. Seed both private
      * views now so the first arrival/HUD frame can already publish a pair. */
@@ -1985,22 +1989,23 @@ static int contact_canonical(CPUState *cpu,uint32_t address) {
     if(contact_call || (projected && !world_owner) || !enrolled || failed || psx_mod_read_byte(PLAY)!=10)return 0;
     contact_call=1;uint32_t actor=cpu->gpr[4],argument=cpu->gpr[5],result=0;
     unsigned seat=world_owner?1:0;
-    HitHistory *h=address==0x80031DD0u?hit_record(actor,1):NULL;
+    unsigned shot_query=address==0x80031DD0u || address==0x80032F70u;
+    HitHistory *h=shot_query?hit_record(actor,1):NULL;
     uint8_t stock_token=psx_mod_read_byte(actor+0x65);
     if(h)psx_mod_write_byte(actor+0x65,h->token[seat]);
     if(life.status[seat]==MMX5_COOP_ALIVE && !scene_passenger(seat) && !psx_mod_read_byte(PLAYER+0xCC)) {
         result=balance_contact(cpu,address,actor,argument,seat);
-        h=address==0x80031DD0u?hit_record(actor,0):NULL;
+        h=shot_query?hit_record(actor,0):NULL;
         if(h)h->token[seat]=psx_mod_read_byte(actor+0x65);
     }
     if(!world_owner && !result && life.status[1]==MMX5_COOP_ALIVE && !scene_passenger(1) &&
        (second.body[0x5C]&0x7F) && !second.body[0xCC]) {
         if(h)psx_mod_write_byte(actor+0x65,h->token[1]);
         enter_second();result=balance_contact(cpu,address,actor,argument,1);leave_second();
-        h=address==0x80031DD0u?hit_record(actor,0):NULL;
+        h=shot_query?hit_record(actor,0):NULL;
         if(h)h->token[1]=psx_mod_read_byte(actor+0x65);
         if(result) {
-            psx_mod_counter_add(address==0x80031DD0u?"mmx5.coop.p2-hits":"mmx5.coop.p2-contact",1);
+            psx_mod_counter_add(shot_query?"mmx5.coop.p2-hits":"mmx5.coop.p2-contact",1);
             psx_mod_write_word(diagnostic+0x68,actor);psx_mod_write_word(diagnostic+0x6C,result);
         }
     }
@@ -3270,26 +3275,31 @@ static void ai_redirect(CPUState *cpu,uint32_t address) {
     ai_pending=actor;ai_function=function;cpu->gpr[5]=AI_DISPATCH;
 }
 static int midboss_admission(CPUState *cpu,uint32_t address) {
-    if(address!=0x800EFC34u || area_call || busy || projected || !enrolled || failed ||
+    unsigned second_drop=address==0x800EFF84u;
+    if((address!=0x800EFC34u && !second_drop) || area_call || busy || projected || !enrolled || failed ||
        psx_mod_local_view_scope() || scene_owner || car_context() ||
        life.status[0]!=MMX5_COOP_ALIVE || life.status[1]!=MMX5_COOP_ALIVE ||
        psx_mod_read_byte(PLAY)!=10 || psx_mod_read_byte(PLAY+12)!=3 ||
        psx_mod_read_byte(PLAY+13) || psx_mod_read_word(0x800EE970u)!=8 ||
-       psx_mod_read_word(address)!=0x27BDFFE8u ||
-       psx_mod_read_word(0x80100E00u)!=address ||
+       psx_mod_read_word(address)!=(second_drop?0x3C03800Au:0x27BDFFE8u) ||
+       psx_mod_read_word(second_drop?0x80100E28u:0x80100E00u)!=address ||
        psx_mod_read_word(0x80100E04u)!=0x800EFCACu ||
-       psx_mod_read_word(0x800EFC88u)!=0x28420BD0u)return 0;
+       psx_mod_read_word(0x800EFC88u)!=0x28420BD0u ||
+       (second_drop && psx_mod_read_word(0x800EFF98u)!=0x284212D1u))return 0;
     uint32_t actor=cpu->gpr[4];
     if(actor<0x80010000u || actor>=0x801FFFD0u || (actor&3u) ||
-       psx_mod_read_byte(actor+5)!=3 || psx_mod_read_byte(actor+6) ||
+       psx_mod_read_byte(actor+5)!=(second_drop?4u:3u) ||
+       psx_mod_read_byte(actor+6)!=(second_drop?1u:0u) ||
        psx_mod_read_byte(PLAYER+5)==0x14 || second.body[4]!=1 ||
-       second.body[5]==0x14 || (int16_t)psx_mod_read_half(PLAYER+10)>=3024 ||
-       (int16_t)(second.body[10]|second.body[11]<<8)<3024)return 0;
+       second.body[5]==0x14 ||
+       (int16_t)psx_mod_read_half(PLAYER+10)>=(second_drop?4817:3024) ||
+       (int16_t)(second.body[10]|second.body[11]<<8)<(second_drop?4817:3024))return 0;
     /* BIN4's CP3 controller reads only PLAYER.x before original stand14.
      * Run that admission once in the leading P2 context. script_begin then
      * owns the subsequent native stage passes: EFC34 must see that same
      * stand14 again before EFCAC admits the genuine two-bank class1E fight.
-     * Transfer the admitting camera exactly as a P2-owned door does. */
+     * The later EFF84 gate likewise admits the second vertical drop at4817.
+     * Transfer either admitting camera exactly as a P2-owned door does. */
     uint8_t canonical[0xFC];unsigned camera_owner=split_owner;
     int own_camera=split_views && split_valid;
     if(own_camera) {
@@ -3312,12 +3322,20 @@ static int whale_authored_camera(void) {
     /* BIN4's whale controller owns the entire autoscrolling room, including
      * its current bounds and the whale/background atlas. A second ordinary
      * follow camera retains obsolete bounds and separates the whale parts.
-     * Final boss CP6 uses the ordinary arena policy instead. */
-    return psx_mod_read_byte(PLAY+12)==3 && !psx_mod_read_byte(PLAY+13) &&
-        psx_mod_read_byte(PLAY+0x1D)<6 && psx_mod_read_word(0x800EE970u)==8 &&
-        psx_mod_read_word(0x800EF584u)==0x3C05800Au &&
-        psx_mod_read_word(0x800F0260u)==0x3C02800Au &&
-        psx_mod_read_word(0x800F02CCu)==0x3C02800Au;
+     * Phase4's ordinary hallway and final boss CP6 retain independent
+     * follow/area commands; they are not forced whale scrolling. */
+    if(psx_mod_read_byte(PLAY+12)!=3 || psx_mod_read_byte(PLAY+13) ||
+       psx_mod_read_word(0x800EE970u)!=8 ||
+       psx_mod_read_word(0x800EF584u)!=0x3C05800Au ||
+       psx_mod_read_word(0x800F0260u)!=0x3C02800Au ||
+       psx_mod_read_word(0x800F02CCu)!=0x3C02800Au)return 0;
+    for(uint32_t actor=0x800C94A8u;actor<0x800C9568u;actor+=0x30u) {
+        unsigned phase=psx_mod_read_byte(actor+5);
+        if(psx_mod_read_byte(actor) && psx_mod_read_byte(actor+1)==1 &&
+           psx_mod_read_byte(actor+4)==1 && psx_mod_read_word(actor+0x10)==0x80100D88u &&
+           phase>0 && phase<6 && phase!=4)return 1;
+    }
+    return 0;
 }
 static int whale_player_bounds(CPUState *cpu,uint32_t address) {
     if(area_call || busy || projected || !enrolled || failed ||
@@ -3332,6 +3350,30 @@ static int whale_player_bounds(CPUState *cpu,uint32_t address) {
         psx_mod_counter_add("mmx5.coop.p2-whale-player-bounds",1);
     }
     area_call=0;cpu->gpr[2]=result;return 1;
+}
+static void chain_platform_proximity(CPUState *cpu,uint32_t address) {
+    (void)address;uint32_t actor=cpu->gpr[16];
+    if(projected || busy || !enrolled || failed || scene_owner ||
+       psx_mod_local_view_scope() || life.status[1]!=MMX5_COOP_ALIVE ||
+       second.body[4]!=1 || second.body[0xF8] || psx_mod_read_byte(PLAYER+0xF8) ||
+       psx_mod_read_byte(PLAY)!=10 || psx_mod_read_byte(PLAY+12)!=6 ||
+       psx_mod_read_byte(PLAY+13) || psx_mod_read_word(0x800EE970u)!=12 ||
+       psx_mod_read_word(0x800F1B78u)!=0x27BDFFE0u ||
+       psx_mod_read_word(0x800F1C54u)!=0x0C00C903u ||
+       psx_mod_read_word(0x800F3E68u)!=0x800F1934u || !solid_record(actor) ||
+       !psx_mod_read_byte(actor) || psx_mod_read_byte(actor+1)!=0x10 ||
+       psx_mod_read_byte(actor+4)!=1)return;
+    int x=(int16_t)psx_mod_read_half(actor+10),first_x=(int16_t)cpu->gpr[4];
+    if((int16_t)cpu->gpr[3]!=x || first_x!=(int16_t)psx_mod_read_half(PLAYER+10) ||
+       (first_x-x>=-48 && first_x-x<=48))return;
+    int second_x=(int16_t)(le32(second.body+8)>>16);
+    if(second_x-x < -48 || second_x-x > 48)return;
+    /* F1B78 advances the shared platform once, then admits solid contact
+     * only within48 pixels of PLAYER. Include the other living hero in that
+     * predicate. Original3240C still performs both real contacts/carry through
+     * the existing per-player histories, in its original update order. */
+    cpu->gpr[4]=(uint32_t)(int32_t)second_x;
+    psx_mod_counter_add("mmx5.coop.p2-chain-platform-proximity",1);
 }
 static void area_redirect(CPUState *cpu,uint32_t address) {
     (void)address;
@@ -4129,9 +4171,10 @@ static void ai_update(CPUState *cpu,uint32_t address) {
             dinorex_fire.actor==actor && dinorex_fire.owner;
         if(retained_fire)camera_seat=dinorex_fire.owner-1;
         int fire_camera=dinorex_fire_stage() && dinorex_fire_actor(actor);
-        if(fire_camera) {
-            /* Fire scroll and wall stops are authored CAMERA commands. Run
-             * them once against the same view as their body predicate. */
+        int private_camera=!fire_camera && target && split_available() && !scene_owner;
+        if(fire_camera || private_camera) {
+            /* Native camera predicates and commands need the same view as
+             * their selected body. Fire retains its admitted sequence view. */
             capture(CAMERA,canonical_camera,sizeof canonical_camera);
             const uint8_t *view=retained_fire && !actors[camera_seat].active?
                 dinorex_fire.camera:split_cameras[camera_seat];
@@ -4167,6 +4210,17 @@ static void ai_update(CPUState *cpu,uint32_t address) {
             if(camera_seat || !actors[camera_seat].active)
                 project(CAMERA,canonical_camera,sizeof canonical_camera);
             split_owner=camera_owner;
+        } else if(private_camera) {
+            /* Nearest-player AI also reads CAMERA for native admissions,
+             * emitters and scripted bounds. Supplying P2's body with P1's
+             * camera leaves Glow's stair encounter/viruses waiting for P1.
+             * Retain the selected view's real commands, and keep a newly
+             * acquired P2 scene camera authoritative for this world pass. */
+            capture(CAMERA,split_cameras[target],sizeof canonical_camera);
+            if(scene_owner!=target+1) {
+                project(CAMERA,canonical_camera,sizeof canonical_camera);
+                split_owner=camera_owner;
+            }
         }
     }
     ai_first_freeze=psx_mod_read_byte(PLAYER+0xCC);psx_mod_write_byte(PLAYER+0xCC,0);
@@ -4251,6 +4305,56 @@ static void shared_atlas_view(uint8_t *view,const uint8_t *canonical) {
     memcpy(view+0xB6,canonical+0xB6,2);
     view[0xF4]=canonical[0xF4];
     if(changed)psx_mod_counter_add("mmx5.coop.shared-atlas-published",1);
+}
+static int glow_stair_program(void) {
+    return psx_mod_read_byte(PLAY+12)==6 && psx_mod_read_byte(PLAY+13)==1 &&
+        psx_mod_read_word(0x800EE970u)==13 &&
+        psx_mod_read_word(0x800FA3C4u)==0x800F72C0u &&
+        psx_mod_read_word(0x800F7194u)==0x00803021u &&
+        psx_mod_read_word(0x800F72B4u)==0xA4620062u;
+}
+static void glow_stair_private(CPUState *cpu,uint32_t actor) {
+    uint8_t canonical[4];capture(actor+0x14,canonical,sizeof canonical);
+    if(!glow_stair.valid || glow_stair.actor!=actor) {
+        glow_stair.actor=actor;memcpy(glow_stair.pose,canonical,sizeof canonical);glow_stair.valid=1;
+    }
+    project(actor+0x14,glow_stair.pose,sizeof canonical);
+    unsigned old_call=area_call;area_call=1;
+    guest(cpu,0x800F7194u,actor,0);area_call=old_call;
+    capture(actor+0x14,glow_stair.pose,sizeof canonical);
+    project(actor+0x14,canonical,sizeof canonical);
+    psx_mod_counter_add("mmx5.coop.p2-stair-atlas-ticks",1);
+}
+static int glow_stair_native(CPUState *cpu,uint32_t address) {
+    (void)address;
+    if(area_call || !split_available() || !glow_stair_program())return 0;
+    /* An old-region view can retain the producer after P1 has left. Its
+     * original leaf must then stop writing P1's later-region layer. */
+    if((int16_t)psx_mod_read_half(PLAYER+10)>=2240) {cpu->gpr[2]=0;return 1;}
+    if(projected && world_owner) {
+        glow_stair_private(cpu,cpu->gpr[4]);cpu->gpr[2]=0;return 1;
+    }
+    return 0;
+}
+static void glow_stair_retirement(CPUState *cpu,uint32_t address) {
+    (void)address;uint32_t actor=cpu->gpr[4];
+    if(!split_available() || projected || !glow_stair_program() ||
+       actor<0x8009E7A0u || actor>=0x8009F9A0u || (actor-0x8009E7A0u)%0x30u ||
+       psx_mod_read_byte(actor+1)!=12 || !mmx5_coop_living(&life,1) ||
+       (int16_t)(le32(second.body+8)>>16)>=2240)return;
+    cpu->gpr[2]=1; /* Original retirement waits for the last stair resident. */
+}
+static void glow_stair_view(CPUState *cpu) {
+    if(!glow_stair_program() || psx_mod_read_byte(PLAY+0x26) ||
+       (int16_t)(le32(second.body+8)>>16)>=2240 || psx_mod_read_byte(CAMERA+0x58)!=5)return;
+    for(uint32_t actor=0x8009E7A0u;actor<0x8009F9A0u;actor+=0x30u)
+        if(psx_mod_read_byte(actor) && psx_mod_read_byte(actor+1)==12 &&
+           psx_mod_read_byte(actor+4)==1) {
+            /* Only the original camera/atlas leaf runs for the extra view.
+             * Its four spatial bytes are private; no shared actor lifecycle,
+             * world clock, enemy or encounter program advances twice. */
+            glow_stair_private(cpu,actor);break;
+        }
 }
 static void shared_scroll_view(uint8_t *view,const uint8_t *canonical) {
     /* BIN1's reserved train controller advances these spatial origins once
@@ -4385,6 +4489,7 @@ static int split_camera_finish(CPUState *cpu,uint32_t address) {
         shared_atlas_view(split_cameras[other],canonical);
         shared_scroll_view(split_cameras[other],canonical);
         project(CAMERA,split_cameras[other],sizeof canonical);
+        glow_stair_view(cpu);
         enter_second();partner_nova_control();
         /* Native A6C0 calls 29184, whose ordinary-player top clamp would
          * pin Select's outgoing beam at Y=0. Keep the native camera update,
@@ -4908,6 +5013,25 @@ static void render_actor(CPUState *cpu,uint32_t actor,uint32_t base_arena) {
     psx_mod_write_word(SCRATCH+0x14,saved_sprites);psx_mod_write_word(SCRATCH+0x1C,saved_assembly);
     duel_render_art=old_art;
 }
+static int paired_chaser_draw(void) {
+    return enrolled && !failed && car_context() &&
+        life.status[0]==MMX5_COOP_ALIVE && life.status[1]==MMX5_COOP_ALIVE &&
+        first.body[3] && second.body[3] &&
+        first.body[0xD5]==0xFF && second.body[0xD5]==0xFF &&
+        first.car[0] && second.car[0] && first.car[3] && second.car[3] &&
+        first.car[4]==1 && second.car[4]==1;
+}
+static void render_paired_chaser(CPUState *cpu) {
+    if(!psx_mod_read_byte(CAR+3))return;
+    /* Native bodies use priority2 and bikes4, which sorts both riders over
+     * both machines. Append each bike immediately before its own rider in
+     * the rider's existing gameplay bucket: P2 bike/body, then P1 bike/body.
+     * Restore the actor byte before any simulation or snapshot can observe
+     * it; vehicle physics, stage art and UI priorities stay native. */
+    uint8_t priority=psx_mod_read_byte(CAR+0x16);
+    psx_mod_write_byte(CAR+0x16,psx_mod_read_byte(PLAYER+0x16));
+    guest(cpu,0x80024C60,CAR,0);psx_mod_write_byte(CAR+0x16,priority);
+}
 static void render(CPUState *cpu,uint32_t address) {
     (void)address;
     if(busy || projected || failed || !enrolled || !second.body[3] ||
@@ -4918,6 +5042,8 @@ static void render(CPUState *cpu,uint32_t address) {
     uint32_t budget=psx_mod_read_word(SCRATCH+0x124);psx_mod_write_word(SCRATCH+0x124,0);
     uint32_t base=arena+(psx_mod_read_word(SCRATCH)&1u)*FRAME_BYTES;
     psx_mod_write_word(SCRATCH+0x100,base);psx_mod_write_word(SCRATCH+0x104,base+0x30000);
+    int paired_car=paired_chaser_draw();
+    if(paired_car)render_paired_chaser(cpu);
     render_actor(cpu,PLAYER,base);
     if(life.status[1]==MMX5_COOP_ALIVE) {
         /* Match native24698: X's three50h charge actors, then the three60h
@@ -4940,7 +5066,7 @@ static void render(CPUState *cpu,uint32_t address) {
     }
     /* Stage vehicle graphics remain the original shared stage atlas. They
      * are not character DAT frames and do not need a retained character bank. */
-    if(car_context() && second.car[3])guest(cpu,0x80024C60,CAR,0);
+    if(!paired_car && car_context() && second.car[3])guest(cpu,0x80024C60,CAR,0);
     psx_mod_write_word(SCRATCH+0x100,original);psx_mod_write_word(SCRATCH+0x104,mode);
     psx_mod_write_word(SCRATCH+0x124,budget);
     project_player(&first);diagnostics();busy=0;
@@ -5054,6 +5180,10 @@ static int render_hook(CPUState *cpu,uint32_t address) {
     if(render_personal_effect(cpu))return 1;
     if(render_survivor(cpu,address))return 1;
     uint32_t actor=cpu->gpr[4];
+    if(actor==CAR && !busy && !projected && paired_chaser_draw()) {
+        /* The native singleton bike draw is emitted with its rider below. */
+        cpu->gpr[2]=0;return 1;
+    }
     if(busy || projected || failed || !enrolled || psx_mod_read_byte(PLAY)!=10 ||
        (actor!=PLAYER && !(actor>=SHOTS && actor<SHOTS+sizeof second.shots)))return cull_sprite_draw(cpu,address);
     /* Keep the body dispatch boundary even when P1 is offscreen: it also
@@ -5068,6 +5198,7 @@ static int render_hook(CPUState *cpu,uint32_t address) {
     capture(PLAYER,first.body,sizeof first.body);render_call=render_primary=1;
     psx_mod_write_word(SCRATCH+0x100,primary_packets);
     psx_mod_write_word(SCRATCH+0x104,base+0x30000+(primary_packets-base)/5);
+    if(actor==PLAYER && paired_chaser_draw())render_paired_chaser(cpu);
     render_actor(cpu,actor,base);primary_packets=psx_mod_read_word(SCRATCH+0x100);
     psx_mod_write_word(SCRATCH+0x100,original);psx_mod_write_word(SCRATCH+0x104,mode);
     render_call=render_primary=0;
@@ -5616,6 +5747,7 @@ static void activate(void) {
     local_view_call=local_view_seat=local_hud_seat=0;split_table=0;
     ai_pool_call=ai_call=ai_owner=ai_suspended=0;ai_pool=ai_pending=ai_function=0;ai_first_freeze=0;
     memset(&dinorex_fire,0,sizeof dinorex_fire);
+    memset(&glow_stair,0,sizeof glow_stair);
     spatial_call=0;
     personal_effect_call=personal_visual_call=0;memset(personal_effect_owner,0,sizeof personal_effect_owner);
     memset(personal_visual_ticks,0,sizeof personal_visual_ticks);
@@ -5742,6 +5874,8 @@ static uint32_t state_digest(void) {
     hash=hash_bytes(hash,armor_native_roster,sizeof armor_native_roster);
     hash=hash_word(hash,dinorex_fire.actor);hash=hash_word(hash,dinorex_fire.owner);
     hash=hash_bytes(hash,dinorex_fire.camera,sizeof dinorex_fire.camera);
+    hash=hash_word(hash,glow_stair.actor);hash=hash_word(hash,glow_stair.valid);
+    hash=hash_bytes(hash,glow_stair.pose,sizeof glow_stair.pose);
     for(unsigned seat=0;seat<2;++seat) {
         hash=hash_bytes(hash,personal_menus[seat].native,sizeof personal_menus[seat].native);
         hash=hash_word(hash,personal_menus[seat].original_weapon);
@@ -5894,6 +6028,8 @@ PSX_MOD_CONSTRUCTOR(mmx5_register_coop) {
     psx_mod_register_instruction_plugin(ID,0x800F7F68,0x0803DFDF,water_head_origin);
     psx_mod_register_instruction_plugin(ID,0x800F7F78,0x2442000C,water_head_origin);
     psx_mod_register_instruction_plugin(ID,0x800225D8,0x00A0F809,refight_pad_redirect);
+    psx_mod_register_instruction_plugin(ID,0x800F1C28,0x00831023,chain_platform_proximity);
+    psx_mod_register_instruction_plugin(ID,0x800F72D0,0x14400005,glow_stair_retirement);
     psx_mod_register_instruction_plugin(ID,0x800228D8,0x0060F809,area_redirect);
     psx_mod_register_instruction_plugin(ID,0x80022920,0x0060F809,area_redirect);
     psx_mod_register_instruction_plugin(ID,0x80032184,0x34638000,duel_damage);
@@ -5946,6 +6082,9 @@ PSX_MOD_CONSTRUCTOR(mmx5_register_coop) {
     psx_mod_register_function_filter_plugin(ID,0x80022EDC,personal_visual_tick);
     psx_mod_register_function_filter_plugin(ID,0x80022F3C,personal_visual_tick);
     psx_mod_register_function_filter_plugin(ID,0x8003240C,solid_contact);
+    /* Destructible terrain (including the bike blockades) queries shots
+     * through32F70 instead of the ordinary enemy31DD0 path. */
+    psx_mod_register_function_filter_plugin(ID,0x80032F70,contact);
     psx_mod_register_function_filter_plugin(ID,0x80054FE4,capsule_secret_init);
     psx_mod_register_function_filter_plugin(ID,0x80055D24,capsule_black_form);
     psx_mod_register_function_filter_plugin(ID,0x80055798,capsule_gate);
@@ -5960,6 +6099,8 @@ PSX_MOD_CONSTRUCTOR(mmx5_register_coop) {
     psx_mod_register_function_filter_plugin(ID,0x800F26AC,corridor_arrow_admission);
     psx_mod_register_function_filter_plugin(ID,0x800F48B4,descending_support_trigger);
     psx_mod_register_function_filter_plugin(ID,0x800EFC34,midboss_admission);
+    psx_mod_register_function_filter_plugin(ID,0x800EFF84,midboss_admission);
+    psx_mod_register_function_filter_plugin(ID,0x800F7194,glow_stair_native);
     psx_mod_register_function_filter_plugin(ID,0x800EF584,whale_player_bounds);
     psx_mod_register_function_filter_plugin(ID,0x800F0260,whale_player_bounds);
     psx_mod_register_function_filter_plugin(ID,0x800F02CC,whale_player_bounds);

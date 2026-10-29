@@ -191,9 +191,22 @@ static void snapshot_duel(Mmx5SnapshotIO *s) {
         story_duel=d;duel_story_character=(uint8_t)story;
     }
 }
+static void snapshot_stair(Mmx5SnapshotIO *s) {
+    uint32_t actor=mmx5_snapshot_integer(s,glow_stair.actor,4,UINT32_MAX);
+    uint32_t pose=mmx5_snapshot_integer(s,le32(glow_stair.pose),4,UINT32_MAX);
+    unsigned valid=mmx5_snapshot_integer(s,glow_stair.valid,1,1);
+    if(valid) {
+        int remainder=(int8_t)(pose>>8),delta=(int16_t)(pose>>16);
+        if(actor<0x8009E7A0u || actor>=0x8009F9A0u || (actor-0x8009E7A0u)%0x30u ||
+           (pose&255u)>2 || remainder < -7 || remainder > 7 || delta < -8 || delta > 8)s->ok=0;
+    } else if(actor || pose)s->ok=0;
+    if(s->ok && s->mode==MMX5_SNAPSHOT_READ) {
+        glow_stair.actor=actor;put32(glow_stair.pose,pose);glow_stair.valid=(uint8_t)valid;
+    }
+}
 static void snapshot_walk(Mmx5SnapshotIO *s) {
     mmx5_snapshot_fixed(s,0x42503558u); /* X5PB */
-    mmx5_snapshot_fixed(s,15); /* Independent native Ride Armor placement. */
+    mmx5_snapshot_fixed(s,16); /* Per-view native stair atlas animation. */
     mmx5_snapshot_fixed(s,split_views);mmx5_snapshot_fixed(s,local_split);
     mmx5_snapshot_fixed(s,both_door_players);mmx5_snapshot_fixed(s,keep_zero);
     mmx5_snapshot_fixed(s,separate_etanks);
@@ -265,6 +278,7 @@ static void snapshot_walk(Mmx5SnapshotIO *s) {
     MMX5_SNAPSHOT_FIELD(s,ai_owner,1,1);U32(ai_pool);U32(ai_pending);U32(ai_function);
     MMX5_SNAPSHOT_U8(s,ai_first_freeze);U32(area_actor);U32(area_function);
     U32(dinorex_fire.actor);MMX5_SNAPSHOT_FIELD(s,dinorex_fire.owner,1,2);BYTES(dinorex_fire.camera);
+    snapshot_stair(s);
     for(unsigned c=0;c<2;++c)U32(personal_visual_ticks[c]);
     for(unsigned i=0;i<96;++i)MMX5_SNAPSHOT_FIELD(s,personal_effect_owner[i],1,2);
     for(unsigned i=0;i<128;++i) {

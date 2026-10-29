@@ -6,6 +6,9 @@ The original comparative campaign remains parked. This list preserves each
 owner report individually; a bounded pass does not qualify every stage or route.
 The multi-stage batch adds 20 entries below, for 24 tracked reports total. A01's
 recurring armor complaint remains one issue with additional stage checks.
+Current accounting: **12 reports have bounded passing checks; 12 are open or
+partly implemented**. Passing IDs: A01/A03/G11/K06/M01/M04/I01/I02/I03/I04/I05/I06.
+The table preserves each check's limits; this is not a full-route or LAN pass.
 
 | ID | Owner report / earlier reference | Bounded check and evidence | Status |
 |---|---|---|---|
@@ -28,22 +31,22 @@ Video: <https://youtu.be/VcSXm8-Isx0>; web fetch failed, not reviewed.
 |---|---|---|---|
 | G10 | P2 train background is static and incomplete before the countdown area. | Original destructible train; compare animation intervals and complete layer art in both panes. | Open; require both animation and missing-part checks. |
 | G11 | First P2-owned boss introduction kills hovering Fourth Armor P1 through the floor; retries return safely. | The supplied recording's first living-P1/P2-owned Grizzly introduction, native dialogue and passenger return. | Fixed in current local candidate; bounded recorded-state continuation passes after23 actual pages. X returns at9676.375/379 with native collision, Zero at9658.5/378; both alive. Original/door-only continuation instead lets airborne X keep falling during the hold. Fresh admission and owner visual retest remain useful. |
-| K01 | Riders draw over the other hero's Ride Chaser. | Overlap both native bikes; check rider/bike packet order in both panes. | Open. |
-| K02 | P2 cannot shoot bike blockades until P1 dies. | Both alive, real P2 bike shots, actual blockade HP/destruction; compare survivor path. | Open. |
-| K03 | Alia dialogue still appears after bikes with skip enabled. | Execute that native hint, preserve orb-shooting action and progression while suppressing text/hold. | Open; an authored action does not by itself justify displaying the hint. |
-| K04 | P2 Zero gets X's capsule dialogue when P1 X is dead. | Original capsule, dead P1, live P2 Zero; inspect actual recipient message bank. | Open. |
-| K05 | The same surviving Zero cannot collect the capsule part. | After real conversation, actual top contact and native grant/return without setting progress flags. | Open. |
-| K06 | Kraken boss doors do not use scripted traversal. | Original Both admission/open/carry/close and native control recovery. | Implemented through generic native Both carry; actual Kraken door check remains open. Grizzly native carry closes after both movement inputs are released, with both heroes alive. |
+| K01 | Riders draw over the other hero's Ride Chaser. | Overlap both native bikes; check rider/bike packet order in both panes. | Implemented: draw each complete bike/rider in the rider's existing gameplay bucket, restoring native priority immediately. Initial paired native art inspected; moving overlap/order acceptance remains unverified. No full pass. |
+| K02 | P2 cannot shoot bike blockades until P1 dies. | Both alive, real P2 bike shots, actual blockade HP/destruction; compare survivor path. | Implemented the missing original32F70 terrain-projectile query for P2. Runtime destruction remains unverified: road-position and timing setups did not reach a qualifying shot. Stop setup variants; retain the actual blockade encounter for assisted validation. |
+| K03 | Alia dialogue still appears after bikes with skip enabled. | Execute that native hint, preserve orb-shooting action and progression while suppressing text/hold. | Native BIN7 text37/38/39 suppression implemented. Actual tutorial episode/action release remains unverified; setup did not admit its original checkpoint. |
+| K04 | P2 Zero gets X's capsule dialogue when P1 X is dead. | Original capsule, dead P1, live P2 Zero; inspect actual recipient message bank. | Stale dead-rider and enrolled-CP0 vehicle contexts fixed. Actual survivor dismount observed; capsule text remains unverified because the route shortcut failed before conversation. |
+| K05 | The same surviving Zero cannot collect the capsule part. | After real conversation, actual top contact and native grant/return without setting progress flags. | Same context fix as K04; actual grant/return remains unverified. The original capsule allocated, but a skipped camera/checkpoint prerequisite killed Zero before contact. No grant flag was seeded. |
+| K06 | Kraken boss doors do not use scripted traversal. | Original Both admission/open/carry/close and native control recovery. | Bounded native Both admission/open/carry/closing-branch check passes at actual CP4/door8656; `glow-kraken-report.json`. Both alive, inputs released on admission. Kraken-specific boss introduction/control recovery remains separate. |
 | M01 | P2 camera sticks during whale sequence. | Native first whale controller/room advances while P2 moves and shoots; compare both complete camera records and native bounds. | Fixed; bounded current31a04f12 pass, 300 real world updates with both alive and matching authored cameras. Original2dd6574d retained stale P2 bounds594/247 while native room reached661/263. |
 | M02 | Whale parts float after being hit. | Actual attacks/HP change and subsequent native part positions/parent relation. | Open. |
 | M03 | Checkpoint respawn leaves P2 in a free-roam area. | Actual retry/next-checkpoint initialization and both authored camera limits. | Open. |
 | M04 | First whale miniboss has missing P2 graphics. | Actual first whale and its moving atlas in both presented views. | Fixed for the bounded first-whale view; current31a04f12 shows complete matching whale/background art. Actual part damage and later whale variants remain separate checks. |
 | M05 | Second vertical-scrolling section breaks. | Its original controller, scrolling, transitions and both views. | Open. |
 | M06 | Both heroes die after jumping down. | Actual drop after the vertical section, native destination/collision and individual survival. | Open. |
-| I01 | P2 cannot stand on chained spike platforms. | Native jump/landing/contact/carry on one original platform. | Open. |
-| I02 | Leading P2 does not trigger stair-area Sigma viruses. | P2 crosses the real admission boundary; observe actual native virus allocations. | Open. |
-| I03 | Leading P2 does not trigger the stair-area miniboss. | Real admission, fight start and control recovery with P1 behind. | Open. |
-| I04 | P2 stair background is not animated. | Original stair controller across animation intervals in both panes. | Open. |
+| I01 | P2 cannot stand on chained spike platforms. | Native jump/landing/contact/carry on one original platform. | Fixed; actual type10 platform1424 before/after: P2 previously falls through, now lands361.109 and jumps316.086 while P1 stays160/411. `glow-chain-before-report.json` / `glow-chain-after-report.json`. Earlier type13 crusher check is a different mechanic and does not qualify this entry. |
+| I02 | Leading P2 does not trigger stair-area Sigma viruses. | P2 crosses the real admission boundary; observe actual native virus allocations. | Bounded pass: native P2-only walking from raw6/1 CP0 admits original class19 while P1 remains stationary. No teleport, rescan, infection or actor-phase writes. `glow-native-P2-virus-report.json`. Full infection/recovery was independently qualified in the earlier V10 campaign. |
+| I03 | Leading P2 does not trigger the stair-area miniboss. | Real admission, fight start and control recovery with P1 behind. | Fixed matching AI camera context; actual leading-P2 admission of original class27 with P1 at120 passes in `glow-kraken-report.json`. Native camera gate1600 and P2-owned scene observed. Full miniboss combat/recovery remains separate. |
+| I04 | P2 stair background is not animated. | Original stair controller across animation intervals in both panes. | Fixed per-view native spatial atlas state. Three actual atlas frames0/512/1024,337 native producer calls and current-build mid-animation save/load pass in `current-mechanics-report.json`. No second world/AI clock. |
 | I05 | Glow boss doors do not use scripted traversal. | Actual raw6/1 CP4 door3824, release both movement inputs on admission, observe native opening/carry/closure and distinct P2 sprite frames. | Passed on current2dd6574d; `native-stage-doors-report.json`, stage6. Native introduction also fills HP and releases both heroes. |
 | I06 | Defeating Izzy Glow with both alive freezes the game. | Real X buster hit against one positive HP, both native victory poses, actual mission report and reward bit. | Bounded pass on current2dd6574d; the reported freeze did not recur. `native-door-stage6/actual-defeat/report.json` reaches mode12/1 and native defeated bit32 with both alive. Full attack-pattern/route and LAN remain separate. |
 
@@ -246,3 +249,85 @@ K06 remains unverified; use the actual nearby CP4 for the bounded door check.
 The rejected SERVER job had no matching local fixture/executable paths and never
 launched a game. Subsequent jobs reserve measured local capacity and pin their
 process tree to one logical CPU; no unrelated work is stopped.
+
+## Glow, bike contact and reproduction limits milestone
+
+Final milestone executable SHA256:
+`2ed3891f570ce4906db5ec757cda420ce5863fc7ea19a9b9740b56dff5c2cc9b`.
+The build and all25 CTests pass; `git diff --check` passes. The runtime evidence
+below identifies the tested earlier executables explicitly. The final two
+bounded source adjustments correct the second-drop dispatch-table guard and
+restrict bike grouping to complete visible pairs; they do not turn either
+unverified interaction into a pass. This is a local implementation milestone,
+not a new release or complete parity claim.
+
+Nearest-player AI now receives that player's retained camera as well as body.
+Native contacts retain their existing canonicalization. This resolves the
+leading-P2 stair miniboss admission without advancing the shared AI twice.
+The chained platform's original48-pixel contact predicate also considers a
+nearby living P2; original3240C still owns real landing/carry/contact order.
+
+Glow's original F7194 spatial leaf runs against P2's four retained atlas bytes
+for the extra view. It does not repeat lifecycle, enemy or audio work. The
+original producer survives until the last living stair resident leaves. Those
+bytes are included in the state digest and snapshot schema16. A fresh native
+New Game seed and actual current-build mid-animation save/load pass. Earlier
+schema15 setups remain paired with their original executables; no save-state
+migration is required or provided. Native memory cards are preserved.
+
+Kraken destructible terrain calls original32F70 instead of the ordinary31DD0
+enemy shot query. Its new hook uses the existing per-seat projectile/contact
+history. Supported resident regeneration changes only generated shard10's
+32F70 entry prologue; `resident-regenerate-diff.json` retains before/after
+identities. Generated outputs remain ignored. Bike grouping is restricted to
+two visible living mounted heroes and visible native bikes; single-survivor
+and hidden-actor rendering retain their native path. Both changes remain
+implemented but not fully runtime-qualified, as the table states.
+
+Reproduction limits are material:
+
+- Kraken's positioned survivor completes the real bike dismount. An original
+  bounded placement rescan admits the real capsule, but the shortcut skipped
+  checkpoint/camera admission and Zero dies before conversation. This does not
+  pass K03/K04/K05. The rescan fixture now supports the already canonical P2
+  survivor scope; it still fabricates no actors or completion state.
+- Bike timing/position approaches did not qualify a blockade hit. One atomic
+  owned-process coordinate setup also stopped before original placement
+  admission. No shooting/terrain completion is inferred from the missing hook
+  alone. `server-bike-native-road-report.json` and `atomic-bike-paused-report.json`
+  retain the failed setups. Stop further variants until a usable native setup
+  or owner encounter is available.
+- McWhalen's CP4 constant-height shortcut kills P1 too; it cannot establish a
+  P2 ownership failure. Native walking from CP4 and CP5 instead keeps both alive
+  for480 updates, but does not complete the reported vertical/drop transition.
+  `whale-native-motion-report.json` is partial setup evidence, regardless of its
+  generic success fields. Its whale-part attempt found no qualifying visible
+  positive-HP part and never performed the claimed hit.
+- The later4817 P2 admission hook uses the actual E28 dispatch entry. A direct
+  teleport to that gate still violates the earlier room setup and loses both
+  heroes before qualifying CP5. `whale-native-second-admission-report.json`
+  is a failed setup, not a native-drop pass. M02/M03/M05/M06 remain open.
+
+The remaining checks bundle into four useful encounters: separated intro
+Alia/enemy return (A02/A04), destructible Grizzly train art (G10), Kraken ride
+and survivor capsule (K01..K05), and McWhalen's actual whale/damage/retry/drop
+route (M02/M03/M05/M06). Keep the individual outcomes and caveats when a human
+provides those routes. Do not turn a checkpoint load into blanket acceptance.
+
+The private SERVER runtime copy was measured and reserved through the shared
+target pool. It launched with the actual OpenGL backend and private cards;
+there was no remote Git or tracker operation. Needed reports, images, runtime
+identities and a native setup are retained in `server-retained-evidence.zip`
+(SHA256 `543778fb4f74985b2425dd66cdf62c96f97239c7275056ef3d689467364e67ac`).
+The verified transfer precedes non-forced removal of the entire owned SERVER
+task directory:1,394,035,152 bytes,132 files. `server-cleanup-receipt.json`
+records containment, task marker, no active owned process and no nested
+repository/reparse-point checks. Local evidence/current setups remain outside
+delivery folders; the sole Nextcloud v0.2.7 archive is unchanged.
+
+`local-cleanup-receipt.json` records another788,665,224 bytes removed: transfer
+payload, redundant generated outputs/train profile and private task caches.
+Retained current candidate, fresh schema16 seed, original recordings, decisive
+native setups/images/reports and the original executable identities support
+ongoing validation. Retire these task-local test profiles after the remaining
+owner-report campaign is accepted; they are not additional delivery builds.

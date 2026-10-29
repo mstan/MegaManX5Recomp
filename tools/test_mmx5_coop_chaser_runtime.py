@@ -71,8 +71,10 @@ def load_stage(r):
         # playable car section. It is not a retry-arrival completion flag.
         wait_for(lambda:r.read(PLAY,2)==b'\x0a\x00' and
                  r.lifecycle()[:2]==(0,0) and all(b[4]==1 for b in r.players()),seconds=30)
-    enrolled_before=next(c['count'] for c in r.request('mod_counters')['counters']
-                         if c['name']=='mmx5.coop.enrolled')
+    # Host counters are not restored with a native snapshot. A cold restored
+    # game is enrolled even before this process has emitted its first count.
+    enrolled_before=next((c['count'] for c in r.request('mod_counters')['counters']
+                         if c['name']=='mmx5.coop.enrolled'),0)
     # Use original 20B80/title entry too: it records the selected mission at
     # PLAY+26/+27 before loading the title overlay and returning to mode7.
     # Retain fixture provenance and the original fresh-entry policy reset.
@@ -85,8 +87,8 @@ def load_stage(r):
         play=r.read(PLAY,32)
         bodies=r.players()
         cars=r.cars()
-        enrollments=next(c['count'] for c in r.request('mod_counters')['counters']
-                        if c['name']=='mmx5.coop.enrolled')
+        enrollments=next((c['count'] for c in r.request('mod_counters')['counters']
+                        if c['name']=='mmx5.coop.enrolled'),0)
         if (play[0]==10 and play[12:14]==b'\x05\x00' and
                 r.read(PLAYER+0xd5,1)==b'\xff' and bodies[1][0xd5]==0xff and
                 enrollments>enrolled_before and r.lifecycle()[:2]==(0,0) and

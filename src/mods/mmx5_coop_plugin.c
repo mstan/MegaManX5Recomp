@@ -2734,6 +2734,25 @@ static void both_project(unsigned seat) {
     if(seat && !projected)enter_second();
     else if(!seat && projected)leave_second_context(1);
 }
+static void both_native_entry(CPUState *cpu,unsigned seat) {
+    if(!both_living(seat))return;
+    /* The entrant's ordinary player pass consumes the positive door gate
+     * through native399D4, selecting its scripted walk/dash animation before
+     * the shared hold. Writing FF directly for the companion skipped that
+     * initialization. Ticking an ended transient's timer then left its last
+     * sprite unchanged throughout the carry. Initialize the native action;
+     * the shared door remains the sole movement and scene-clock owner. */
+    unsigned was=projected,old_busy=busy;busy=1;
+    both_project(seat);psx_mod_write_byte(PLAYER+0xD4,1);
+    /* The shared entry is already committed. Unlike P1, this suspended body
+     * cannot wait out A4 and retry initialization on its next ordinary pass. */
+    uint8_t immunity=psx_mod_read_byte(PLAYER+0xA4);
+    psx_mod_write_byte(PLAYER+0xA4,0);
+    guest(cpu,0x800399D4,PLAYER,0);
+    psx_mod_write_byte(PLAYER+0xA4,immunity);
+    both_project(was);busy=old_busy;
+    psx_mod_counter_add("mmx5.coop.both-door-native-companion-entries",1);
+}
 static void both_restore_control(CPUState *cpu,unsigned seat) {
     if(!both_living(seat) || both_body_byte(seat,0xD5))return;
     unsigned was=projected,old_busy=busy;busy=1;
@@ -2807,11 +2826,16 @@ static int both_door_traversal(CPUState *cpu,uint32_t address) {
             /* The ordinary P1 pass still advances its door animation, while
              * second_tick skips P2 under this shared lock. Advance only that
              * suspended body's native animation, retaining its walk/dash
-             * program. Native17248 changes only the animation cursor/timer;
-             * the original door above remains the sole movement/clock owner. */
+             * program. A braking/landing program can finish after admission;
+             * switch that ended transient to native399D4's authored entry
+             * loop26 instead of decrementing its terminal timer forever.
+             * The original door remains the sole movement/clock owner. */
             if(companion==1 && companion_held && !body[0x67]) {
                 unsigned old_busy=busy;busy=1;
-                enter_second();guest(cpu,0x80017248,PLAYER,0);leave_second();
+                enter_second();guest(cpu,0x80017248,PLAYER,0);
+                if((int8_t)psx_mod_read_byte(PLAYER+0x46)<0)
+                    guest(cpu,0x8003B33C,PLAYER,0x26);
+                leave_second();
                 busy=old_busy;
                 psx_mod_counter_add("mmx5.coop.both-door-companion-animation-ticks",1);
             }
@@ -2933,6 +2957,7 @@ static int door_tick_canonical(CPUState *cpu,uint32_t address) {
             (int16_t)old_max,(int16_t)right,psx_mod_read_byte(PLAY+0x0C),
             psx_mod_read_byte(PLAY+0x0D),1,(uint8_t)seat,
             (uint8_t)(!old_lock && psx_mod_read_byte(PLAY+0x1C))};
+        both_native_entry(cpu,seat^1u);
         both_gate(seat^1u,255);life.select_frames=life.select_armed=0;
         psx_mod_counter_add("mmx5.coop.both-door-starts",1);
     }
@@ -3880,6 +3905,31 @@ static int dinorex_fire_content(void) {
 static int dinorex_fire_stage(void) {
     return split_available() && dinorex_fire_content();
 }
+static int dinorex_wall_camera(CPUState *cpu,uint32_t address) {
+    uint32_t actor=cpu->gpr[4];
+    if(area_call || busy || projected || !dinorex_fire_stage() ||
+       address!=0x800F3780u || !solid_record(actor) ||
+       !psx_mod_read_byte(actor) || psx_mod_read_byte(actor+1)!=0x0C ||
+       psx_mod_read_byte(actor+2)!=1 ||
+       psx_mod_read_word(address)!=0x27BDFFE8u ||
+       psx_mod_read_word(0x800F379Cu)!=0x2463580Cu ||
+       psx_mod_read_word(0x800F580Cu)!=0x800F2378u)return 0;
+    /* Native F2378/F25BC belongs to terrain class0C/sub1, not enemy24.
+     * Its one controller captures/restores camera bounds and waits for the
+     * actual fire destruction. Keep it on the burst's admitting camera so
+     * a leading P2 can reach the native stop and release all three walls. */
+    Mmx5CoopViewActor actors[2];split_actors(actors);
+    unsigned target=mmx5_coop_view_nearest(actors,
+        (int16_t)psx_mod_read_half(actor+10),(int16_t)psx_mod_read_half(actor+14),0);
+    if(dinorex_fire.owner && dinorex_fire.owner<=2 &&
+       actors[dinorex_fire.owner-1].active)target=dinorex_fire.owner-1;
+    if(!target)return 0;
+    area_call=1;
+    uint32_t result=later_support_as_second(cpu,address,actor);
+    area_call=0;cpu->gpr[2]=result;
+    psx_mod_counter_add("mmx5.coop.p2-dinorex-native-wall-ticks",1);
+    return 1;
+}
 static int dinorex_fire_actor(uint32_t actor) {
     return psx_mod_read_byte(actor+1)==0x25 && !psx_mod_read_byte(actor+2);
 }
@@ -3892,7 +3942,29 @@ static int dinorex_floor_seal(CPUState *cpu,uint32_t address) {
        psx_mod_read_word(0x800EEB50u)!=0x0C00A2C6u ||
        actor<0x8009E7A0u || actor>=0x8009F9A0u || (actor-0x8009E7A0u)%0x30u ||
        !psx_mod_read_byte(actor) || psx_mod_read_byte(actor+1)!=1 ||
-       psx_mod_read_byte(actor+2)!=1 || psx_mod_read_byte(actor+4)!=1 ||
+       psx_mod_read_byte(actor+4)!=1)return 0;
+    if(!psx_mod_read_byte(actor+2)) {
+        /* Subtype0 admits the lower region's original map/atlas request.
+         * Unlike camera areas (class0), this class1 controller still reads
+         * only canonical PLAYER/CAMERA. A leading P2 otherwise reaches the
+         * lower corridor and fire using the upper region's art. Run that
+         * actual command once on its eligible camera/body; retain the
+         * trailing view through the existing immutable old-region atlas. */
+        if(area_call || projected || !split_available() ||
+           psx_mod_read_word(actor+0x18)!=0x800F4828u ||
+           psx_mod_read_half(0x800F4834u)!=2192 ||
+           life.status[1]!=MMX5_COOP_ALIVE || second.body[4]!=1 ||
+           (int16_t)(split_cameras[1][14]|split_cameras[1][15]<<8)<2192 ||
+           (int16_t)(le32(second.body+12)>>16)<2228 ||
+           ((int16_t)psx_mod_read_half(CAMERA+14)>=2192 &&
+            (int16_t)psx_mod_read_half(PLAYER+14)>=2228))return 0;
+        area_call=1;
+        uint32_t result=later_support_as_second(cpu,address,actor);
+        area_call=0;cpu->gpr[2]=result;
+        psx_mod_counter_add("mmx5.coop.p2-dinorex-lower-atlas-admissions",1);
+        return 1;
+    }
+    if(psx_mod_read_byte(actor+2)!=1 ||
        psx_mod_read_word(actor+0x18)!=0x800F4836u ||
        psx_mod_read_half(0x800F483Eu)!=20 || psx_mod_read_half(0x800F4842u)!=2656)return 0;
     /* Subtype1 closes the one floor row at Y2640 after the native body
@@ -3989,9 +4061,7 @@ static void ai_update(CPUState *cpu,uint32_t address) {
         int retained_fire=dinorex_fire_stage() && dinorex_fire_actor(actor) &&
             dinorex_fire.actor==actor && dinorex_fire.owner;
         if(retained_fire)camera_seat=dinorex_fire.owner-1;
-        int fire_camera=dinorex_fire_stage() &&
-            (dinorex_fire_actor(actor) ||
-             (psx_mod_read_byte(actor+1)==0x24 && psx_mod_read_byte(actor+2)==1));
+        int fire_camera=dinorex_fire_stage() && dinorex_fire_actor(actor);
         if(fire_camera) {
             /* Fire scroll and wall stops are authored CAMERA commands. Run
              * them once against the same view as their body predicate. */
@@ -4071,6 +4141,30 @@ static void split_scenery_origins(CPUState *cpu) {
         psx_mod_write_half(actor+10,(uint16_t)x);
         cpu->gpr[6]=0x60u;guest(cpu,0x8002D9ECu,actor,0x60u);
         psx_mod_counter_add("mmx5.coop.local-scenery-origin",1);
+    }
+}
+static void intro_scenery_checkpoint(CPUState *cpu,uint32_t address) {
+    (void)address;uint32_t actor=cpu->gpr[16];
+    if(!split_available() || psx_mod_local_view_scope() ||
+       psx_mod_read_byte(PLAY+12) || psx_mod_read_byte(PLAY+13) ||
+       !cpu->gpr[2] || psx_mod_read_word(0x800EE970u)!=4u ||
+       psx_mod_read_word(0x800F1200u)!=0x14400011u ||
+       psx_mod_read_word(0x800F1208u)!=0x8444A202u ||
+       actor<0x800D1F40u || actor>=0x800D4F40u || (actor-0x800D1F40u)%0x60u ||
+       psx_mod_read_byte(actor+1)!=0x36u)return;
+    /* Native F11BC retires these original foreground props after the
+     * singleton checkpoint advances. A distant old-region view still needs
+     * them. Retain the native actors/animation until the last visible hero
+     * leaves; private draws already recompute their origin and visibility.
+     * Do not roll back the checkpoint or synthesize replacement objects. */
+    for(unsigned seat=0;seat<2;++seat)if(
+       (mmx5_coop_living(&life,seat) || life.status[seat]==MMX5_COOP_DYING) &&
+       (int16_t)(split_cameras[seat][10]|split_cameras[seat][11]<<8)<2568) {
+        /* Change this actor's retirement predicate, not the shared native
+         * checkpoint. Its original origin/cull path still runs this frame. */
+        cpu->gpr[2]=0;
+        psx_mod_counter_add("mmx5.coop.intro-foreground-retirement-waits",1);
+        return;
     }
 }
 static void shared_atlas_view(uint8_t *view,const uint8_t *canonical) {
@@ -5697,6 +5791,8 @@ PSX_MOD_CONSTRUCTOR(mmx5_register_coop) {
     psx_mod_register_function_filter_plugin(ID,0x8002D89C,split_actor_bounds);
     psx_mod_register_function_filter_plugin(ID,0x8002D9EC,split_actor_bounds);
     psx_mod_register_function_filter_plugin(ID,0x8002DAA0,split_actor_bounds);
+    psx_mod_register_instruction_plugin(ID,0x800F1200,0x14400011,intro_scenery_checkpoint);
+    psx_mod_register_function_filter_plugin(ID,0x800F3780,dinorex_wall_camera);
     psx_mod_register_function_filter_plugin(ID,0x80068C28,present_local_view);
     psx_mod_register_function_filter_plugin(ID,0x80021F64,ai_pool_tick);
     psx_mod_register_function_filter_plugin(ID,0x800221B0,ai_pool_tick);

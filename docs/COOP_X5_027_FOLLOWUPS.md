@@ -14,7 +14,7 @@ The separate **25 CTests are build/source regressions**, not additional gameplay
 reports. Their passing result does not close an open row in this list.
 The table preserves each check's limits; this is not a full-route or LAN pass.
 
-Latest native qualification (same2ed3891f candidate, private SERVER, native1x
+Earlier native qualification (same2ed3891f candidate, private SERVER, native1x
 render override): K04/K05 and M03 pass. The capsule setup bypasses bike/orb
 access using the supplied recording's complete authored camera and a bounded
 original placement rescan. X dies through his native lifecycle first. Zero
@@ -50,16 +50,13 @@ weapon follows its original phase4 response. Source/table existence alone
 was not counted: earlier point-blank shots overshot the weapon and were
 unqualified; native leftward movement supplies actual muzzle clearance.
 
-Two original reports remain: A02 and M06. Keep their native
-reproduction/visual gaps explicit. Earlier setup failures below are retained
-as history; the final-five update below supersedes K02/K03/A04's old gaps.
-The long CP5 idle trial scrolls both views
-together, but standing on the whale eventually kills both heroes; it does not
-qualify the reported onward drop or prove a co-op regression. Bike teleports
-and an automatic jump approach also failed to qualify actual blockade damage.
-One complete native end-room setup reaches real dismount but not the orb
-tutorial; P2 remains held, so K03 stays open. No guessed controller/result
-flags or speculative gameplay fixes are added to turn those into passes.
+Two original reports remain: A02 and M06. Keep their reproduction/visual gaps
+explicit. The final-five and causal ship updates below supersede earlier
+K02/K03/A04/M05 gaps. Current native candidate SHA256 is
+`02873404cfa26dc2039e0b7d229264782313e8210163b63d465c408909df9c23`,
+including local source milestones64448db and57971ea. All25 CTests pass on that
+candidate; their count is separate from23/25 gameplay reports. The owner-facing
+profiles below still use6E43DC47 and have not received the new source fixes.
 
 Prepared current-build follow-up station:
 `G:/Temp/Codex/psxrecomp/x5-parity/owner-027-multistage-20261029/remaining-owner-qa/Validation.ps1`.
@@ -134,7 +131,7 @@ Video: <https://youtu.be/VcSXm8-Isx0>; web fetch failed, not reviewed.
 | G11 | First P2-owned boss introduction kills hovering Fourth Armor P1 through the floor; retries return safely. | The supplied recording's first living-P1/P2-owned Grizzly introduction, native dialogue and passenger return. | Fixed in current local candidate; bounded recorded-state continuation passes after23 actual pages. X returns at9676.375/379 with native collision, Zero at9658.5/378; both alive. Original/door-only continuation instead lets airborne X keep falling during the hold. Fresh admission and owner visual retest remain useful. |
 | K01 | Riders draw over the other hero's Ride Chaser. | Overlap both native bikes; check rider/bike packet order in both panes. | Bounded current2ed3891f pass: native entry and actual P2 dash retain overlapping bike bounds, complete P2 bike/rider before complete P1 bike/rider, both alive, native body2/bike4 priorities restored. Both composed panes are pixel-identical under the native bike scene gate. Existing GPU trace qualifies order despite the partly covering READY cue. `bike-packet-order-report.json`; no full-route claim. |
 | K02 | P2 cannot shoot bike blockades until P1 dies. | Both alive, real P2 bike shots, actual blockade HP/destruction. | Bounded pass on currentA1F53608 (and earlierB89AEBCA): original32F70 now reaches P2 shots. Original blockade800C71C0 loses its native1HP and enters destruction phase3; P2-hit counter increments once with that exact actor, both riders alive, P1 never fires. Position/history pinning between short native intervals and an original placement scan bypass road traversal; target HP/phase/result flags are untouched. Full driving/survivor-route coverage is separate. `atomic-bike-pinned-shot-report.json`. |
-| K03 | Alia dialogue still appears after bikes with skip enabled. | Execute that native hint, preserve orb-shooting action and progression while suppressing text/hold. | Fixed; bounded currentA1F53608 pass (earlierC62C203B also passes). Dismount clearsD5 before the bike's phase2 exit program finishes. Retain/tick that living bike until original retirement instead of erasing its private state and stranding P2. Both heroes complete the actual native shooting programs, PLAY+27 changes0â†’1â†’3, four Alia requests are suppressed, no text appears, and both native holds clear. Earlier eight energy pickups are explicitly bypassed using the supplied recording's count atPLAY+26; that collection and the full road are not qualified. PLAY+27 and controller/exit-result flags are never written. `five-K03-native-score-prerequisite-report.json`, matched before/after-context reports. |
+| K03 | Alia dialogue still appears after bikes with skip enabled. | Execute that native hint, preserve orb-shooting action and progression while suppressing text/hold. | Fixed; bounded currentA1F53608 pass (earlierC62C203B also passes). Dismount clearsD5 before the bike's phase2 exit program finishes. Retain/tick that living bike until original retirement instead of erasing its private state and stranding P2. Both heroes complete the actual native shooting programs, PLAY+27 changes 0 -> 1 -> 3, four Alia requests are suppressed, no text appears, and both native holds clear. Earlier eight energy pickups are explicitly bypassed using the supplied recording's count atPLAY+26; that collection and the full road are not qualified. PLAY+27 and controller/exit-result flags are never written. `five-K03-native-score-prerequisite-report.json`, matched before/after-context reports. |
 | K04 | P2 Zero gets X's capsule dialogue when P1 X is dead. | Original capsule, dead P1, live P2 Zero; inspect actual recipient message bank. | Fixed; bounded current2ed3891f pass. Native P1 death, actual Zero-recipient message initialization and12 real page confirmations, then normal scene release. Bike/orb access bypassed explicitly. `remaining12-survivor-capsule-report.json`. |
 | K05 | The same surviving Zero cannot collect the capsule part. | After real conversation, actual top contact and native grant/return without setting progress flags. | Fixed; bounded current2ed3891f pass in the same capsule episode. Position above the native top, real gravity/contact, original grant changes PLAY+A1 bit1 from0 to1, scene/control recovery with X still dead. No grant/result/contact flags written. |
 | K06 | Kraken boss doors do not use scripted traversal. | Original Both admission/open/carry/close and native control recovery. | Bounded native Both admission/open/carry/closing-branch check passes at actual CP4/door8656; `glow-kraken-report.json`. Both alive, inputs released on admission. Kraken-specific boss introduction/control recovery remains separate. |
@@ -142,8 +139,8 @@ Video: <https://youtu.be/VcSXm8-Isx0>; web fetch failed, not reviewed.
 | M02 | Whale parts float after being hit. | Actual attacks/HP change and subsequent native part positions/parent relation. | Bounded current2ed3891f pass: actual X buster destroys a positive1HP weapon7, then78 native updates with both alive/matching cameras. All remaining parts preserve their native offsets as the root moves67px/9px; composed views match without detached art. Other positive, non-invulnerable parts were also set to1HP; no destruction/phase/result flags written. `remaining12-native-event-report.json`, `native-part-hit.png`. |
 | M03 | Checkpoint respawn leaves P2 in a free-roam area. | Actual retry/next-checkpoint initialization and both authored camera limits. | Fixed; bounded current2ed3891f CP2 retry passes. Actual sequential native deaths consume one shared life, reload CP2 and re-enroll both. P2 moves189px to native solid-wall contact while both authored camera records match for240 updates; original P2 whale-boundary calls run. Prior whale defeat bypassed by native CP2 setup. `remaining12-native-floor-whale-report.json`. |
 | M04 | First whale miniboss has missing P2 graphics. | Actual first whale and its moving atlas in both presented views. | Fixed for the bounded first-whale view; current31a04f12 shows complete matching whale/background art. Actual part damage and later whale variants remain separate checks. |
-| M05 | Second vertical-scrolling section breaks. | Its original controller, scrolling, transitions and both views. | Fixed; bounded02873404 pass for the reported moving-hull/parts separation. Native root updates the hull layer, but P2-nearest AI restored the old canonical camera and discarded that update. Preserve the one authored whale camera while retaining nearest-player body targeting. Baseline separation grows4?18px; fixed P2-nearest14/14 and P1-nearest10/10 samples align, both alive. Current-build save/load and cold-load align too; inspected paired images show attached fin/pods. Native alternating fin visibility is preserved. Earlier route/whole encounter completion is bypassed, not qualified. `ship-astra-causal-qualification.json`. |
-| M06 | Both heroes die after jumping down. | Actual drop after the vertical section, native destination/collision and individual survival. | Open gameplay check. Corrected CP4 hallway and CP5 vertical setups cold-load with intact scenery and both alive on6E43DC47. Original route/earlier whale defeat bypassed; actual reported drop still needs validation. |
+| M05 | Second vertical-scrolling section breaks. | Its original controller, scrolling, transitions and both views. | Fixed; bounded02873404 pass for the reported moving-hull/parts separation. Native root updates the hull layer, but P2-nearest AI restored the old canonical camera and discarded that update. Preserve the one authored whale camera while retaining nearest-player body targeting. Baseline separation grows from 4 to 18px; fixed P2-nearest14/14 and P1-nearest10/10 samples align, both alive. Current-build save/load and cold-load align too; inspected paired images show attached fin/pods. Native alternating fin visibility is preserved. Earlier route/whole encounter completion is bypassed, not qualified. `ship-astra-causal-qualification.json`. |
+| M06 | Both heroes die after jumping down. | Actual reported CP3 drop, native preceding encounter/destination/collision and individual survival. | Open; original recording's repeated deaths are at CP3, X3011..3120/Y504..507. Current native leading-P2 admission and passenger return work, then a forward jump before defeating the admitted whale kills X near3107/Y505. The solo comparison fails stage-loading setup; intended pre-defeat hazard versus co-op fault is unresolved. Actual post-defeat traversal is unverified. Earlier CP4/CP5 attempts targeted the wrong location and are not passes. `M06-original-native-death-locations.json`, `five-M06-recorded-approach-report.json`, `M06-native-control-report.json`. |
 | H01 | Bike entry briefly shows both players' HUDs in both panes before correcting. Each pane must retain its own player's HUD throughout. | Native bike arrival through active driving, both pane HUDs on every presented frame; preserve native shared room and rider grouping. | Fixed in localA60BEF21. All186 presented bike-entry frames at native1x and186 at owner1080p/5x keep X on the left and Zero on the right, from first HUD through native arrival/READY. Existing image-ring records, badge-color screening and inspected contact sheets retain the evidence; zero render aborts/watchdogs/VRAM or state leaks. Cameras still share the native road. Current-build bike save/cold-load also passes. Full-route, LAN and spectator-death visual acceptance remain separate. |
 | I01 | P2 cannot stand on chained spike platforms. | Native jump/landing/contact/carry on one original platform. | Fixed; actual type10 platform1424 before/after: P2 previously falls through, now lands361.109 and jumps316.086 while P1 stays160/411. `glow-chain-before-report.json` / `glow-chain-after-report.json`. Earlier type13 crusher check is a different mechanic and does not qualify this entry. |
 | I02 | Leading P2 does not trigger stair-area Sigma viruses. | P2 crosses the real admission boundary; observe actual native virus allocations. | Bounded pass: native P2-only walking from raw6/1 CP0 admits original class19 while P1 remains stationary. No teleport, rescan, infection or actor-phase writes. `glow-native-P2-virus-report.json`. Full infection/recovery was independently qualified in the earlier V10 campaign. |
@@ -173,22 +170,22 @@ release replay's four hint interactions and current continuations already
 retain consecutive presented history. No speculative camera policy change is
 added to convert a non-reproduction into a claimed fix.
 
-M06 remains a setup/reproduction gap. A direct CP4 cross-room position setup
-kills the teleported hero; a native walking/jumping approach instead stops at
-the real wall near3477. The CP5 position-assisted ascent reaches cameraY708,
-then both bodies hit a fatal hazard before the actual onward drop. These
-attempts do not qualify the drop and do not establish a regression in normal
-traversal. Keep them as failed setup evidence in `five-M06-*-report.json`;
-do not ask the owner to repeat an unchanged unqualified card.
+M06's original recorded deaths are now located at native CP3, rather than the
+earlier CP4/CP5 setups. Actual current leading-P2 admission/return succeeds;
+an immediate forward jump before defeating that whale still kills X. The
+feature-disabled solo comparison fails its native stage-loading setup, so the
+cause remains unresolved. Do not suppress a potentially intended native fall
+or ask the owner to repeat an unchanged unqualified card. Earlier CP4 wall and
+CP5 fatal-ascent attempts remain failed setup evidence, not normal-route passes.
 
 Only after these five bounded investigations, the final read-only ship retry
 records actual class1E dispatch800FD8F8 and its scratch table in
-`five-current-checks/ship-last-dispatch`. The conditionally authorized Astra
-second look is confined to the unresolved ship drawing/native-entry problem.
-No ship rendering fix has passed, and the owner-facing6E43DC47 profiles and
-the single delivered v0.2.7 archive remain unchanged.
+`five-current-checks/ship-last-dispatch`. The authorized Astra second look then
+finds and fixes the discarded native hull-camera update. Its causal controls
+and bounded visual pass are recorded in the final ship section below. The
+owner-facing6E43DC47 profiles and single delivered v0.2.7 remain unchanged.
 
-Latest owner handoff: bikes look okay (K01 owner confirmation; this does not
+Earlier owner handoff: bikes look okay (K01 owner confirmation; this does not
 independently confirm K02 actual blockade destruction or K03 orb progression).
 The owner rejected the original CP4 hallway and CP5 whale setups for corrupt
 scenery. Their retained creation images confirm that failure before cold load.
@@ -262,7 +259,7 @@ The baseline executable is the exact delivered v0.2.7 SHA256
 confirmations and setup snapshots; their session files identify binaries.
 `ctest.log` records25/25 passing checks after the two fixes.
 
-Final candidate SHA256:
+Earlier intro armor/door candidate SHA256:
 `20e92f4c88e94b4545211f5832d552ea89f80380619cb0b49b9890f05227158c`.
 The earlier isolated road-return run used the armor-only candidate; the final
 combined building/door check includes both source changes. The building hint
@@ -563,7 +560,7 @@ restartable private saves. Original failed states and owner observations remain
 preserved. Source and commits stay local; the sole Nextcloud release is unchanged.
 
 
-### Moving ship report remains unresolved (2026-10-29)
+### Earlier unresolved ship investigation (superseded by causal fix below)
 
 The owner reports ship pieces staying behind the moving hull, eventually
 realigning, on the corrected6E43DC47 CP5 setup. Preserve screenshot
@@ -594,13 +591,14 @@ checks on an experiment, not gameplay acceptance. Useful evidence includes
 `whale-parts-validation/displayed-frame`, `whale-display-qualified-evidence`
 and `whale-intact-start-evidence`; the last first-cold capture fails visually.
 
-Next bounded check: use the existing corrected CP4 hallway setup and take the
-actual native onward admission/drop, recording the first complete/incomplete
-ship frame and both player positions. This jointly targets M05/M06 without
-manufacturing controller/defeat/drop flags or more rendering variants. The
-direct CP5 card is unqualified; native entry/completion/drop and wider/LAN
-behavior remain unverified. Keep6E43DC47 in the owner station, preserve notes
-and source history, and leave Nextcloud unchanged. No push or tracker sync.
+The next check planned at that milestone used the corrected CP4 hallway and
+actual native onward admission/drop, to avoid manufacturing controller/defeat/
+drop flags or more rendering variants. The attempts did not qualify the
+reported drop; later original-record indexing locates it at CP3. The direct
+CP5 owner card remains disabled until replaced with a qualified setup. The
+new causal ship check below supersedes this investigation's visual gap;
+whole-route completion and wider/LAN behavior remain unverified. Keep6E43DC47
+in the owner station and preserve notes and source history.
 
 Final combined candidateA1F53608 repeats actual P2-only blockade damage and
 the native orb result/control release. Saving and loading the current-build
@@ -631,12 +629,23 @@ The original M06 recording is now indexed independently of the incomplete
 replay summary: repeated deaths occur at actual CP3, X3011..3120/Y504..507.
 The earlier CP4/CP5 attempts did not target that report. Current CP3's native
 leading-P2 admission and passenger return work, but an immediate forward jump
-before the admitted whale is defeated still kills X near3107/Y505. Retain
-that reproduction and a native feature-disabled control before deciding
-whether this is an unintended drop or the ordinary pre-defeat pit. No blind
-fall/crush suppression is added. Actual post-defeat drop remains unverified.
+before the admitted whale is defeated still kills X near3107/Y505. The fresh
+feature-disabled comparison times out loading native stage3, before reaching
+the location; it is a failed setup, not a native fatal control. The cause is
+therefore unresolved. No blind fall/crush suppression is added, and ordinary
+post-defeat traversal remains unverified. Stop setup variants and retain the
+concrete evidence for a normal-route/human-assisted check.
 
 Evidence: `ship-astra-causal-qualification.json`, native mapping/handler
 references, `M06-original-native-death-locations.json`, and
 `five-M06-recorded-approach-report.json`. The owning local issue remains open;
 A02 and M06 are not converted into passes. No Nextcloud or remote changes.
+
+Retained temporary work stays under the evidence root above: current candidate,
+causal baseline, useful current-build states/captures and the owner station.
+Remove disposable profiles after the open checks and owner handoff are complete.
+Failed setup copies are hash-verified in `five-failed-setups-retained.zip` and
+`final-failed-control-retained.zip`; their redundant source directories are
+removed with audited non-forced cleanup. Reports, scripts and individual
+failure reasons remain. `final-local-status.json` reconciles all25 report IDs,
+the current binary/source identities and the separate25 passing CTests.

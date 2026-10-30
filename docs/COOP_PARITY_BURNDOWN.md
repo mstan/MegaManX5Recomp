@@ -11,7 +11,11 @@ below remains parked. Work is local on `feature/mmx5-master-native-waits-local`.
 
 Whale CP4/CP5 setup corruption is repaired on local6E43DC47: the shortcut now
 restores the skipped native scenery-sheet request before saving. Fresh states
-and cold loads pass setup checks; M05/M06 mechanics remain open for validation.
+and cold loads establish the lower sheet only. The owner subsequently reports
+moving ship pieces separating; M05 is still visually failed/partial. Final
+cold checks reject the rendering experiments, which are removed. Use the CP4
+hallway and actual native admission for the next M05/M06 check; direct CP5 is
+unqualified. The19/25 accounting and current6E43DC47 QA candidate stay unchanged.
 
 Earlier focused Grizzly campaign candidate: **82A36EAA**, local only.
 [Grizzly's individual stage list](COOP_X5_GRIZZLY_BURNDOWN.md) is

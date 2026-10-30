@@ -140,7 +140,7 @@ Video: <https://youtu.be/VcSXm8-Isx0>; web fetch failed, not reviewed.
 | M02 | Whale parts float after being hit. | Actual attacks/HP change and subsequent native part positions/parent relation. | Bounded current2ed3891f pass: actual X buster destroys a positive1HP weapon7, then78 native updates with both alive/matching cameras. All remaining parts preserve their native offsets as the root moves67px/9px; composed views match without detached art. Other positive, non-invulnerable parts were also set to1HP; no destruction/phase/result flags written. `remaining12-native-event-report.json`, `native-part-hit.png`. |
 | M03 | Checkpoint respawn leaves P2 in a free-roam area. | Actual retry/next-checkpoint initialization and both authored camera limits. | Fixed; bounded current2ed3891f CP2 retry passes. Actual sequential native deaths consume one shared life, reload CP2 and re-enroll both. P2 moves189px to native solid-wall contact while both authored camera records match for240 updates; original P2 whale-boundary calls run. Prior whale defeat bypassed by native CP2 setup. `remaining12-native-floor-whale-report.json`. |
 | M04 | First whale miniboss has missing P2 graphics. | Actual first whale and its moving atlas in both presented views. | Fixed for the bounded first-whale view; current31a04f12 shows complete matching whale/background art. Actual part damage and later whale variants remain separate checks. |
-| M05 | Second vertical-scrolling section breaks. | Its original controller, scrolling, transitions and both views. | Open gameplay check. Corrupt CP5 setup repaired by restoring the native lower-sheet prerequisite on6E43DC47; fresh/current cold-load scenery passes. Corrected vertical card is ready for actual scrolling/transition validation. |
+| M05 | Second vertical-scrolling section breaks. | Its original controller, scrolling, transitions and both views. | Failed visual check / unverified normal entry. The lower-sheet prerequisite is fixed on6E43DC47, but the owner reports moving ship pieces separating. Fresh CP5 loads reproduce a missing fin in some captures, including unified controls; actor offsets alone do not validate the drawing. Experimental presentation changes fail the final cold check and are removed. Prefer the CP4 hallway and actual native admission for the next check; the direct CP5 card is unqualified. |
 | M06 | Both heroes die after jumping down. | Actual drop after the vertical section, native destination/collision and individual survival. | Open gameplay check. Corrected CP4 hallway and CP5 vertical setups cold-load with intact scenery and both alive on6E43DC47. Original route/earlier whale defeat bypassed; actual reported drop still needs validation. |
 | H01 | Bike entry briefly shows both players' HUDs in both panes before correcting. Each pane must retain its own player's HUD throughout. | Native bike arrival through active driving, both pane HUDs on every presented frame; preserve native shared room and rider grouping. | Fixed in localA60BEF21. All186 presented bike-entry frames at native1x and186 at owner1080p/5x keep X on the left and Zero on the right, from first HUD through native arrival/READY. Existing image-ring records, badge-color screening and inspected contact sheets retain the evidence; zero render aborts/watchdogs/VRAM or state leaks. Cameras still share the native road. Current-build bike save/cold-load also passes. Full-route, LAN and spectator-death visual acceptance remain separate. |
 | I01 | P2 cannot stand on chained spike platforms. | Native jump/landing/contact/carry on one original platform. | Fixed; actual type10 platform1424 before/after: P2 previously falls through, now lands361.109 and jumps316.086 while P1 stays160/411. `glow-chain-before-report.json` / `glow-chain-after-report.json`. Earlier type13 crusher check is a different mechanic and does not qualify this entry. |
@@ -528,3 +528,43 @@ Both corrected whale cards are available in the existing owner station with
 P1 keyboard/P2 detected DualSense, normal audio/window, local notes/captures and
 restartable private saves. Original failed states and owner observations remain
 preserved. Source and commits stay local; the sole Nextcloud release is unchanged.
+
+
+### Moving ship report remains unresolved (2026-10-29)
+
+The owner reports ship pieces staying behind the moving hull, eventually
+realigning, on the corrected6E43DC47 CP5 setup. Preserve screenshot
+`mmx5-runtime_p4LZVECQPI.png`. The owner finished/closed the run; no live read-only
+capture was obtained. A fresh native CP5 load reproduces incomplete ship art
+before restoring a whale snapshot, so it is not exclusively a replay problem.
+M05 remains failed/partial; accounting stays19/25 bounded passes,6 open.
+
+Native class1E child positions keep constant offsets to the root across600
+updates. Retained/canonical camera origins differ only about1px. Neither fact
+establishes correct drawing. Unified control captures also vary: some show the
+fin complete and the earliest capture does not. Do not attribute that to normal
+animation, native entry convergence or a mod defect without a matching native
+transition. Selected captures are insufficient to settle this.
+
+Camera-only7791, private native-ring874E, shared native-ring1215, GPU-frame
+reuseADB2, drawing-buffer pixelsE681 and displayed-buffer0412/1D8 experiments
+do not qualify a fix. The last can produce a correct-looking moving image, but
+its final prepared/cold-loaded start still lacks the fin. These changes are
+removed from source and are not installed in the owner station or delivered.
+The native-pixel path also changes scene resolution, so it must not become an
+accepted workaround on the strength of a few favorable images.
+
+Reports retain their raw motion/no-fault success fields, separately annotated
+as failed or unverified visual outcomes.25 passing CTests are source/build
+checks on an experiment, not gameplay acceptance. Useful evidence includes
+`whale-parts-control-report.json`, `whale-reuse-canonical-evidence`,
+`whale-parts-validation/displayed-frame`, `whale-display-qualified-evidence`
+and `whale-intact-start-evidence`; the last first-cold capture fails visually.
+
+Next bounded check: use the existing corrected CP4 hallway setup and take the
+actual native onward admission/drop, recording the first complete/incomplete
+ship frame and both player positions. This jointly targets M05/M06 without
+manufacturing controller/defeat/drop flags or more rendering variants. The
+direct CP5 card is unqualified; native entry/completion/drop and wider/LAN
+behavior remain unverified. Keep6E43DC47 in the owner station, preserve notes
+and source history, and leave Nextcloud unchanged. No push or tracker sync.

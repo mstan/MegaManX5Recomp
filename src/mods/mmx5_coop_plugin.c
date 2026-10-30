@@ -4209,7 +4209,12 @@ static void ai_update(CPUState *cpu,uint32_t address) {
             dinorex_fire.actor==actor && dinorex_fire.owner;
         if(retained_fire)camera_seat=dinorex_fire.owner-1;
         int fire_camera=dinorex_fire_stage() && dinorex_fire_actor(actor);
-        int private_camera=!fire_camera && target && split_available() && !scene_owner;
+        /* Whale rooms have one authored camera. Class1E's root writes the
+         * hull layer origin after moving; restoring P1's pre-AI camera when
+         * P2 is nearest discards that write while child sprites keep moving.
+         * Keep nearest-player targeting, but publish the native camera write. */
+        int private_camera=!fire_camera && target && split_available() && !scene_owner &&
+            !whale_authored_camera();
         if(fire_camera || private_camera) {
             /* Native camera predicates and commands need the same view as
              * their selected body. Fire retains its admitted sequence view. */

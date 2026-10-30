@@ -6,9 +6,9 @@ The original comparative campaign remains parked. This list preserves each
 owner report individually; a bounded pass does not qualify every stage or route.
 The multi-stage batch adds 20 entries below, for 24 tracked reports total. A01's
 recurring armor complaint remains one issue with additional stage checks.
-Current accounting: **15 reports have bounded passing checks; 9 are open or
+Current accounting: **17 reports have bounded passing checks; 7 are open or
 partly implemented**. Passing IDs:
-A01/A03/G11/K04/K05/K06/M01/M03/M04/I01/I02/I03/I04/I05/I06.
+A01/A03/G10/G11/K04/K05/K06/M01/M02/M03/M04/I01/I02/I03/I04/I05/I06.
 The separate **25 CTests are build/source regressions**, not additional gameplay
 reports. Their passing result does not close an open row in this list.
 The table preserves each check's limits; this is not a full-route or LAN pass.
@@ -38,6 +38,57 @@ is CP4, Grizzly survivor scene CP2, Kraken survivor capsule scene CP1. Native
 loader fixtures already use0x1D; their mechanics/results are unchanged. Raw
 records are preserved. This correction does not manufacture additional passes.
 
+G10 now has a bounded CP2 pass in `remaining12-breadth-report.json`:300
+native updates retain both heroes while both background X origins advance
+and wrap. The paired captures show the same complete moon, train and scenery.
+The CP2 loader bypasses the preceding cannon defeat; that result is not part
+of this graphics check. M02 also passes after an actual positive1HP weapon7
+buster hit, followed by78 updates. Root motion67/9px carries every remaining
+part with unchanged native offsets; both composed views match. The destroyed
+weapon follows its original phase4 response. Source/table existence alone
+was not counted: earlier point-blank shots overshot the weapon and were
+unqualified; native leftward movement supplies actual muzzle clearance.
+
+Seven reports remain: A02/A04, K01/K02/K03 and M05/M06. Keep their native
+reproduction/visual gaps explicit. The long CP5 idle trial scrolls both views
+together, but standing on the whale eventually kills both heroes; it does not
+qualify the reported onward drop or prove a co-op regression. Bike teleports
+and an automatic jump approach also failed to qualify actual blockade damage.
+One complete native end-room setup reaches real dismount but not the orb
+tutorial; P2 remains held, so K03 stays open. No guessed controller/result
+flags or speculative gameplay fixes are added to turn those into passes.
+
+Prepared current-build follow-up station:
+`G:/Temp/Codex/psxrecomp/x5-parity/owner-027-multistage-20261029/remaining-owner-qa/Validation.ps1`.
+Five cards preserve the seven individual checks: visible Alia camera; silent
+intro cars; native Kraken bike/blocked-shot/orb entry; native CP4 hallway/drop;
+native CP5 vertical whale. They reuse the established selector, restartable
+isolated saves and local notes/captures. Both controllers pause together.
+The four new native fixtures were saved with both heroes alive on2ed3891f;
+visible Alia has its own fresh current-build mod plan, not an older snapshot.
+Whale setup may reduce positive, non-invulnerable parts to1HP, explicitly a
+setup cheat. Loading/preparing a card does not pass it. Resolve the actually
+connected DualSense per launch for P2, keyboard for P1; require the physical
+input check before counting owner results. No controller was detected when
+the station was prepared, so the selector is ready without a game launch.
+All five prepared cards subsequently pass a separate cold current-build load
+check: successful load status, both heroes alive, correct native stage/section/
+checkpoint, no co-op failure and an actual paused presented capture. This is
+setup qualification only; the seven gameplay/physical-input checks stay open.
+`prepared-owner-load-report.json` retains the individual load results.
+
+Private SERVER evidence is retained in the locally verified165-file archive
+`remaining12-retained-evidence.zip`, SHA256
+`5f6f2449836a942d56be4f5d018159b32d3907aa15333247d568841c79533770`.
+All manifest hashes were verified after transfer/extraction. After preparing
+the local fixtures, audited non-forced cleanup removed1,592,355,817 bytes of
+private SERVER payload/caches/test copies. The current candidate, source,
+useful reports/states and prepared owner station remain local for the open
+checks; clean the station's disposable runs/profiles after owner acceptance.
+Local audited cleanup also removes671,694,314 bytes of duplicate transfer
+payload/cache data; the separate load-check scratch and duplicate saves are
+discarded after their reports/captures are retained.
+
 | ID | Owner report / earlier reference | Bounded check and evidence | Status |
 |---|---|---|---|
 | A01 | Visible Alia still returns P1 X with corrupt armor. Reopens O03 for this build. | Native road/building episodes, then both corresponding states from the owner's exact v0.2.7 recording, with real page confirmations and P2 movement during return. | Fixed; bounded return graphics checks passed, including the supplied recording's states on current20e92f4c. Owner visual confirmation remains useful. |
@@ -57,7 +108,7 @@ Video: <https://youtu.be/VcSXm8-Isx0>; web fetch failed, not reviewed.
 
 | ID | Individual report | Bounded reproduction / acceptance | Status |
 |---|---|---|---|
-| G10 | P2 train background is static and incomplete before the countdown area. | Original destructible train; compare animation intervals and complete layer art in both panes. | Open; require both animation and missing-part checks. |
+| G10 | P2 train background is static and incomplete before the countdown area. | Original destructible train; compare animation intervals and complete layer art in both panes. | Bounded current2ed3891f CP2 background pass:300 native updates, both alive, both layers advance/wrap in both views and captured moon/train/scenery art is complete. Native CP2 starts4560/4584 before the countdown; preceding cannon defeat bypassed, not qualified here. `remaining12-breadth-report.json`, train-before-countdown entry/result images. |
 | G11 | First P2-owned boss introduction kills hovering Fourth Armor P1 through the floor; retries return safely. | The supplied recording's first living-P1/P2-owned Grizzly introduction, native dialogue and passenger return. | Fixed in current local candidate; bounded recorded-state continuation passes after23 actual pages. X returns at9676.375/379 with native collision, Zero at9658.5/378; both alive. Original/door-only continuation instead lets airborne X keep falling during the hold. Fresh admission and owner visual retest remain useful. |
 | K01 | Riders draw over the other hero's Ride Chaser. | Overlap both native bikes; check rider/bike packet order in both panes. | Implemented: draw each complete bike/rider in the rider's existing gameplay bucket, restoring native priority immediately. Initial paired native art inspected; moving overlap/order acceptance remains unverified. No full pass. |
 | K02 | P2 cannot shoot bike blockades until P1 dies. | Both alive, real P2 bike shots, actual blockade HP/destruction; compare survivor path. | Implemented the missing original32F70 terrain-projectile query for P2. Runtime destruction remains unverified: road-position and timing setups did not reach a qualifying shot. Stop setup variants; retain the actual blockade encounter for assisted validation. |
@@ -66,7 +117,7 @@ Video: <https://youtu.be/VcSXm8-Isx0>; web fetch failed, not reviewed.
 | K05 | The same surviving Zero cannot collect the capsule part. | After real conversation, actual top contact and native grant/return without setting progress flags. | Fixed; bounded current2ed3891f pass in the same capsule episode. Position above the native top, real gravity/contact, original grant changes PLAY+A1 bit1 from0 to1, scene/control recovery with X still dead. No grant/result/contact flags written. |
 | K06 | Kraken boss doors do not use scripted traversal. | Original Both admission/open/carry/close and native control recovery. | Bounded native Both admission/open/carry/closing-branch check passes at actual CP4/door8656; `glow-kraken-report.json`. Both alive, inputs released on admission. Kraken-specific boss introduction/control recovery remains separate. |
 | M01 | P2 camera sticks during whale sequence. | Native first whale controller/room advances while P2 moves and shoots; compare both complete camera records and native bounds. | Fixed; bounded current31a04f12 pass, 300 real world updates with both alive and matching authored cameras. Original2dd6574d retained stale P2 bounds594/247 while native room reached661/263. |
-| M02 | Whale parts float after being hit. | Actual attacks/HP change and subsequent native part positions/parent relation. | Open. |
+| M02 | Whale parts float after being hit. | Actual attacks/HP change and subsequent native part positions/parent relation. | Bounded current2ed3891f pass: actual X buster destroys a positive1HP weapon7, then78 native updates with both alive/matching cameras. All remaining parts preserve their native offsets as the root moves67px/9px; composed views match without detached art. Other positive, non-invulnerable parts were also set to1HP; no destruction/phase/result flags written. `remaining12-native-event-report.json`, `native-part-hit.png`. |
 | M03 | Checkpoint respawn leaves P2 in a free-roam area. | Actual retry/next-checkpoint initialization and both authored camera limits. | Fixed; bounded current2ed3891f CP2 retry passes. Actual sequential native deaths consume one shared life, reload CP2 and re-enroll both. P2 moves189px to native solid-wall contact while both authored camera records match for240 updates; original P2 whale-boundary calls run. Prior whale defeat bypassed by native CP2 setup. `remaining12-native-floor-whale-report.json`. |
 | M04 | First whale miniboss has missing P2 graphics. | Actual first whale and its moving atlas in both presented views. | Fixed for the bounded first-whale view; current31a04f12 shows complete matching whale/background art. Actual part damage and later whale variants remain separate checks. |
 | M05 | Second vertical-scrolling section breaks. | Its original controller, scrolling, transitions and both views. | Open. |

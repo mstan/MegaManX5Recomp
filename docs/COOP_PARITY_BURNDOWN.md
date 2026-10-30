@@ -2,7 +2,7 @@
 
 Current owner-report campaign (2026-10-29):
 [v0.2.7 follow-ups](COOP_X5_027_FOLLOWUPS.md) tracks **24 individual reports**.
-**15 have bounded passing checks; 9 remain open or partly implemented.**
+**17 have bounded passing checks; 7 remain open or partly implemented.**
 The separate25 passing CTests are build/source checks, not gameplay reports.
 This includes the new Grizzly, Kraken, McWhalen and Glow reports. Keep setup
 failures and unverified mechanics visible; the frozen234-comparison campaign

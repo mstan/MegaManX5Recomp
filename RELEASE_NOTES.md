@@ -1,3 +1,50 @@
+# v0.2.8-coop-alpha-debug (local Windows alpha)
+
+This build packages the current owner-report campaign: **23 of 25 individual
+reports have bounded passing checks; two remain outstanding below**. The owner
+authorized this release with those gaps. The separate25 passing code tests do
+not close gameplay reports. Individual evidence and limits are recorded in
+docs/COOP_X5_027_FOLLOWUPS.md.
+
+- Intro returns retain X's armor graphics. Both-player doors animate the
+  companion through opening and traversal, and airborne passengers recover
+  native floor collision. Actual defeated intro cars retire and respawn when
+  the trailing player returns after P2 advances the checkpoint.
+- Grizzly's pre-countdown background animates in both views. The recorded
+  first P2-owned boss introduction returns hovering X safely.
+- Kraken keeps each pane's own HUD throughout arrival and groups each rider
+  with its bike. P2 shots destroy a native blockade with both players alive.
+  Hidden Alia text preserves the original post-bike orb action and releases
+  both players; a current-build mid-exit save/load also passes. Surviving Zero
+  receives Zero's capsule dialogue and can collect its native armor grant.
+- McWhalen retains its authored camera limits, native checkpoint retry and
+  moving whale parts. P2-targeted AI now preserves the native hull-layer
+  update, preventing the ship from separating from its fin and pods. Matched
+  nearer-player controls, current-build save/load and cold load pass.
+- Glow's chained platform contact, P2 virus/miniboss admission and stair
+  animation have bounded passes. Native boss-door traversal and an actual
+  Izzy Glow defeat/reward transition also pass.
+
+Outstanding owner reports:
+
+| ID | Remaining issue | Validation limit |
+|---|---|---|
+| A02 | P2's camera reportedly moves away from Zero after P2 triggers Alia and P1 returns. | The exact replay's four hints and current native continuations have not reproduced it. The owner's report remains open. |
+| M06 | Both heroes reportedly die jumping down in McWhalen. | The original deaths are near native checkpoint3. A forward jump before defeating the admitted whale still kills X; the solo comparison failed to load. Native hazard versus co-op fault and normal post-defeat traversal remain unresolved. |
+
+These are bounded mechanic checks, not full-route qualification. Some setups
+bypass earlier traversal or prerequisites, as documented individually. The
+historical parity audit, continuous Dinorex route, physical LAN and native
+cold-save unlock/duel persistence remain outside this release's qualification.
+No new performance or cross-build netplay compatibility claim is made.
+
+Defaults remain local split-screen, Either-player doors, diagnostics and Alia
+hint suppression, P1 keyboard/P2 DualSense, normal window and audio. Bring your
+own USA SLUS-01334 disc; OpenBIOS is included. No personal saves, recordings,
+QA states, CD Speed or Fast Loading packages are included. Save states are
+build-specific; preserve native memory-card saves separately. Delivery is local
+to Nextcloud; no push, PR or remote publication.
+
 # v0.2.7-coop-alpha-debug (local Windows alpha)
 
 This build includes the five latest owner-report fixes from `89a0e32`.

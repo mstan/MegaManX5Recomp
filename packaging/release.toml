@@ -26,7 +26,6 @@ files = [
   "RELEASE_NOTES.md",
   "docs/AOT_OVERLAYS.md",
   "docs/COOP_X5_027_FOLLOWUPS.md",
-  {from = "packaging/release/keybinds.ini", to = "keybinds.ini"},
   {from = "packaging/release/input.ini", to = "input.ini"},
 ]
 

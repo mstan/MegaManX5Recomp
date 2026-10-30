@@ -145,6 +145,7 @@ psxrecomp_v4_add_runtime_target(psx-runtime
         ${GAME_GENERATED_EXTRAS}
         ${MMX5_MOD_PLUGIN_SOURCES}
 )
+set_property(TARGET psx-runtime PROPERTY PSX_MOD_SESSION_RESOURCES TRUE)
 psxrecomp_add_implementation(psx-runtime
     NAME resident-loading CONTRACT slus01334-archive-callback-v1
     HLE_SOURCES src/mods/mmx5_resident.cpp

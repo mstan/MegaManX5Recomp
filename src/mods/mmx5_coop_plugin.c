@@ -275,6 +275,14 @@ static uint8_t car_source_owner[272];
 static int chaser_body_active(const uint8_t *body) {
     return body[4]==1 && body[0xD5]==0xFF;
 }
+static int chaser_exit_active(const uint8_t *car,unsigned seat) {
+    /* D5 clears at dismount, before BIN7's phase2 animation, Alia/orb
+     * program and native3D2C4 release. Retain/tick that vehicle context
+     * until its original retirement; otherwise capture_player erases the
+     * script and leaves the counterpart held on foot indefinitely. */
+    return enrolled && life.status[seat]==MMX5_COOP_ALIVE &&
+        car[0] && !car[1] && car[4]==2;
+}
 static int car_context(void) {
     /* A dead rider retains D5=FF after the survivor's native dismount.
      * It must not keep on-foot dialogue/capsules in the vehicle context. */
@@ -282,8 +290,11 @@ static int car_context(void) {
         ((!enrolled && !psx_mod_read_byte(PLAY+0x1D)) ||
          (psx_mod_read_byte(PLAYER+4)==1 && psx_mod_read_byte(PLAYER+0xD5)==0xFF) ||
          chaser_body_active(first.body) || chaser_body_active(second.body) ||
+         chaser_exit_active(first.car,0) || chaser_exit_active(second.car,1) ||
          (psx_mod_read_byte(CAR) && !psx_mod_read_byte(CAR+1) &&
-          psx_mod_read_byte(CAR+4)==1 && (psx_mod_read_byte(CAR+0x5C)&127u)));
+          (psx_mod_read_byte(CAR+4)==1 ||
+           (psx_mod_read_byte(CAR+4)==2 && psx_mod_read_byte(PLAYER+4)==1)) &&
+          (psx_mod_read_byte(CAR+0x5C)&127u)));
 }
 static int car_source_index(uint32_t actor) {
     if(actor>=0x80092090u && actor<0x80093DD0u && !((actor-0x80092090u)%0x9C))
@@ -1128,15 +1139,18 @@ static void world_tick(CPUState *cpu,uint32_t address) {
                 }
             }
             if(command==17 && enrolled && !failed && !busy && (!projected || world_owner) &&
-               !psx_mod_local_view_scope() && !scene_owner && !car_context() &&
+               !psx_mod_local_view_scope() && !scene_owner &&
                psx_mod_read_byte(PLAY)==10 && !psx_mod_read_byte(PLAY+1) &&
                !psx_mod_read_byte(PLAY+0x0F) && !psx_mod_read_byte(PLAY+0x10) &&
-               !psx_mod_read_byte(PLAY+0x1C)) {
+               (!psx_mod_read_byte(PLAY+0x1C) || car_context())) {
                 /* Offline content setup: a stationary teleport bypasses the
                  * native camera-edge scanner. Ask ORIGINAL 2B070 to scan a
                  * small authored region, retaining its allocation/cooldown
                  * and already-visited guards. No actor/grant/scene state is
-                 * fabricated. The surviving P2 is already canonical in its
+                 * fabricated. Ride Chaser keeps its pause-input gate set
+                 * during ordinary driving; that gate must not reject the
+                 * same bounded placement setup on an otherwise live road.
+                 * The surviving P2 is already canonical in its
                  * world-owner scope. This does not qualify viewport entry. */
                 int32_t left=(int32_t)psx_mod_read_word(diagnostic+0x90);
                 int32_t right=(int32_t)psx_mod_read_word(diagnostic+0x94);

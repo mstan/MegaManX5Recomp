@@ -3,7 +3,7 @@
 Current owner-report campaign (2026-10-29):
 [v0.2.7 follow-ups](COOP_X5_027_FOLLOWUPS.md) tracks **25 individual reports**
 (original24 plus the latest bike HUD report).
-**19 have bounded passing checks; 6 remain open or partly implemented.**
+**22 have bounded passing checks; 3 remain open or partly implemented.**
 The separate25 passing CTests are build/source checks, not gameplay reports.
 This includes the new Grizzly, Kraken, McWhalen and Glow reports. Keep setup
 failures and unverified mechanics visible; the frozen234-comparison campaign
@@ -15,7 +15,17 @@ and cold loads establish the lower sheet only. The owner subsequently reports
 moving ship pieces separating; M05 is still visually failed/partial. Final
 cold checks reject the rendering experiments, which are removed. Use the CP4
 hallway and actual native admission for the next M05/M06 check; direct CP5 is
-unqualified. The19/25 accounting and current6E43DC47 QA candidate stay unchanged.
+unqualified. The owner QA profiles remain on6E43DC47 while the new native-bike
+exit candidate is qualified separately. K02 now has actual P2-only blockade
+damage with both riders alive; K03 completes its original orb action and both
+control releases with text suppressed; A04 also has a real defeated-car/native
+reentry check. The three remaining reports are A02 focus (unreproduced), M05
+ship art and M06 actual onward drop (setup/reproduction gap). The latest CP4
+walking approach sticks at a native wall; the CP5 ascent shortcut hits a fatal
+hazard before the tested drop. These setup failures are not proof of a new
+gameplay defect or passing drop behavior. Do not request a repeat of the same
+unqualified fixture. The owner requested ship work last and conditionally
+authorized an Astra second look, now investigating the native draw handlers.
 
 Earlier focused Grizzly campaign candidate: **82A36EAA**, local only.
 [Grizzly's individual stage list](COOP_X5_GRIZZLY_BURNDOWN.md) is

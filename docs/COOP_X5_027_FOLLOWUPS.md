@@ -7,9 +7,9 @@ owner report individually; a bounded pass does not qualify every stage or route.
 The multi-stage batch adds 20 entries below; the latest owner HUD report adds
 H01, for 25 tracked reports total. A01's
 recurring armor complaint remains one issue with additional stage checks.
-Current accounting: **19 reports have bounded passing checks; 6 are open or
+Current accounting: **22 reports have bounded passing checks; 3 are open or
 partly implemented**. Passing IDs:
-A01/A03/G10/G11/K01/K04/K05/K06/M01/M02/M03/M04/I01/I02/I03/I04/I05/I06/H01.
+A01/A03/A04/G10/G11/K01/K02/K03/K04/K05/K06/M01/M02/M03/M04/I01/I02/I03/I04/I05/I06/H01.
 The separate **25 CTests are build/source regressions**, not additional gameplay
 reports. Their passing result does not close an open row in this list.
 The table preserves each check's limits; this is not a full-route or LAN pass.
@@ -50,8 +50,10 @@ weapon follows its original phase4 response. Source/table existence alone
 was not counted: earlier point-blank shots overshot the weapon and were
 unqualified; native leftward movement supplies actual muzzle clearance.
 
-Six original reports remain: A02/A04, K02/K03 and M05/M06. Keep their native
-reproduction/visual gaps explicit. The long CP5 idle trial scrolls both views
+Three original reports remain: A02 and M05/M06. Keep their native
+reproduction/visual gaps explicit. Earlier setup failures below are retained
+as history; the final-five update below supersedes K02/K03/A04's old gaps.
+The long CP5 idle trial scrolls both views
 together, but standing on the whale eventually kills both heroes; it does not
 qualify the reported onward drop or prove a co-op regression. Bike teleports
 and an automatic jump approach also failed to qualify actual blockade damage.
@@ -114,7 +116,7 @@ discarded after their reports/captures are retained.
 | A01 | Visible Alia still returns P1 X with corrupt armor. Reopens O03 for this build. | Native road/building episodes, then both corresponding states from the owner's exact v0.2.7 recording, with real page confirmations and P2 movement during return. | Fixed; bounded return graphics checks passed, including the supplied recording's states on current20e92f4c. Owner visual confirmation remains useful. |
 | A02 | P2's view focuses on P1 while P1 teleports after a P2-owned hint. Owner clarified that Zero's pane actually moves away from Zero. | Exact original replay, all four P2-owned hints; retain500 consecutive presented images per interaction, with body/camera observations. Matched original/current building-state continuations also retain presented history while P2 moves during X's return. | Open owner-observed focus failure; not reproduced by these checks. Inspected views follow Zero. Requested the video's exact failing timestamp; the video itself remains inaccessible. No camera policy change or claimed fix. |
 | A03 | Both doors work, but P2 returns to standing before the walk. Extends R02. | Actual Both admission/open/carry/close after original building and climb-area commands. Compare displayed sprite frames during opening separately from carry. | Fixed; bounded opening and carry checks passed. The final run sampled12 distinct displayed P2 frames in opening and13 in carry. No additional position/collision or door-clock changes. |
-| A04 | With Alia skip enabled, trailing P1 misses respawning intro cars after leading P2 advances. | Silent-hint current setup: P2 encounters original class0D car736, advances the actual checkpoint0 to1, the original car retires offscreen, and trailing P1 reenters. | Car736 native offscreen-retirement/respawn passes, with both heroes alive. Broader reported recurrence and a defeated-car path remain unverified; exact failing encounter still needed. The new ZIP has skip off and cannot qualify the earlier skip-on run. No speculative spawn changes. `supplied-report/car-cycle-report.json`. |
+| A04 | With Alia skip enabled, trailing P1 misses respawning intro cars after leading P2 advances. | Silent-hint setup: P2 admits original car736; qualify both ordinary offscreen retirement and a real defeat before P2 advances checkpoint0 to1 and trailing P1 reenters. | Bounded pass for both shared lifecycle paths. In the new defeat check, positive1HP setup is followed by an actual airborne P1 X buster; the native actor retires, P1 returns to the beginning, P2 advances the checkpoint, and P1 reentry allocates the original4HP car. No placement/death/cooldown/respawn flags authored. The killing blow belongs to P1; the shared defeated-actor retirement/reentry is qualified, not every enemy or a P2 attack. `five-A04-X-hit-report.json`; earlier offscreen-only check is under the sibling owner-027-reports evidence root. |
 
 ## Multi-stage owner batch
 
@@ -131,8 +133,8 @@ Video: <https://youtu.be/VcSXm8-Isx0>; web fetch failed, not reviewed.
 | G10 | P2 train background is static and incomplete before the countdown area. | Original destructible train; compare animation intervals and complete layer art in both panes. | Bounded current2ed3891f CP2 background pass:300 native updates, both alive, both layers advance/wrap in both views and captured moon/train/scenery art is complete. Native CP2 starts4560/4584 before the countdown; preceding cannon defeat bypassed, not qualified here. `remaining12-breadth-report.json`, train-before-countdown entry/result images. |
 | G11 | First P2-owned boss introduction kills hovering Fourth Armor P1 through the floor; retries return safely. | The supplied recording's first living-P1/P2-owned Grizzly introduction, native dialogue and passenger return. | Fixed in current local candidate; bounded recorded-state continuation passes after23 actual pages. X returns at9676.375/379 with native collision, Zero at9658.5/378; both alive. Original/door-only continuation instead lets airborne X keep falling during the hold. Fresh admission and owner visual retest remain useful. |
 | K01 | Riders draw over the other hero's Ride Chaser. | Overlap both native bikes; check rider/bike packet order in both panes. | Bounded current2ed3891f pass: native entry and actual P2 dash retain overlapping bike bounds, complete P2 bike/rider before complete P1 bike/rider, both alive, native body2/bike4 priorities restored. Both composed panes are pixel-identical under the native bike scene gate. Existing GPU trace qualifies order despite the partly covering READY cue. `bike-packet-order-report.json`; no full-route claim. |
-| K02 | P2 cannot shoot bike blockades until P1 dies. | Both alive, real P2 bike shots, actual blockade HP/destruction; compare survivor path. | Implemented the missing original32F70 terrain-projectile query for P2. Runtime destruction remains unverified: road-position and timing setups did not reach a qualifying shot. Stop setup variants; retain the actual blockade encounter for assisted validation. |
-| K03 | Alia dialogue still appears after bikes with skip enabled. | Execute that native hint, preserve orb-shooting action and progression while suppressing text/hold. | Native BIN7 text37/38/39 suppression implemented. Actual tutorial episode/action release remains unverified; setup did not admit its original checkpoint. |
+| K02 | P2 cannot shoot bike blockades until P1 dies. | Both alive, real P2 bike shots, actual blockade HP/destruction. | Bounded pass on currentA1F53608 (and earlierB89AEBCA): original32F70 now reaches P2 shots. Original blockade800C71C0 loses its native1HP and enters destruction phase3; P2-hit counter increments once with that exact actor, both riders alive, P1 never fires. Position/history pinning between short native intervals and an original placement scan bypass road traversal; target HP/phase/result flags are untouched. Full driving/survivor-route coverage is separate. `atomic-bike-pinned-shot-report.json`. |
+| K03 | Alia dialogue still appears after bikes with skip enabled. | Execute that native hint, preserve orb-shooting action and progression while suppressing text/hold. | Fixed; bounded currentA1F53608 pass (earlierC62C203B also passes). Dismount clearsD5 before the bike's phase2 exit program finishes. Retain/tick that living bike until original retirement instead of erasing its private state and stranding P2. Both heroes complete the actual native shooting programs, PLAY+27 changes0→1→3, four Alia requests are suppressed, no text appears, and both native holds clear. Earlier eight energy pickups are explicitly bypassed using the supplied recording's count atPLAY+26; that collection and the full road are not qualified. PLAY+27 and controller/exit-result flags are never written. `five-K03-native-score-prerequisite-report.json`, matched before/after-context reports. |
 | K04 | P2 Zero gets X's capsule dialogue when P1 X is dead. | Original capsule, dead P1, live P2 Zero; inspect actual recipient message bank. | Fixed; bounded current2ed3891f pass. Native P1 death, actual Zero-recipient message initialization and12 real page confirmations, then normal scene release. Bike/orb access bypassed explicitly. `remaining12-survivor-capsule-report.json`. |
 | K05 | The same surviving Zero cannot collect the capsule part. | After real conversation, actual top contact and native grant/return without setting progress flags. | Fixed; bounded current2ed3891f pass in the same capsule episode. Position above the native top, real gravity/contact, original grant changes PLAY+A1 bit1 from0 to1, scene/control recovery with X still dead. No grant/result/contact flags written. |
 | K06 | Kraken boss doors do not use scripted traversal. | Original Both admission/open/carry/close and native control recovery. | Bounded native Both admission/open/carry/closing-branch check passes at actual CP4/door8656; `glow-kraken-report.json`. Both alive, inputs released on admission. Kraken-specific boss introduction/control recovery remains separate. |
@@ -154,6 +156,37 @@ Shared A01 follow-up: repeat retained-armor return qualification for a real
 P2-owned stage dialogue, alongside G11. Keep original report history and do not
 count release0.2.7 as containing the later source fix. All new entries remain
 unverified until their mechanics run; loading a checkpoint does not pass them.
+
+### Final-five priority pass (2026-10-29)
+
+Owner requested A02/A04/K02/K03/M06 before returning to the ship. A04/K02/K03
+now have the bounded outcomes in their individual rows. The new source fix is
+K03's living bike phase2 retention: before the fix, D5 clears, both private
+car records are erased, and P2 remains in native stand17 indefinitely. After
+the fix, original dismount/animation/orb/control-release programs finish.
+The same offline placement scanner also accepts a live Ride Chaser road,
+whose native pause-input gate is normally set. This is a development setup
+aid, not a replacement for ordinary road admission or a destruction cheat.
+
+A02 remains an owner-observed failure without a reproduced trigger; the exact
+release replay's four hint interactions and current continuations already
+retain consecutive presented history. No speculative camera policy change is
+added to convert a non-reproduction into a claimed fix.
+
+M06 remains a setup/reproduction gap. A direct CP4 cross-room position setup
+kills the teleported hero; a native walking/jumping approach instead stops at
+the real wall near3477. The CP5 position-assisted ascent reaches cameraY708,
+then both bodies hit a fatal hazard before the actual onward drop. These
+attempts do not qualify the drop and do not establish a regression in normal
+traversal. Keep them as failed setup evidence in `five-M06-*-report.json`;
+do not ask the owner to repeat an unchanged unqualified card.
+
+Only after these five bounded investigations, the final read-only ship retry
+records actual class1E dispatch800FD8F8 and its scratch table in
+`five-current-checks/ship-last-dispatch`. The conditionally authorized Astra
+second look is confined to the unresolved ship drawing/native-entry problem.
+No ship rendering fix has passed, and the owner-facing6E43DC47 profiles and
+the single delivered v0.2.7 archive remain unchanged.
 
 Latest owner handoff: bikes look okay (K01 owner confirmation; this does not
 independently confirm K02 actual blockade destruction or K03 orb progression).
@@ -568,3 +601,10 @@ manufacturing controller/defeat/drop flags or more rendering variants. The
 direct CP5 card is unqualified; native entry/completion/drop and wider/LAN
 behavior remain unverified. Keep6E43DC47 in the owner station, preserve notes
 and source history, and leave Nextcloud unchanged. No push or tracker sync.
+
+Final combined candidateA1F53608 repeats actual P2-only blockade damage and
+the native orb result/control release. Saving and loading the current-build
+state during native phase2/sub3 also preserves both exit scripts through real
+orb completion. All25 CTests pass separately; this does not close A02/M05/M06.
+Evidence: `five-final-qualification.json`, `five-K03-current-snapshot-report.json`
+and `atomic-bike-current-candidate-report.json`. No network/owner visual pass.

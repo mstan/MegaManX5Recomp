@@ -153,8 +153,8 @@ combinations retain their own coverage limits.
 5. Optionally adjust renderer, supersampling, screen look, and controller
    settings, then press **PLAY**. Your choices are remembered.
 
-Accepted disc formats: `.cue` + `.bin` (preferred â€” pick the `.cue`) and `.bin`.
-**Do not convert the disc to a 2048-byte "cooked" `.iso`** â€” that discards the
+Accepted disc formats: `.cue` + `.bin` (preferred — pick the `.cue`) and `.bin`.
+**Do not convert the disc to a 2048-byte "cooked" `.iso`** — that discards the
 Mode-2 Form-2 XA sectors MMX5 streams its FMV/audio from. If the header or game
 ID does not match `SLUS-01334`, the launcher warns and tries to run it anyway.
 
@@ -304,11 +304,11 @@ Important files:
 - `ISSUES.md`: game-specific issue log.
 - `DISC.md`: source-disc identity and verification hashes.
 
-## Help make your game faster â€” just by playing
+## Help make your game faster — just by playing
 
 **Why isn't the game already at full speed everywhere?** Most of MMX5's code is
 converted ("recompiled") into a fast native program ahead of time. But
-PlayStation games don't keep all of their code in memory at once â€” they stream
+PlayStation games don't keep all of their code in memory at once — they stream
 extra chunks of code off the disc as you reach new areas (these chunks are
 called *overlays*; MMX5 streams most of its game logic from `ROCK_X5.DAT` /
 `ROCK_X5.BIN`). We can't convert a chunk we've never seen, and the only way to
@@ -321,16 +321,16 @@ reused across launches. While you play, the runtime records newly visited areas
 into `overlay_captures.json` and your own cache grows automatically.
 
 **Please do not post `overlay_captures.json` publicly.** It contains verbatim
-snapshots of the game's code read from your disc, which is copyrighted material â€”
+snapshots of the game's code read from your disc, which is copyrighted material —
 keep it on your own machine, alongside your disc image.
 
 ## Project background
 
 > _This recompilation is a **byproduct of developing
-> [psxrecomp](https://github.com/mstan/psxrecomp)** â€” the games are the proving ground, the framework is the goal.
-> **These are in-development previews, not finished ports â€” expect rough
+> [psxrecomp](https://github.com/mstan/psxrecomp)** — the games are the proving ground, the framework is the goal.
+> **These are in-development previews, not finished ports — expect rough
 > edges**, and depth will keep landing over months, not days. My time for any
-> one title is limited, so I ask for your patience. Contributions are welcome â€”
+> one title is limited, so I ask for your patience. Contributions are welcome —
 > testing, issues, and PRs to the game or framework all help and will
 > accelerate this game's polish. More on the why at:
 > [Recomp + AI: 5 Months Later Â»](https://1379.tech/recomp-ai-5-months-later/)_
@@ -362,7 +362,7 @@ model used by other static recompilation projects such as N64: Recompiled.
 ---
 
 <p align="center">
-  <sub><b>R.A.I.D. â€” Retro AI Development</b> Â· a Discord for AI-assisted retro reverse-engineering, decomp &amp; recomp</sub>
+  <sub><b>R.A.I.D. — Retro AI Development</b> Â· a Discord for AI-assisted retro reverse-engineering, decomp &amp; recomp</sub>
 </p>
 
 <p align="center">

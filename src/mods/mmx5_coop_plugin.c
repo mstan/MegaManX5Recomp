@@ -5371,7 +5371,10 @@ static void hud_packets(uint32_t base) {
     psx_mod_counter_add("mmx5.coop.hud-secondary-bars",(bars-base-0x2000u)/36u);
 }
 static int paired_stage_arrival(void) {
-    if(scene_owner || car_context() || psx_mod_read_byte(PLAYER+4)!=1)return 0;
+    if(scene_owner || psx_mod_read_byte(PLAYER+4)!=1)return 0;
+    /* Ride Chaser keeps native1C throughout driving, rather than releasing
+     * it after teleport-in. The room remains shared; its HUDs are personal. */
+    if(car_context())return 1;
     if(join_phase>=3 && life.status[1]==MMX5_COOP_JOINING)return 1;
     /* The partner can finish resolving before P1's native action0 releases
      * the stage-entry hold. Keep private panes through that final interval;
@@ -5658,7 +5661,9 @@ static int scene_return_present(void) {
 static int draw_local_pair(CPUState *cpu,void *user,uint32_t seat) {
     LocalViewContext context;local_context_save(&context);
     local_view_seat=personal_menu_present()?seat:split_view_seat(seat);
-    local_hud_seat=scene_return_present()?seat:local_view_seat;
+    /* Camera ownership may gather or spectate the living partner; a pane's
+     * native health/resource display still belongs to its assigned player. */
+    local_hud_seat=seat;
     int ok=draw_local_view(cpu,user,0);
     /* Each pane starts with the same host context as well as the framework's
      * CPU/RAM/VRAM checkpoint. A private draw never advances world logic. */
@@ -5688,7 +5693,7 @@ static int present_local_view(CPUState *cpu,uint32_t address) {
     guest(cpu,0x80068634,0,0);
     int port=psx_netplay_local_port();unsigned seat=port>=0 && port<2?(unsigned)port:0;
     local_view_seat=menu?seat:split_view_seat(seat);
-    local_hud_seat=scene_return_present()?seat:local_view_seat;
+    local_hud_seat=seat;
     PSXModRenderPass rectangle={sizeof rectangle,0,psx_mod_read_half(buffer+0x14),psx_mod_read_half(buffer+0x16),
         psx_mod_read_half(buffer+0x18),psx_mod_read_half(buffer+0x1A)};
     LocalViewContext context;local_context_save(&context);

@@ -4,11 +4,12 @@ Local branch: `feature/mmx5-master-native-waits-local`.
 Owning local issue: `beads-eio.10.44`. No remote publication or tracker sync.
 The original comparative campaign remains parked. This list preserves each
 owner report individually; a bounded pass does not qualify every stage or route.
-The multi-stage batch adds 20 entries below, for 24 tracked reports total. A01's
+The multi-stage batch adds 20 entries below; the latest owner HUD report adds
+H01, for 25 tracked reports total. A01's
 recurring armor complaint remains one issue with additional stage checks.
-Current accounting: **17 reports have bounded passing checks; 7 are open or
+Current accounting: **19 reports have bounded passing checks; 6 are open or
 partly implemented**. Passing IDs:
-A01/A03/G10/G11/K04/K05/K06/M01/M02/M03/M04/I01/I02/I03/I04/I05/I06.
+A01/A03/G10/G11/K01/K04/K05/K06/M01/M02/M03/M04/I01/I02/I03/I04/I05/I06/H01.
 The separate **25 CTests are build/source regressions**, not additional gameplay
 reports. Their passing result does not close an open row in this list.
 The table preserves each check's limits; this is not a full-route or LAN pass.
@@ -49,7 +50,7 @@ weapon follows its original phase4 response. Source/table existence alone
 was not counted: earlier point-blank shots overshot the weapon and were
 unqualified; native leftward movement supplies actual muzzle clearance.
 
-Seven reports remain: A02/A04, K01/K02/K03 and M05/M06. Keep their native
+Six original reports remain: A02/A04, K02/K03 and M05/M06. Keep their native
 reproduction/visual gaps explicit. The long CP5 idle trial scrolls both views
 together, but standing on the whale eventually kills both heroes; it does not
 qualify the reported onward drop or prove a co-op regression. Bike teleports
@@ -60,7 +61,7 @@ flags or speculative gameplay fixes are added to turn those into passes.
 
 Prepared current-build follow-up station:
 `G:/Temp/Codex/psxrecomp/x5-parity/owner-027-multistage-20261029/remaining-owner-qa/Validation.ps1`.
-Five cards preserve the seven individual checks: visible Alia camera; silent
+Five cards initially covered the six remaining individual checks: visible Alia camera; silent
 intro cars; native Kraken bike/blocked-shot/orb entry; native CP4 hallway/drop;
 native CP5 vertical whale. They reuse the established selector, restartable
 isolated saves and local notes/captures. Both controllers pause together.
@@ -69,13 +70,32 @@ visible Alia has its own fresh current-build mod plan, not an older snapshot.
 Whale setup may reduce positive, non-invulnerable parts to1HP, explicitly a
 setup cheat. Loading/preparing a card does not pass it. Resolve the actually
 connected DualSense per launch for P2, keyboard for P1; require the physical
-input check before counting owner results. No controller was detected when
-the station was prepared, so the selector is ready without a game launch.
+input check before counting owner results. The initial scan found no controller.
+After the owner reconnected it, the actual DualSense was detected and the first
+card opened paused with normal audio, keyboard P1 and DualSense P2. Physical
+input isolation and the card's gameplay result remain owner checks. Reopening
+the selector preserves the live game; it does not start another copy. Launcher
+failures now preserve their concrete error instead of a generic startup label.
 All five prepared cards subsequently pass a separate cold current-build load
 check: successful load status, both heroes alive, correct native stage/section/
 checkpoint, no co-op failure and an actual paused presented capture. This is
-setup qualification only; the seven gameplay/physical-input checks stay open.
+setup qualification only; remaining gameplay/physical-input checks stay open.
 `prepared-owner-load-report.json` retains the individual load results.
+
+K01 now passes a separate bounded native overlap check on unchanged2ed3891f.
+Existing GPU traces at entry and during an actual P2 dash show the complete P2
+bike/rider before the complete P1 bike/rider, with overlapping bike bounds
+72x62 and48x35px. Both heroes live and native body2/bike4 priorities are restored.
+The native Ride Chaser scene gate uses one canonical draw composed into both
+panes; those presented viewports are pixel-identical. No private-pass trace or
+full bike route is claimed. The READY cue partly covers the art, so packet
+order, rather than that image alone, establishes the grouping. Original later
+exhaust packets are excluded from the contiguous native bike prefix.
+`bike-packet-order-report.json` retains exact packet ranges and hashes.
+The first observer selected an unrelated duplicate `arena` symbol; its raw
+record remains preserved. A corrected trace records all symbol candidates and
+resolves the co-op arena adjacent to its unique primary_arena before analysis.
+No source changes, priority/result writes or additional setup variants.
 
 Private SERVER evidence is retained in the locally verified165-file archive
 `remaining12-retained-evidence.zip`, SHA256
@@ -110,7 +130,7 @@ Video: <https://youtu.be/VcSXm8-Isx0>; web fetch failed, not reviewed.
 |---|---|---|---|
 | G10 | P2 train background is static and incomplete before the countdown area. | Original destructible train; compare animation intervals and complete layer art in both panes. | Bounded current2ed3891f CP2 background pass:300 native updates, both alive, both layers advance/wrap in both views and captured moon/train/scenery art is complete. Native CP2 starts4560/4584 before the countdown; preceding cannon defeat bypassed, not qualified here. `remaining12-breadth-report.json`, train-before-countdown entry/result images. |
 | G11 | First P2-owned boss introduction kills hovering Fourth Armor P1 through the floor; retries return safely. | The supplied recording's first living-P1/P2-owned Grizzly introduction, native dialogue and passenger return. | Fixed in current local candidate; bounded recorded-state continuation passes after23 actual pages. X returns at9676.375/379 with native collision, Zero at9658.5/378; both alive. Original/door-only continuation instead lets airborne X keep falling during the hold. Fresh admission and owner visual retest remain useful. |
-| K01 | Riders draw over the other hero's Ride Chaser. | Overlap both native bikes; check rider/bike packet order in both panes. | Implemented: draw each complete bike/rider in the rider's existing gameplay bucket, restoring native priority immediately. Initial paired native art inspected; moving overlap/order acceptance remains unverified. No full pass. |
+| K01 | Riders draw over the other hero's Ride Chaser. | Overlap both native bikes; check rider/bike packet order in both panes. | Bounded current2ed3891f pass: native entry and actual P2 dash retain overlapping bike bounds, complete P2 bike/rider before complete P1 bike/rider, both alive, native body2/bike4 priorities restored. Both composed panes are pixel-identical under the native bike scene gate. Existing GPU trace qualifies order despite the partly covering READY cue. `bike-packet-order-report.json`; no full-route claim. |
 | K02 | P2 cannot shoot bike blockades until P1 dies. | Both alive, real P2 bike shots, actual blockade HP/destruction; compare survivor path. | Implemented the missing original32F70 terrain-projectile query for P2. Runtime destruction remains unverified: road-position and timing setups did not reach a qualifying shot. Stop setup variants; retain the actual blockade encounter for assisted validation. |
 | K03 | Alia dialogue still appears after bikes with skip enabled. | Execute that native hint, preserve orb-shooting action and progression while suppressing text/hold. | Native BIN7 text37/38/39 suppression implemented. Actual tutorial episode/action release remains unverified; setup did not admit its original checkpoint. |
 | K04 | P2 Zero gets X's capsule dialogue when P1 X is dead. | Original capsule, dead P1, live P2 Zero; inspect actual recipient message bank. | Fixed; bounded current2ed3891f pass. Native P1 death, actual Zero-recipient message initialization and12 real page confirmations, then normal scene release. Bike/orb access bypassed explicitly. `remaining12-survivor-capsule-report.json`. |
@@ -122,6 +142,7 @@ Video: <https://youtu.be/VcSXm8-Isx0>; web fetch failed, not reviewed.
 | M04 | First whale miniboss has missing P2 graphics. | Actual first whale and its moving atlas in both presented views. | Fixed for the bounded first-whale view; current31a04f12 shows complete matching whale/background art. Actual part damage and later whale variants remain separate checks. |
 | M05 | Second vertical-scrolling section breaks. | Its original controller, scrolling, transitions and both views. | Open. |
 | M06 | Both heroes die after jumping down. | Actual drop after the vertical section, native destination/collision and individual survival. | Open. |
+| H01 | Bike entry briefly shows both players' HUDs in both panes before correcting. Each pane must retain its own player's HUD throughout. | Native bike arrival through active driving, both pane HUDs on every presented frame; preserve native shared room and rider grouping. | Fixed in localA60BEF21. All186 presented bike-entry frames at native1x and186 at owner1080p/5x keep X on the left and Zero on the right, from first HUD through native arrival/READY. Existing image-ring records, badge-color screening and inspected contact sheets retain the evidence; zero render aborts/watchdogs/VRAM or state leaks. Cameras still share the native road. Current-build bike save/cold-load also passes. Full-route, LAN and spectator-death visual acceptance remain separate. |
 | I01 | P2 cannot stand on chained spike platforms. | Native jump/landing/contact/carry on one original platform. | Fixed; actual type10 platform1424 before/after: P2 previously falls through, now lands361.109 and jumps316.086 while P1 stays160/411. `glow-chain-before-report.json` / `glow-chain-after-report.json`. Earlier type13 crusher check is a different mechanic and does not qualify this entry. |
 | I02 | Leading P2 does not trigger stair-area Sigma viruses. | P2 crosses the real admission boundary; observe actual native virus allocations. | Bounded pass: native P2-only walking from raw6/1 CP0 admits original class19 while P1 remains stationary. No teleport, rescan, infection or actor-phase writes. `glow-native-P2-virus-report.json`. Full infection/recovery was independently qualified in the earlier V10 campaign. |
 | I03 | Leading P2 does not trigger the stair-area miniboss. | Real admission, fight start and control recovery with P1 behind. | Fixed matching AI camera context; actual leading-P2 admission of original class27 with P1 at120 passes in `glow-kraken-report.json`. Native camera gate1600 and P2-owned scene observed. Full miniboss combat/recovery remains separate. |
@@ -133,6 +154,17 @@ Shared A01 follow-up: repeat retained-armor return qualification for a real
 P2-owned stage dialogue, alongside G11. Keep original report history and do not
 count release0.2.7 as containing the later source fix. All new entries remain
 unverified until their mechanics run; loading a checkpoint does not pass them.
+
+Latest owner handoff: bikes look okay (K01 owner confirmation; this does not
+independently confirm K02 actual blockade destruction or K03 orb progression).
+Both prepared whale cards fail visual acceptance. The retained CP4 hallway
+and CP5 whale creation images already show scrambled/repeated scenery, before
+the owner's cold loads. M05/M06 remain open, with a failed prepared setup;
+the cause is not yet assigned solely to loading or ordinary-route gameplay.
+Read local observation files alongside chat: their default Not tested values
+do not override this explicit failure. Do not ask the owner to repeat these
+unchanged broken setups. H01 is the new25th gameplay report; the separate25
+CTest count remains unrelated.
 
 First multi-stage milestone: candidate SHA256
 `2dd6574de46594f7b73b729c5d8f84da06eba2653f8f9fd9e18b5365494993f7`.
@@ -410,3 +442,41 @@ Retained current candidate, fresh schema16 seed, original recordings, decisive
 native setups/images/reports and the original executable identities support
 ongoing validation. Retire these task-local test profiles after the remaining
 owner-report campaign is accepted; they are not additional delivery builds.
+
+
+### Bike HUD follow-up and failed whale setups (2026-10-29)
+
+Current local candidateA60BEF21, SHA256
+`a60bef21e2af1c856d3f8f68f0af33f28c41928b5a1208cc193521fa363efd42`,
+keeps paired presentation while the Ride Chaser's native1C hold is active.
+Each pane's HUD seat remains its assigned player even when camera ownership
+gathers or spectates. Normal on-foot arrival and duel-specific meter policy
+retain their existing paths. No simulation, checkpoint, scene or save schema
+change.25/25 source/build checks pass; H01 has its separate372-frame evidence
+in `personal-hud-early-runtime-report.json`, the owner-resolution companion,
+image analyses and contact sheets. The first observer used an on-foot ready
+helper that skipped the bike hold, then retained game-over history; it is
+explicitly unqualified. The corrected observer begins at actual enrollment.
+Color screening excludes the common blue weapon icon; it is not an X badge.
+
+The bike fixture is saved and cold-loaded onA60BEF21 with both heroes alive.
+The selector profiles now use that executable; the same failing whale cards
+are disabled and annotated, preserving notes and original evidence. No owner
+playtest is interrupted and no new visible game is started automatically.
+
+Whale CP4/CP5 fresh loaders reproduce the corrupt scenery before any new save
+is loaded. Preserving the native ring, first conditionally and then directly,
+did not correct it. Both renderer experiments are removed; do not claim a
+renderer or save-state fix. Their original snapshots/captures remain evidence
+of failed setup. The first observer also attempted saving while host-paused;
+that save waited until release. The corrected comparison releases the pause
+before saving. M05/M06 need a valid original setup or a source-backed cause;
+no speculative camera/atlas or completion flags are introduced.
+
+Bike GPU evidence is retained in the locally verified26-file archive
+`bike-trace-retained.zip`, SHA256
+`5cba73f13dc50def69fb6f0c4098f45888e2771bbda76e8dce4eb6c02d3cb996`.
+All entry hashes are verified before audited non-forced removal of1,336,509,148
+SERVER bytes. The duplicate transfer payload and obsolete experiment builds
+are disposable. The active candidate, raw reports/observations and useful
+states remain local. No release, Nextcloud replacement, push or tracker sync.

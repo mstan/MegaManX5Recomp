@@ -9,6 +9,10 @@ This includes the new Grizzly, Kraken, McWhalen and Glow reports. Keep setup
 failures and unverified mechanics visible; the frozen234-comparison campaign
 below remains parked. Work is local on `feature/mmx5-master-native-waits-local`.
 
+Whale CP4/CP5 setup corruption is repaired on local6E43DC47: the shortcut now
+restores the skipped native scenery-sheet request before saving. Fresh states
+and cold loads pass setup checks; M05/M06 mechanics remain open for validation.
+
 Earlier focused Grizzly campaign candidate: **82A36EAA**, local only.
 [Grizzly's individual stage list](COOP_X5_GRIZZLY_BURNDOWN.md) is
 **8 passed / 1 open / 9 total**. The owner accepted the co-op main-cannon

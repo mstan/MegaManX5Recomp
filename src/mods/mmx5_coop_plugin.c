@@ -132,6 +132,7 @@ static uint32_t fixture_sequence;
 static uint32_t diagnostic;
 #ifndef PSX_NO_DEBUG_TOOLS
 static unsigned fixture_location_pending,fixture_stage,fixture_section,fixture_checkpoint;
+static unsigned fixture_scenery_pending;
 /* Original8002ACC4 indexes these resident arrays. Validate the complete
  * pointer chain before admitting an offline location request. */
 static int fixture_location_valid(unsigned stage,unsigned section,unsigned checkpoint) {
@@ -170,6 +171,8 @@ static void fixture_checkpoint_begin(CPUState *cpu,uint32_t address) {
        psx_mod_read_byte(PLAY+0x0D)==fixture_section &&
        fixture_location_valid(fixture_stage,fixture_section,fixture_checkpoint)) {
         psx_mod_write_byte(PLAY+0x1D,(uint8_t)fixture_checkpoint);
+        fixture_scenery_pending=fixture_stage==3 && !fixture_section &&
+            (fixture_checkpoint==4 || fixture_checkpoint==5);
         if(diagnostic) {
             psx_mod_write_word(diagnostic+0x9C,fixture_stage|(fixture_section<<8)|(fixture_checkpoint<<16));
             uint32_t table=psx_mod_read_word(0x80072D10u+(fixture_stage*2u+fixture_section)*4u);
@@ -178,6 +181,26 @@ static void fixture_checkpoint_begin(CPUState *cpu,uint32_t address) {
         psx_mod_counter_add("mmx5.coop.fixture-checkpoints-applied",1);
     }else psx_mod_counter_add("mmx5.coop.fixture-checkpoints-rejected",1);
     fixture_location_pending=0;
+}
+static void fixture_scenery_begin(CPUState *cpu,uint32_t address) {
+    (void)cpu;(void)address;
+    if(!fixture_scenery_pending || psx_mod_netplay_is_active() ||
+       psx_mod_local_view_scope() || psx_mod_read_byte(PLAY)!=10)return;
+    fixture_scenery_pending=0;
+    /* BIN4's EFDCC requests the lower sheet before leaving the preceding
+     * whale. CP4/5 shortcuts skip that prerequisite. Queue the same native
+     * request after stage initialization (276C4 clears an earlier request),
+     * before this first gameplay update's 289D8/LoadImage. This is debug
+     * setup only, not whale defeat or drop/transition completion. */
+    if(psx_mod_read_byte(PLAY+12)==3 && !psx_mod_read_byte(PLAY+13) &&
+       (psx_mod_read_byte(PLAY+0x1D)==4 || psx_mod_read_byte(PLAY+0x1D)==5) &&
+       psx_mod_read_word(0x800EE970u)==8u &&
+       psx_mod_read_word(0x800EFDCCu)==0xAC5192F8u &&
+       psx_mod_read_word(0x80028A0Cu)==0xAE0392F8u &&
+       !psx_mod_read_word(0x800E92F8u)) {
+        psx_mod_write_word(0x800E92F8u,1);
+        psx_mod_counter_add("mmx5.coop.fixture-scenery-prerequisites",1);
+    }
 }
 #endif
 #ifdef MMX5_COOP_TEST_CHEATS
@@ -918,6 +941,7 @@ static void world_tick(CPUState *cpu,uint32_t address) {
     test_commands_tick(cpu);
 #endif
 #ifndef PSX_NO_DEBUG_TOOLS
+    fixture_scenery_begin(cpu,address);
     if(diagnostic && !psx_mod_netplay_is_active()) {
         uint32_t sequence=psx_mod_read_word(diagnostic+0x50);
         if(sequence!=fixture_sequence) {
@@ -5716,7 +5740,7 @@ static int present_local_view(CPUState *cpu,uint32_t address) {
 static void activate(void) {
     mmx5_diagnostics_reset();
 #ifndef PSX_NO_DEBUG_TOOLS
-    fixture_location_pending=fixture_stage=fixture_section=fixture_checkpoint=0;
+    fixture_location_pending=fixture_stage=fixture_section=fixture_checkpoint=0;fixture_scenery_pending=0;
 #endif
     char option[16];
     unsigned ultimate=psx_mod_current_option_value("ultimate_armor_x",option,sizeof option) && !strcmp(option,"true");

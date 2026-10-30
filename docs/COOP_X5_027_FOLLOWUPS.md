@@ -140,8 +140,8 @@ Video: <https://youtu.be/VcSXm8-Isx0>; web fetch failed, not reviewed.
 | M02 | Whale parts float after being hit. | Actual attacks/HP change and subsequent native part positions/parent relation. | Bounded current2ed3891f pass: actual X buster destroys a positive1HP weapon7, then78 native updates with both alive/matching cameras. All remaining parts preserve their native offsets as the root moves67px/9px; composed views match without detached art. Other positive, non-invulnerable parts were also set to1HP; no destruction/phase/result flags written. `remaining12-native-event-report.json`, `native-part-hit.png`. |
 | M03 | Checkpoint respawn leaves P2 in a free-roam area. | Actual retry/next-checkpoint initialization and both authored camera limits. | Fixed; bounded current2ed3891f CP2 retry passes. Actual sequential native deaths consume one shared life, reload CP2 and re-enroll both. P2 moves189px to native solid-wall contact while both authored camera records match for240 updates; original P2 whale-boundary calls run. Prior whale defeat bypassed by native CP2 setup. `remaining12-native-floor-whale-report.json`. |
 | M04 | First whale miniboss has missing P2 graphics. | Actual first whale and its moving atlas in both presented views. | Fixed for the bounded first-whale view; current31a04f12 shows complete matching whale/background art. Actual part damage and later whale variants remain separate checks. |
-| M05 | Second vertical-scrolling section breaks. | Its original controller, scrolling, transitions and both views. | Open. |
-| M06 | Both heroes die after jumping down. | Actual drop after the vertical section, native destination/collision and individual survival. | Open. |
+| M05 | Second vertical-scrolling section breaks. | Its original controller, scrolling, transitions and both views. | Open gameplay check. Corrupt CP5 setup repaired by restoring the native lower-sheet prerequisite on6E43DC47; fresh/current cold-load scenery passes. Corrected vertical card is ready for actual scrolling/transition validation. |
+| M06 | Both heroes die after jumping down. | Actual drop after the vertical section, native destination/collision and individual survival. | Open gameplay check. Corrected CP4 hallway and CP5 vertical setups cold-load with intact scenery and both alive on6E43DC47. Original route/earlier whale defeat bypassed; actual reported drop still needs validation. |
 | H01 | Bike entry briefly shows both players' HUDs in both panes before correcting. Each pane must retain its own player's HUD throughout. | Native bike arrival through active driving, both pane HUDs on every presented frame; preserve native shared room and rider grouping. | Fixed in localA60BEF21. All186 presented bike-entry frames at native1x and186 at owner1080p/5x keep X on the left and Zero on the right, from first HUD through native arrival/READY. Existing image-ring records, badge-color screening and inspected contact sheets retain the evidence; zero render aborts/watchdogs/VRAM or state leaks. Cameras still share the native road. Current-build bike save/cold-load also passes. Full-route, LAN and spectator-death visual acceptance remain separate. |
 | I01 | P2 cannot stand on chained spike platforms. | Native jump/landing/contact/carry on one original platform. | Fixed; actual type10 platform1424 before/after: P2 previously falls through, now lands361.109 and jumps316.086 while P1 stays160/411. `glow-chain-before-report.json` / `glow-chain-after-report.json`. Earlier type13 crusher check is a different mechanic and does not qualify this entry. |
 | I02 | Leading P2 does not trigger stair-area Sigma viruses. | P2 crosses the real admission boundary; observe actual native virus allocations. | Bounded pass: native P2-only walking from raw6/1 CP0 admits original class19 while P1 remains stationary. No teleport, rescan, infection or actor-phase writes. `glow-native-P2-virus-report.json`. Full infection/recovery was independently qualified in the earlier V10 campaign. |
@@ -157,10 +157,12 @@ unverified until their mechanics run; loading a checkpoint does not pass them.
 
 Latest owner handoff: bikes look okay (K01 owner confirmation; this does not
 independently confirm K02 actual blockade destruction or K03 orb progression).
-Both prepared whale cards fail visual acceptance. The retained CP4 hallway
-and CP5 whale creation images already show scrambled/repeated scenery, before
-the owner's cold loads. M05/M06 remain open, with a failed prepared setup;
-the cause is not yet assigned solely to loading or ordinary-route gameplay.
+The owner rejected the original CP4 hallway and CP5 whale setups for corrupt
+scenery. Their retained creation images confirm that failure before cold load.
+The corrected6E43DC47 development loader restores the skipped native lower-sheet
+request; fresh states and cold loads now show the intended sheet in both panes.
+M05/M06 still require their actual scrolling/drop checks and owner acceptance;
+repairing the setup does not close either gameplay report.
 Read local observation files alongside chat: their default Not tested values
 do not override this explicit failure. Do not ask the owner to repeat these
 unchanged broken setups. H01 is the new25th gameplay report; the separate25
@@ -480,3 +482,49 @@ All entry hashes are verified before audited non-forced removal of1,336,509,148
 SERVER bytes. The duplicate transfer payload and obsolete experiment builds
 are disposable. The active candidate, raw reports/observations and useful
 states remain local. No release, Nextcloud replacement, push or tracker sync.
+
+
+### Whale setup corruption resolved (2026-10-29)
+
+Candidate6E43DC47, SHA256
+`6e43dc47f2e22c6db4513f5e2ec4504e6409168a2d8daa80545f8deed53b2ac4`,
+repairs the development checkpoint setup. This is a setup fix, not a new M05/M06
+gameplay pass. The accounting remains19/25 bounded passes and6 open reports.
+
+The decisive control uses an existing native earned card SHA977FA138, its
+original Continue/unit selection, co-op and widescreen disabled, then an explicit
+CP4 setup cheat plus actual native death/retry. The same bad sheet appears.
+The earlier direct-mode and blank-card attempts failed setup; neither is a pass.
+`whale-solo-real-card-retry-report.json` retains the successful control and its
+limits. No new single-player setup feature or renderer workaround is added.
+
+BIN4's original800EFDCC writes1 to800E92F8 after the preceding whale sequence.
+Original800289D8 consumes that pending request through LoadImage800688E0 and
+writes2 after uploading the original lower sheet from scratchpad44. The CP4/5
+shortcut bypassed that prerequisite, so valid terrain/map records used the
+initial area's sheet. Setting the pending request alone corrects both captures;
+`whale-graphics-prerequisite-report.json` and the exact original instructions in
+`whale-graphics-request-reference.txt` preserve the causal before/after evidence.
+
+The existing debug fixture now queues this prerequisite after checkpoint setup
+and applies it at the existing first-world boundary, after native276C4's clear.
+Stage, checkpoint and original-instruction guards restrict it to the demonstrated
+CP4/5 shortcut. The original uploader owns the transfer/completion. No whale
+defeat, controller phase, exit, drop result, collision or success flag is seeded.
+No added generated hook, renderer change, production option or snapshot schema
+is needed. The early integration request was cleared during initialization;
+an unconfigured new-hook trial was rejected by the existing hook audit. Both
+are superseded by the passing existing-boundary implementation.
+
+All25 CTests pass on6E43DC47. A fresh native New Game supplies a current-build
+seed; independent CP4 and CP5 native loads each run the prerequisite exactly
+once, reach bank2 and save with both heroes alive and no co-op failure or private
+render fault. `whale-qualified-setups-current-report.json` retains these states.
+`whale-current-owner-cold-load-report.json` checks the actual five selector cards
+separately, including presented images and both whale bank/checkpoint identities.
+Loading a state still does not pass its gameplay mechanics or physical controls.
+
+Both corrected whale cards are available in the existing owner station with
+P1 keyboard/P2 detected DualSense, normal audio/window, local notes/captures and
+restartable private saves. Original failed states and owner observations remain
+preserved. Source and commits stay local; the sole Nextcloud release is unchanged.

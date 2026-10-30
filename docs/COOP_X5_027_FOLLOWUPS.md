@@ -6,9 +6,37 @@ The original comparative campaign remains parked. This list preserves each
 owner report individually; a bounded pass does not qualify every stage or route.
 The multi-stage batch adds 20 entries below, for 24 tracked reports total. A01's
 recurring armor complaint remains one issue with additional stage checks.
-Current accounting: **12 reports have bounded passing checks; 12 are open or
-partly implemented**. Passing IDs: A01/A03/G11/K06/M01/M04/I01/I02/I03/I04/I05/I06.
+Current accounting: **15 reports have bounded passing checks; 9 are open or
+partly implemented**. Passing IDs:
+A01/A03/G11/K04/K05/K06/M01/M03/M04/I01/I02/I03/I04/I05/I06.
+The separate **25 CTests are build/source regressions**, not additional gameplay
+reports. Their passing result does not close an open row in this list.
 The table preserves each check's limits; this is not a full-route or LAN pass.
+
+Latest native qualification (same2ed3891f candidate, private SERVER, native1x
+render override): K04/K05 and M03 pass. The capsule setup bypasses bike/orb
+access using the supplied recording's complete authored camera and a bounded
+original placement rescan. X dies through his native lifecycle first. Zero
+then initializes the recipient message bank, confirms12 actual pages, falls
+onto the original capsule top and receives the native part grant/control
+return. `remaining12-survivor-capsule-report.json`, `actual-Zero-dialogue.png`
+and `native-grant-result.png` retain this evidence. No grant or contact flags
+are seeded; this does not qualify K03's orb tutorial.
+
+M03's native CP2 setup bypasses the earlier whale defeat. Actual sequential
+deaths consume one life (2 to1), restore CP2 and re-enroll both heroes. Across
+240 updates both authored cameras match; P2 moves189.395px to native solid
+wall contact and the original P2 whale bounds run241 times. The earlier
+observer demanded the camera's far edge despite a solid wall in the way; that
+extra assertion was a harness error, not free roam. The corrected bounded
+check and state are in `remaining12-native-floor-whale-report.json`.
+
+Evidence metadata correction: diagnostics input column10 is PLAY+0x79, not
+checkpoint. Original checkpoint labels inferred from it or PLAY+14 are wrong.
+Use actual PLAY+0x1D from the retained states instead: Grizzly scene/living X
+is CP4, Grizzly survivor scene CP2, Kraken survivor capsule scene CP1. Native
+loader fixtures already use0x1D; their mechanics/results are unchanged. Raw
+records are preserved. This correction does not manufacture additional passes.
 
 | ID | Owner report / earlier reference | Bounded check and evidence | Status |
 |---|---|---|---|
@@ -34,12 +62,12 @@ Video: <https://youtu.be/VcSXm8-Isx0>; web fetch failed, not reviewed.
 | K01 | Riders draw over the other hero's Ride Chaser. | Overlap both native bikes; check rider/bike packet order in both panes. | Implemented: draw each complete bike/rider in the rider's existing gameplay bucket, restoring native priority immediately. Initial paired native art inspected; moving overlap/order acceptance remains unverified. No full pass. |
 | K02 | P2 cannot shoot bike blockades until P1 dies. | Both alive, real P2 bike shots, actual blockade HP/destruction; compare survivor path. | Implemented the missing original32F70 terrain-projectile query for P2. Runtime destruction remains unverified: road-position and timing setups did not reach a qualifying shot. Stop setup variants; retain the actual blockade encounter for assisted validation. |
 | K03 | Alia dialogue still appears after bikes with skip enabled. | Execute that native hint, preserve orb-shooting action and progression while suppressing text/hold. | Native BIN7 text37/38/39 suppression implemented. Actual tutorial episode/action release remains unverified; setup did not admit its original checkpoint. |
-| K04 | P2 Zero gets X's capsule dialogue when P1 X is dead. | Original capsule, dead P1, live P2 Zero; inspect actual recipient message bank. | Stale dead-rider and enrolled-CP0 vehicle contexts fixed. Actual survivor dismount observed; capsule text remains unverified because the route shortcut failed before conversation. |
-| K05 | The same surviving Zero cannot collect the capsule part. | After real conversation, actual top contact and native grant/return without setting progress flags. | Same context fix as K04; actual grant/return remains unverified. The original capsule allocated, but a skipped camera/checkpoint prerequisite killed Zero before contact. No grant flag was seeded. |
+| K04 | P2 Zero gets X's capsule dialogue when P1 X is dead. | Original capsule, dead P1, live P2 Zero; inspect actual recipient message bank. | Fixed; bounded current2ed3891f pass. Native P1 death, actual Zero-recipient message initialization and12 real page confirmations, then normal scene release. Bike/orb access bypassed explicitly. `remaining12-survivor-capsule-report.json`. |
+| K05 | The same surviving Zero cannot collect the capsule part. | After real conversation, actual top contact and native grant/return without setting progress flags. | Fixed; bounded current2ed3891f pass in the same capsule episode. Position above the native top, real gravity/contact, original grant changes PLAY+A1 bit1 from0 to1, scene/control recovery with X still dead. No grant/result/contact flags written. |
 | K06 | Kraken boss doors do not use scripted traversal. | Original Both admission/open/carry/close and native control recovery. | Bounded native Both admission/open/carry/closing-branch check passes at actual CP4/door8656; `glow-kraken-report.json`. Both alive, inputs released on admission. Kraken-specific boss introduction/control recovery remains separate. |
 | M01 | P2 camera sticks during whale sequence. | Native first whale controller/room advances while P2 moves and shoots; compare both complete camera records and native bounds. | Fixed; bounded current31a04f12 pass, 300 real world updates with both alive and matching authored cameras. Original2dd6574d retained stale P2 bounds594/247 while native room reached661/263. |
 | M02 | Whale parts float after being hit. | Actual attacks/HP change and subsequent native part positions/parent relation. | Open. |
-| M03 | Checkpoint respawn leaves P2 in a free-roam area. | Actual retry/next-checkpoint initialization and both authored camera limits. | Open. |
+| M03 | Checkpoint respawn leaves P2 in a free-roam area. | Actual retry/next-checkpoint initialization and both authored camera limits. | Fixed; bounded current2ed3891f CP2 retry passes. Actual sequential native deaths consume one shared life, reload CP2 and re-enroll both. P2 moves189px to native solid-wall contact while both authored camera records match for240 updates; original P2 whale-boundary calls run. Prior whale defeat bypassed by native CP2 setup. `remaining12-native-floor-whale-report.json`. |
 | M04 | First whale miniboss has missing P2 graphics. | Actual first whale and its moving atlas in both presented views. | Fixed for the bounded first-whale view; current31a04f12 shows complete matching whale/background art. Actual part damage and later whale variants remain separate checks. |
 | M05 | Second vertical-scrolling section breaks. | Its original controller, scrolling, transitions and both views. | Open. |
 | M06 | Both heroes die after jumping down. | Actual drop after the vertical section, native destination/collision and individual survival. | Open. |

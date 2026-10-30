@@ -3,10 +3,16 @@
 Play Mega Man X5 (USA, SLUS-01334) on PC, with experimental simultaneous
 X + Zero co-op. Bring your own game disc; use OpenGL for co-op.
 
-**The current co-op parity campaign is a local development playtest.** It has
-not been published as a new release, and full campaign and netplay parity are
-still being checked. Start with the [co-op playtest guide](docs/COOP_PLAYTESTING.md).
+**Co-op remains experimental.** Full campaign and netplay parity are still
+being checked. Start with the [co-op playtest guide](docs/COOP_PLAYTESTING.md).
 Older packages have their own [release notes](RELEASE_NOTES.md).
+
+The v0.2.9-coop-alpha release preserves the delivered v0.2.8 co-op source and
+its 23 bounded owner-report passes, with A02/M06 still recorded as outstanding
+for this source. It updates the shared engine and release workflow; no new
+full-route or LAN qualification is inferred. Fresh **Internal Resolution** is
+enabled at **4x**. Choose **1x to 32x** in Mods; hardware/memory limits may clamp
+larger choices. Saved player choices remain authoritative.
 
 ![Ultimate X and Black Zero together on Grizzly Slash's train](docs/images/co-op/20261022-89e80004-paired-gameplay.png)
 
@@ -19,16 +25,15 @@ capture does not establish route completion or Internet compatibility.*
 
 1. Open the local playtest build, select your disc and use **OpenGL**.
    Start windowed with normal audio.
-2. In **Mods**, enable **X + Zero Co-op**. Co-op defaults off and needs a
-   fresh boot after changing its options.
+2. **X + Zero Co-op** is enabled in **Mods**, with local split-screen and
+   Either-player doors. Changing co-op options requires a fresh boot.
 3. Assign separate P1 and P2 controller devices. For two keyboard players,
    give each seat distinct bindings; the default keyboard layouts overlap.
 4. Press **PLAY**, then choose the campaign hero for P1. The other available
    hero joins as P2. See [Controls](#controls) and the
    [playtest guide](docs/COOP_PLAYTESTING.md) for menus, joining and reports.
 
-Unified is the default display. **Local co-op display** offers
-**Side by side 8:3 (Experimental)**; **Netplay cameras** separately selects
+**Side by side 8:3 (Experimental)** is the default local display; **Netplay cameras** separately selects
 Unified or Split for online peers. Both players share one campaign and world.
 Ride Armor belongs to P1.
 
@@ -46,7 +51,7 @@ open checks; enabling one does not imply full campaign coverage.
 |---|---|---|
 | Netplay cameras | Unified | Split gives each peer a separate view of the shared world. |
 | Life meter layout | Stacked | Side by side places the two shared-screen meters alongside each other. |
-| Local co-op display | Unified | Side by side 8:3 (Experimental) gives each local player a 4:3 pane. |
+| Local co-op display | Side by side 8:3 | Side by side 8:3 (Experimental) gives each local player a 4:3 pane. |
 | Separate E-tank contents | Off | Private E-tank energy; tank acquisition and W energy stay shared. |
 | Ultimate Armor X | Off | Select X's native Ultimate Armor without a capsule or a saved unlock grant. |
 | Black Zero | Off | Select Zero's native black form without a capsule or a saved unlock grant. |
@@ -194,7 +199,10 @@ cmake --build build -j16
 ```
 
 To build the redistributable Windows release (regens, builds with the launcher,
-bundles assets + cache, and zips it): `pwsh tools/package_release.ps1`.
+bundles assets, and zips it): `pwsh tools/package_release.ps1 --channel public`.
+This delegates to the shared release builder and its fresh per-title selective
+PGO build. Trusted co-op overlays remain interpreted; resident native execution
+and the audited frame-wait path remain enabled.
 
 </details>
 

@@ -9,8 +9,14 @@ set(CMAKE_CXX_STANDARD 17)
 # flow on a fresh configure, just like X6's co-op branch.
 option(PSX_NETPLAY "Build the shared two-player netplay stack" ON)
 
-set(PSXRECOMP_V4_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/psxrecomp-v4" CACHE PATH
-    "Path to psxrecomp-v4")
+# Keep codegen, runtime and selective release PGO on one shared framework.
+# Direct title builds retain the established submodule default.
+if(DEFINED PSXRECOMP_ROOT)
+    set(PSXRECOMP_V4_ROOT "${PSXRECOMP_ROOT}")
+else()
+    set(PSXRECOMP_V4_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/psxrecomp-v4" CACHE PATH
+        "Path to psxrecomp-v4")
+endif()
 
 # Dinorex's transparent fire is expensive with one GL draw per primitive.
 # Use the existing painter-ordered batch tier for this title; explicit LLE

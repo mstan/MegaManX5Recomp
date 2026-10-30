@@ -16,7 +16,7 @@ id = "coop"
 name = "X + Zero Co-op"
 description = "X and Zero play together with separate life meters. P1 uses Ride Armor. Online play can use independent displays. Requires OpenGL and a fresh boot."
 group = "Experimental"
-default_enabled = false
+default_enabled = true
 
 [[plugin]]
 feature = "coop"
@@ -56,7 +56,7 @@ id = "local_cameras"
 label = "Local co-op display"
 description = "Unified shares one screen. Experimental side by side gives each local player a 4:3 camera and HUD in an 8:3 canvas. Each player controls their own pause menu. Shared story scenes appear in both panes. Requires a fresh boot. Online cameras use their separate setting."
 type = "choice"
-default = "unified"
+default = "split"
 [[option.choice]]
 value = "unified"
 label = "Unified"

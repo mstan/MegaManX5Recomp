@@ -12,7 +12,7 @@ EXPECTED = {
     },
     "mmx5.coop": {
         "feature": "coop", "plugin": "mmx5.coop", "version": "0.0.1",
-        "default": False, "format": 7,
+        "default": True, "format": 7,
     },
     "mmx5.cheat.ultimate-armor": {
         "feature": "ultimate-armor", "plugin": "mmx5.cheats.ultimate-armor",
@@ -101,6 +101,10 @@ def main() -> int:
                     package='mmx5.enhancement.widescreen',requires_feature='widescreen',
                     when={'local_cameras':'split'})],
                     'local split must derive the authored renderer')
+            defaults = {o['id']: o['default'] for o in manifest['option']}
+            require([defaults[name] for name in ('local_cameras', 'door_players', 'keep_zero')]
+                    == ['split', 'either', 'false'],
+                    'preserve delivered local split/either doors/native Zero availability')
             for option_id in ("ultimate_armor_x", "black_zero"):
                 options = [o for o in manifest["option"] if o["id"] == option_id]
                 require(len(options) == 1, f"co-op: unique {option_id} option")
@@ -109,7 +113,7 @@ def main() -> int:
                         options[0]["default"] == "false",
                         f"co-op: {option_id} must be an opt-in boolean")
 
-    print("validated X5 renderer/loading/diagnostics/Alia defaults, opt-in co-op and native forms; interpolation absent")
+    print("validated X5 renderer/loading/diagnostics/Alia and delivered co-op defaults; native forms opt-in, interpolation absent")
     return 0
 
 

@@ -1,3 +1,25 @@
+# v0.2.9-coop-alpha
+
+Preserves the exact delivered v0.2.8 co-op title source (f715c9ff), including
+23 bounded owner-report passes and the recorded A02/M06 gaps below. Later local
+post-release fixes are not included. No new full-route, physical-controller,
+LAN or per-title performance qualification is claimed by this packaging update.
+
+- Local X + Zero co-op, side-by-side cameras, Either-player doors, native
+  resident loading/frame waits, diagnostics and Alia suppression retain their
+  delivered feature settings. Keep Zero remains off. Trusted overlay hooks use
+  interpreted overlays; no unqualified native overlay cache is shipped.
+- Uses the shared optimized release builder: fresh per-title selective PGO,
+  public DEBUG_OFF, normal audio/window and bundled OpenBIOS. Profile booting
+  is a build step, not an additional game regression qualification.
+- Internal Resolution starts at 4x with 1x-to-32x choices in Mods. Hardware and
+  GPU memory can clamp higher choices; existing saved choices are retained.
+
+No personal settings, memory cards, QA snapshots, CD Speed or Fast Loading
+packages are included. Preserve native memory-card progress; old snapshots
+remain disposable build-specific files. See the historical v0.2.8 section and
+docs/COOP_X5_027_FOLLOWUPS.md for the exact mechanic limits.
+
 # v0.2.8-coop-alpha-debug (local Windows alpha)
 
 This build packages the current owner-report campaign: **23 of 25 individual

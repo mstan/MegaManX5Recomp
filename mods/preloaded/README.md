@@ -13,4 +13,5 @@ This catalog contains default-on game-owned enhancements:
 
 These are exposed in the launcher's **Mods** view. Interpolation is archived,
 uncompiled and unavailable, as are generic CD/host pacing options. The title's
-sprite/tile renderer uses nearest textures and 1080p internal rendering.
+sprite/tile renderer uses nearest textures. Shared Internal Resolution starts at
+4x; choose 1x to 32x in Mods, subject to hardware and GPU-memory limits.

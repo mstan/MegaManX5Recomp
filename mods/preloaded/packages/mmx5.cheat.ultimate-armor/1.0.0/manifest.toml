@@ -1,0 +1,23 @@
+format_version = 5
+id = "mmx5.cheat.ultimate-armor"
+version = "1.0.0"
+name = "Ultimate Armor X"
+author = "mstan"
+description = "Equip X's native X5 Ultimate Armor directly without a button code or capsule. Preserves native memory-card progress and grants no capsule rewards. Independent of Black Zero."
+resolver = "declarative"
+save_compatibility = "shared"
+
+[[target]]
+game_id = "SLUS-01334"
+disc_sha256 = "be731bc4b9d3211b9267a34b8a68c769199a15479b14004ff25b67cdfebe8af4"
+
+[[feature]]
+id = "ultimate-armor"
+name = "Ultimate Armor X"
+description = "Equip X's native X5 Ultimate Armor directly. No capsule is required and no capsule rewards are granted. Native memory-card progress is preserved. Requires a fresh boot. For netplay, use the host's X + Zero Co-op option."
+group = "Cheats"
+default_enabled = false
+
+[[plugin]]
+feature = "ultimate-armor"
+id = "mmx5.cheats.ultimate-armor"

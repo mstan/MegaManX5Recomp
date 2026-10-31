@@ -1,36 +1,21 @@
-MegaManX5Recomp - Mega Man X5, recompiled
-==========================================================
+Mega Man X5 @VERSION@
 
-WHAT YOU NEED
-  Your own Mega Man X5 (USA, SLUS-01334) disc image. A .cue + .bin pair is
-  preferred; a bare .bin also works. The disc is NOT included.
+Launch MegaManX5Recomp.exe and select your own USA SLUS-01334 disc image.
+OpenBIOS is included. Use OpenGL; keep a normal window and normal audio.
 
-  A PlayStation BIOS is NOT required. This package bundles the MIT-licensed
-  OpenBIOS from PCSX-Redux (bios/openbios.bin, notice in bios/OpenBIOS.LICENSE).
-  You may optionally select your own legally obtained SCPH1001.BIN instead.
+X + Zero Co-op is enabled with local side-by-side cameras and Either-player
+doors. Keep Zero remains off. Choose each player's separate controller in the
+launcher; the release retains the delivered input.ini/keybinds.ini mappings.
+Alia hint suppression, custom rendering and diagnostics remain enabled.
 
-FIRST RUN
-  1. Launch the game. The launcher window opens.
-  2. Set the Disc row to your Mega Man X5 image. The launcher verifies the
-     ISO9660 header, region, and serial before accepting it.
-  3. Optionally visit Mods for the bundled widescreen and frame interpolation
-     enhancements. They ship disabled; the default presentation is 4:3.
-  4. Press Launch. Your choices are remembered for next time.
+Internal Resolution starts at 4x. Choose 1x to 32x in Mods; hardware and GPU
+memory can clamp higher choices. Your saved choices are retained.
 
-WHERE THINGS LIVE
-  saves/     memory cards
-  cache/     converted native code, grows as you play
-  mods/      bundled and user-installed mod packages
-  input.ini  controller mapping (yours after first launch)
+This source preserves the v0.2.8 co-op fixes: 23/25 owner reports have bounded
+passes; A02/M06 and full-route/LAN limits remain as documented in RELEASE_NOTES.md
+and docs/COOP_X5_027_FOLLOWUPS.md. No fresh game-wide qualification is implied.
+Trusted overlays remain interpreted; native resident loading/frame waits remain.
 
-  On Linux the AppImage seeds these into ~/.local/share/MegaManX5Recomp
-  (override with MMX5_RECOMP_DATA_DIR).
-
-PRIVACY NOTE
-  overlay_captures.json and the cache folder contain code converted from
-  YOUR disc. Do not redistribute them.
-
-TROUBLESHOOTING
-  Slow performance: lower Supersampling to 1 in the launcher.
-  Controller not detected: check input.ini, or use the launcher's controller
-  row to pick the device.
+Native memory cards live in saves/. Back them up before moving existing cards
+with the game closed. No personal cards, settings or QA states are included.
+Old snapshots are build-specific and need not work in this build.

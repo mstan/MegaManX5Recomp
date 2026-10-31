@@ -1,0 +1,23 @@
+format_version = 5
+id = "mmx5.enhancement.skip-alia"
+version = "1.0.0"
+name = "Skip Alia Hints"
+author = "mstan"
+description = "Remove Alia's automatic in-stage hint interruptions. Story scenes, bosses and capsules keep their original dialogue."
+resolver = "declarative"
+save_compatibility = "shared"
+
+[[target]]
+game_id = "SLUS-01334"
+disc_sha256 = "be731bc4b9d3211b9267a34b8a68c769199a15479b14004ff25b67cdfebe8af4"
+
+[[feature]]
+id = "skip-alia"
+name = "Skip Alia Hints"
+description = "Skip automatic stage hints without pausing either player. Enabled by default for solo and local co-op; always enabled in netplay. Requires a fresh boot."
+group = "Gameplay"
+default_enabled = true
+
+[[plugin]]
+feature = "skip-alia"
+id = "mmx5.skip-alia"

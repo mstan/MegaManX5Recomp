@@ -1,99 +1,149 @@
 # MegaManX5Recomp
 
-> _This recompilation is a **byproduct of developing
-> [psxrecomp](https://github.com/mstan/psxrecomp)** — the games are the proving ground, the framework is the goal.
-> **These are in-development previews, not finished ports — expect rough
-> edges**, and depth will keep landing over months, not days. My time for any
-> one title is limited, so I ask for your patience. Contributions are welcome —
-> testing, issues, and PRs to the game or framework all help and will
-> accelerate this game's polish. More on the why at:
-> [Recomp + AI: 5 Months Later »](https://1379.tech/recomp-ai-5-months-later/)_
+Play Mega Man X5 (USA, SLUS-01334) on PC, with experimental simultaneous
+X + Zero co-op. Bring your own game disc; use OpenGL for co-op.
 
-Mega Man X5 (USA, SLUS-01334) statically recompiled to a native PC executable
-with [PSXRecomp](https://github.com/mstan/psxrecomp) — the same framework behind
-[TombaRecomp](https://github.com/mstan/TombaRecomp) and
-[MegaManX6Recomp](https://github.com/mstan/MegaManX6Recomp).
+**Co-op remains experimental.** Full campaign and netplay parity are still
+being checked. Start with the [co-op playtest guide](docs/COOP_PLAYTESTING.md).
+Older packages have their own [release notes](RELEASE_NOTES.md).
 
-## What This Is
+The v0.2.9-coop-alpha release preserves the delivered v0.2.8 co-op source and
+its 23 bounded owner-report passes, with A02/M06 still recorded as outstanding
+for this source. It updates the shared engine and release workflow; no new
+full-route or LAN qualification is inferred. Fresh **Internal Resolution** is
+enabled at **4x**. Choose **1x to 32x** in Mods; hardware/memory limits may clamp
+larger choices. Saved player choices remain authoritative.
 
-This repository contains the game-specific configuration, seeds, tools, and
-build glue for running Mega Man X5 on the PSXRecomp framework. The game's MIPS
-code is machine-translated ("recompiled") ahead of time into native C, then
-compiled into a real Windows program that runs the game's own logic on a
-faithful simulation of the PS1 hardware (GPU, SPU, GTE, memory cards) plus the
-real, recompiled PS1 BIOS — no high-level emulation shims.
+![Ultimate X and Black Zero together on Grizzly Slash's train](docs/images/co-op/20261022-89e80004-paired-gameplay.png)
 
-It does **not** contain the Mega Man X5 disc image, the PS1 BIOS, generated game
-code, or any decompiled game C. Those are produced locally from your own legally
-obtained assets.
+*Actual gameplay on candidate 89E80004, 2026-10-22: Ultimate X/P1 and Black
+Zero/P2. This is P1's view during a two-peer test on one PC, with automatic
+forms enabled. The original stage loader and HP refill assisted setup; this
+capture does not establish route completion or Internet compatibility.*
 
-Important files:
+## Play together
 
-- `game.toml`: runtime / recompiler / video / controller config.
-- `seeds/`: Ghidra-derived function starts and game-specific seed data.
-- `tools/regen.ps1`: regenerates the recompiled C output.
-- `tools/package_release.ps1`: builds the redistributable release zip.
-- `psxrecomp-v4.pin`: framework commit this project is known-good against.
-- `ISSUES.md`: game-specific issue log.
-- `DISC.md`: source-disc identity and verification hashes.
+1. Open the local playtest build, select your disc and use **OpenGL**.
+   Start windowed with normal audio.
+2. **X + Zero Co-op** is enabled in **Mods**, with local split-screen and
+   Either-player doors. Changing co-op options requires a fresh boot.
+3. Assign separate P1 and P2 controller devices. For two keyboard players,
+   give each seat distinct bindings; the default keyboard layouts overlap.
+4. Press **PLAY**, then choose the campaign hero for P1. The other available
+   hero joins as P2. See [Controls](#controls) and the
+   [playtest guide](docs/COOP_PLAYTESTING.md) for menus, joining and reports.
+
+**Side by side 8:3 (Experimental)** is the default local display; **Netplay cameras** separately selects
+Unified or Split for online peers. Both players share one campaign and world.
+Ride Armor belongs to P1.
+
+**Input Display and Recording** (Playtest Diagnostics) and **Skip Alia Hints**
+are enabled by default. Automatic Alia stage hints are suppressed; story,
+boss and capsule dialogue remains. Netplay includes diagnostics and always
+suppresses those automatic hints.
+
+## Co-op options
+
+These are the current Mods controls. Settings marked experimental still have
+open checks; enabling one does not imply full campaign coverage.
+
+| Setting | Default | Effect |
+|---|---|---|
+| Netplay cameras | Unified | Split gives each peer a separate view of the shared world. |
+| Life meter layout | Stacked | Side by side places the two shared-screen meters alongside each other. |
+| Local co-op display | Side by side 8:3 | Side by side 8:3 (Experimental) gives each local player a 4:3 pane. |
+| Separate E-tank contents | Off | Private E-tank energy; tank acquisition and W energy stay shared. |
+| Ultimate Armor X | Off | Select X's native Ultimate Armor without a capsule or a saved unlock grant. |
+| Black Zero | Off | Select Zero's native black form without a capsule or a saved unlock grant. |
+| Keep Zero playable | Off | Local-only availability override after the story removes P2 Zero. |
+| Door and refight entry | Either player | Both players (Experimental) requires living teammates at the same entrance. |
+| Co-op boss scaling | Off | Elective damage and recovery adjustments for regular Mavericks and the first Dynamo. |
+| Boss hit cooldowns | Separate for each player | With scaling enabled, choose separate recovery or reduced shared cooldowns. |
+
+Boss scaling gives X half native damage and Zero 40%, with shorter ordinary
+hit recovery. Other encounters retain native balance. These options still
+have open encounter and cooldown checks in the parity burndown.
+
+The two form options work independently and require a fresh boot. For co-op,
+use these settings inside **X + Zero Co-op**. The separate **Cheats** entries
+with the same names default off and apply to offline single-player play;
+online play uses the host's agreed co-op settings. Forms do not grant capsule
+rewards or change saved unlock progress. Some form-specific combat and
+rewind/rollback checks remain open.
+
+Both-player refight-pad waiting now has a local gameplay check covering waiting,
+both-player admission and withdrawal fallback. Online pad admission remains
+unverified. The [burndown](docs/COOP_PARITY_BURNDOWN.md) records individual
+passes, failures and remaining gaps.
+
+Netplay is available for alpha testing through the launcher's Host/Join flow.
+Use the exact same candidate on both peers, with the host's agreed mod choices.
+Each peer binds its local device as Player 1; the room assigns the gameplay
+seat. Internet transport and full campaign play are not certified.
+
+![P2's own Black Zero menu in the current co-op playtest](docs/images/co-op/20261022-89e80004-p2-menu.png)
+
+*P2's own menu on the same candidate. The player who opens a menu controls it;
+the current two-peer test checks both menus and return to gameplay. The input
+overlay and REC indicator come from the default-on diagnostics.*
 
 ## Status
 
-**Playable preview — `v0.0.2-alpha`.** Mega Man
-X5 **boots from the PS1 BIOS and plays** — through the opening (including the
-intro cutscenes, which now decode and play), into stages, with working
-controller input and memory-card **save/load**, and **no known crashes**. It has
-not yet been verified all the way to the end, so treat it as a very playable
-preview rather than a certified full playthrough.
+This branch preserves the local X5 co-op parity work. Native stage entries,
+combat, menus, rewards, memory-card save/load and selected transitions have
+bounded gameplay evidence. Remaining comparisons and newly discovered issues
+are tracked individually; this is not a completed parity or all-stages claim.
 
-| Area | State |
-|---|---|
-| PS1 BIOS boot | Works (real recompiled BIOS) |
-| Disc-detect / boot | Works (loads the engine and streamed overlays) |
-| Intro cutscenes / FMV | Plays (movies now decode); auto-skip available |
-| Controller | Works; DualShock/analog presented by default (required by MMX5) |
-| Stage gameplay | Works (not yet verified all the way to the end) |
-| Memory-card save / load | Works (standard PS1 `.mcd`, emulator-compatible) |
-| Renderers | Software, OpenGL, and Vulkan; OpenGL is the validated default |
-| Mods | Widescreen 16:9 and frame interpolation; both default-disabled |
+The current candidate has a successful combined two-peer test of automatic
+forms, arrivals, movement and attacks, effects, both menus, Nova Strike with
+an independently moving partner, Alia hint suppression, train scrolling, and
+survivor control after a scene owner's death. This was a local test using two
+copies of the same build. The bundled launcher's actual device assignment,
+control display and settings have separate coverage: actual Mods clicks and
+PLAY save the choices, a fresh launcher reloads them, and native forms, local
+displays and Both-door behavior match. The control pages show the stock
+bindings. No gamepad was connected for that hidden, muted check; physical
+two-device input and an owner-facing window/audio handoff remain unverified.
 
-See `ISSUES.md` for notes and the remaining enhancement follow-ups.
+A boss-room checkpoint test skipped an earlier door's native background upload,
+leaving incorrect scenery. Requesting that native upload restores the room.
+The actual earlier-door trigger and broader artwork coverage remain unverified;
+this setup does not establish an ordinary-play rendering regression.
+
+Later local candidate 4DB4A5F3 keeps the final boss introduction waiting until
+both players clear a Both-player door. Native dialogue and each player's
+control recovery are checked; later phases and endings remain open.
+
+Use [COOP_PLAYTESTING.md](docs/COOP_PLAYTESTING.md) for the current local build.
+[RELEASE_NOTES.md](RELEASE_NOTES.md) describes historical packaged releases and
+may list different options or older savestate limits.
 
 ## Features
 
-These are the framework features that are already working in this build:
+- **X + Zero Co-op (Alpha).** Optional simultaneous play with separate life
+  meters, owned menus and local or online display choices.
+- **Custom Renderer.** Enabled by default; Adaptive follows the window.
+  Local side-by-side co-op requires this renderer.
+- **Playtest Diagnostics.** Default-on input display and local recording,
+  including starting cards and mod choices for issue reproduction.
+- **Skip Alia Hints.** Default-on suppression of automatic stage hints;
+  original story and upgrade conversations remain.
+- **Fast Asset Loading.** Default-on verified asset transfers through the
+  original callbacks. Movies, music and background actor loads keep their
+  original paths.
+- **Launcher and controller support.** Disc/BIOS and memory-card selection,
+  controller assignment and display settings. A DualShock/analog controller
+  is presented by default.
 
-- **Modern renderers.** CPU software, OpenGL, and Vulkan backends are available.
-  OpenGL is the validated default for this release.
-- **Fast loading (turbo loads).** While a load is in progress the whole machine
-  fast-forwards at your PC's full speed, then drops back to normal the instant
-  it finishes — so disc loads complete far faster while all of the game's
-  internal timing (and audio) stays correct. Authentic 1× disc timing is kept;
-  the speed comes from the load fast-forward, not from speeding up the emulated
-  CD (which would break timing). On by default; toggleable in the launcher.
-- **Intro cutscenes / FMV.** The opening movies (`CAPLOGO.STR` / `X5OP.STR`,
-  with `BGM.XA` audio) decode and play. Full-motion videos can also be skipped
-  the instant they start — off by default so you see the intro, toggleable in
-  the launcher (Settings → "Skip FMVs").
-- **DualShock controller by default.** MMX5 will not poll buttons until it
-  detects an analog-capable pad, so the runtime presents a DualShock by default.
-  Adjustable stick deadzone; per-player override in the launcher.
-- **Supersampling + anti-aliasing.** Internal-resolution SSAA (1×–4×) with
-  optional linear present filtering for clean edges.
-- **Mods view.** Two reviewed, game-owned enhancements are available:
-  default-disabled 16:9 widescreen and presentation-only frame interpolation.
-  Widescreen expands the Capcom 2D background tile window and widens enemy
-  activation and primitive culling; interpolation preserves the game's stock
-  logic, audio, and VBlank cadence.
-- **Graphical launcher.** Pick your BIOS, disc, and memory cards; verify the
-  disc; configure renderer / supersampling / controller, with live settings
-  persistence — then press Launch.
+OpenGL is the co-op validation target. Other renderer and presentation
+combinations retain their own coverage limits.
 
 ## Setup
 
-### Release Package (recommended)
+### Packaged build
 
-1. Download `MegaManX5Recomp-v*-windows-x64.zip` from Releases and extract it.
+1. Extract the local playtest package supplied for this session. For older
+   published packages, follow their accompanying release notes.
 2. Run `MegaManX5Recomp.exe`. A **launcher window** opens.
 3. OpenBIOS is included and selected automatically. You may optionally choose
    a legally obtained retail PlayStation BIOS.
@@ -101,7 +151,7 @@ These are the framework features that are already working in this build:
    SLUS-01334) disc image. The launcher verifies the ISO9660 header, region, and
    serial.
 5. Optionally adjust renderer, supersampling, screen look, and controller
-   settings, then press **Launch**. Your choices are remembered.
+   settings, then press **PLAY**. Your choices are remembered.
 
 Accepted disc formats: `.cue` + `.bin` (preferred — pick the `.cue`) and `.bin`.
 **Do not convert the disc to a 2048-byte "cooked" `.iso`** — that discards the
@@ -112,6 +162,9 @@ Selected paths and settings persist next to the executable. Clearing the BIOS
 row returns to OpenBIOS.
 
 ### Building From Source
+
+<details>
+<summary>Developer toolchain and build commands</summary>
 
 Builds on **Windows (MSYS2/MinGW)**.
 
@@ -146,21 +199,30 @@ cmake --build build -j16
 ```
 
 To build the redistributable Windows release (regens, builds with the launcher,
-bundles assets + cache, and zips it): `pwsh tools/package_release.ps1`.
+bundles assets, and zips it): `pwsh tools/package_release.ps1 --channel public`.
+This delegates to the shared release builder and its fresh per-title selective
+PGO build. Trusted co-op overlays remain interpreted; resident native execution
+and the audited frame-wait path remain enabled.
+
+</details>
 
 ## Configuration
 
-Most options are exposed in the launcher and persist to `settings.toml`. The
-underlying defaults live in `game.toml`:
+Launcher choices persist to `settings.toml`; base defaults are in `game.toml`.
+Use Mods for the game-specific features listed above. Co-op display, door and
+resource options require a fresh boot.
 
-- `[video]` — `renderer`, `supersampling` (1–4), `antialiasing`,
-  `texture_filtering`, and `auto_skip_fmv`. Widescreen and frame interpolation
-  are owned by the two packages in the Mods view.
-- `[controller]` — `default_analog` (DualShock on by default), `deadzone`.
-- `[runtime]` — `disc_speed` (kept at `1x`), `turbo_loads`, `bios_hle`,
-  `overlay_cache`.
+- `[video]` controls renderer, resolution, filtering and FMV preferences.
+- `[controller]` controls analog presentation and deadzone.
+- `[runtime]` includes BIOS and overlay-cache configuration.
+
+Test-only teleport/HP fixtures are not ordinary gameplay controls.
 
 ## Controls
+
+The stock in-game layout uses Cross to jump, Square for the primary attack,
+Circle to dash, Triangle for X's selected special weapon, and L1/R1 to cycle
+weapons. Saved in-game control changes take precedence.
 
 | PSX button | Keyboard |
 |---|---|
@@ -173,7 +235,6 @@ underlying defaults live in `game.toml`:
 | L2 / R2 | E / R |
 | Start | Enter |
 | Select | Right Shift |
-| Turbo | Tab (hold) |
 | Fullscreen | F11 / Alt+Enter |
 
 A game controller (Xbox, PlayStation, or any SDL-recognized pad) is supported via
@@ -192,16 +253,56 @@ is presented by default.
 | Start | Menu |
 | Select | View / Back |
 
-Release builds include `input.ini` next to `MegaManX5Recomp.exe`. Edit it to
-change controller device index, deadzone, or button mapping.
+The package includes `input.ini` for gamepad defaults. Keyboard bindings are
+stored in `keybinds.ini`; each seat needs distinct keys for simultaneous
+keyboard play. Check both players in the launcher's controller setup.
 
-## Memory Cards
+Either player can press Start for their own menu; the player who opened it
+owns its controls. Hold P2 Select to withdraw, then release and press Select
+to request a rejoin near P1 when safe. Withdrawal is unavailable during the
+forced Ride Chaser sequence.
 
-Save and load work. The runtime uses standard PS1 memory-card images
-(`.mcd` / `.mcr`) compatible with DuckStation, PCSX-Redux, Mednafen, ePSXe, and
-similar emulators. Cards are stored in the `saves` directory and managed in the
-launcher's memory-card UI. Runtime memory-card files are local artifacts and must
-not be committed.
+## Memory cards and savestates
+
+Use the game's native **SAVE** and **LOAD** for campaign progress. Standard PS1
+`.mcd` / `.mcr` cards are managed in the launcher; keep a backup before alpha
+testing. The co-op package uses an isolated mod save profile. P1 owns the
+shared campaign, while P2's private in-session resources are not a second
+campaign save. The original game can reset consumable contents on card Load.
+
+Co-op savestates and rewind are available for current-build testing, with
+remaining refusal/restore checks. Treat these states as disposable: use the
+same executable and mod settings, and keep native card saves for durable
+progress. See the [playtest guide](docs/COOP_PLAYTESTING.md#saving-and-restoring)
+for the distinction.
+
+Cards, states and diagnostics are local artifacts and must not be committed.
+
+## Engineering background
+
+<details>
+<summary>Framework, performance and source-development notes</summary>
+
+This repository contains the game-specific configuration, seeds, tools, and
+build glue for running Mega Man X5 on the PSXRecomp framework. The game's MIPS
+code is machine-translated ("recompiled") ahead of time into native C, then
+compiled into a Windows program that runs the game's own logic with the
+framework's PS1 hardware simulation (GPU, SPU, GTE and memory cards) and BIOS
+support.
+
+It does **not** contain the Mega Man X5 disc image, the PS1 BIOS, generated game
+code, or any decompiled game C. Those are produced locally from your own legally
+obtained assets.
+
+Important files:
+
+- `game.toml`: runtime / recompiler / video / controller config.
+- `seeds/`: Ghidra-derived function starts and game-specific seed data.
+- `tools/regen.ps1`: regenerates the recompiled C output.
+- `tools/package_release.ps1`: builds the redistributable release zip.
+- `psxrecomp-v4.pin`: framework commit this project is known-good against.
+- `ISSUES.md`: game-specific issue log.
+- `DISC.md`: source-disc identity and verification hashes.
 
 ## Help make your game faster — just by playing
 
@@ -223,6 +324,17 @@ into `overlay_captures.json` and your own cache grows automatically.
 snapshots of the game's code read from your disc, which is copyrighted material —
 keep it on your own machine, alongside your disc image.
 
+## Project background
+
+> _This recompilation is a **byproduct of developing
+> [psxrecomp](https://github.com/mstan/psxrecomp)** — the games are the proving ground, the framework is the goal.
+> **These are in-development previews, not finished ports — expect rough
+> edges**, and depth will keep landing over months, not days. My time for any
+> one title is limited, so I ask for your patience. Contributions are welcome —
+> testing, issues, and PRs to the game or framework all help and will
+> accelerate this game's polish. More on the why at:
+> [Recomp + AI: 5 Months Later Â»](https://1379.tech/recomp-ai-5-months-later/)_
+
 ## Development Rules
 
 - Use the real recompiled BIOS and real hardware simulation in PSXRecomp.
@@ -232,12 +344,15 @@ keep it on your own machine, alongside your disc image.
   outputs stay local.
 - See `CLAUDE.md` for project-specific rules.
 
+</details>
+
 ## License
 
-PolyForm Noncommercial 1.0.0. See `LICENSE`.
+PolyForm Noncommercial 1.0.0. See [LICENSE](LICENSE).
 
-Mega Man X5 is copyright Capcom. This repository contains none of the game's
-original binaries or assets. Release packages contain no game assets or disc
+Mega Man X5 is copyright Capcom. This repository contains no original disc,
+BIOS image or extracted game data. The gameplay screenshots depict Capcom's
+copyrighted artwork. Release packages contain no original game assets or disc
 data. They include the MIT-licensed OpenBIOS; a retail BIOS is never included.
 The
 release executable and the bundled `cache` folder do contain statically
@@ -247,7 +362,7 @@ model used by other static recompilation projects such as N64: Recompiled.
 ---
 
 <p align="center">
-  <sub><b>R.A.I.D. — Retro AI Development</b> · a Discord for AI-assisted retro reverse-engineering, decomp &amp; recomp</sub>
+  <sub><b>R.A.I.D. — Retro AI Development</b> Â· a Discord for AI-assisted retro reverse-engineering, decomp &amp; recomp</sub>
 </p>
 
 <p align="center">

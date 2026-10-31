@@ -1,0 +1,37 @@
+schema = 1
+
+[product]
+name = "MegaManX5Recomp"
+display_name = "Mega Man X5 Recompiled"
+exe_name = "MegaManX5Recomp"
+version_file = "packaging/release/VERSION"
+player_game_toml = "packaging/release/game.toml"
+launcher_boxart = "recomp/launcher/boxart.tga"
+
+[build]
+regenerate = true
+cmake_args = ["-DPSX_RECOMP_UI=ON", "-DPSX_ENABLE_VULKAN=OFF", "-DPSX_PGXP_VARIANT=OFF", "-DPSX_NETPLAY=ON", "-DPSX_GL_BATCH_IMPL=HLE", "-DMMX5_COOP_TEST_CHEATS=OFF"]
+
+[aot]
+mode = "none"
+
+[overlay_toolchain]
+ship = false
+
+[payload]
+start_here = "packaging/release/START_HERE.txt"
+files = [
+  "README.md",
+  "LICENSE",
+  "RELEASE_NOTES.md",
+  "docs/AOT_OVERLAYS.md",
+  "docs/COOP_X5_027_FOLLOWUPS.md",
+  {from = "packaging/release/input.ini", to = "input.ini"},
+]
+
+[linux]
+app_run = "packaging/linux/AppRun"
+desktop_file = "packaging/linux/io.github.mstan.MegaManX5Recomp.desktop"
+icon = "recomp/launcher/boxart.tga"
+payload_dir = "megamanx5recomp"
+env_prefix = "MMX5_RECOMP"

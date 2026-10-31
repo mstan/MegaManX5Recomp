@@ -18,9 +18,13 @@ This project inherits, in order:
    the option off).
 2. The framework constitution at `psxrecomp-v4/CLAUDE.md` — a junction →
    `F:/Projects/psxrecomp/psxrecomp` (the shared `master` checkout). Read it
-   first: no MIPS interpreter, no HLE BIOS shims, no stubs, recompiled-BIOS-first,
+   first: no stubs, recompiled-BIOS-first,
    fix the framework/runtime/config and **regenerate** — never hand-edit
    `generated/`.
+3. `F:/Projects/recomp-template/HLE.md` governs performance replacements:
+   keep a runnable LLE reference, choose ENHANCED/REFERENCE at build time,
+   preserve real caller results/effects/order, and measure useful performance.
+   Current owner policy takes precedence over older blanket HLE prohibitions.
 
 ## Project rules
 

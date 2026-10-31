@@ -1,0 +1,96 @@
+{
+  "commit": "50593bca772b600de6911cbfecd40b0f08721147",
+  "repository": "F:\\Projects\\psxrecomp\\_wt-mmx4-pr23",
+  "files": [
+    {
+      "path": "docs/COOP_PLAYTEST_REGRESSIONS.md",
+      "git_blob": "7619517d5ebd4c27e943f36fbb41ccb38357d410",
+      "bytes": 13037,
+      "sha256": "66826ff879fc4c6e3dc45a9d8e6cb84223fcac20ceac2f3fec0feabeb470425f"
+    },
+    {
+      "path": "docs/COOP_PLAYTEST_FEEDBACK_20261010.md",
+      "git_blob": "0318807785b5b2436a0ca152610080c2aa8f2ce2",
+      "bytes": 240107,
+      "sha256": "75b25d86c1aab98d95f2a047ee749cb86414483655b066c19801c7906d1e99f2"
+    },
+    {
+      "path": "docs/COOP_FEEDBACK41.md",
+      "git_blob": "3351359470db43a912386bdcdd9ffff20c12e3ee",
+      "bytes": 12151,
+      "sha256": "715abd6ee766a8493fd282a0cb7ee4d96e37e2ac02004fa30f151bc6efaab19c"
+    },
+    {
+      "path": "docs/COOP_FEEDBACK42.md",
+      "git_blob": "5b87c7459bf3752ab9e996419c8d48503ecde640",
+      "bytes": 7301,
+      "sha256": "2aacbd9beb6f93cbceac40d64c6a7aa19666d28263d80b9a4d0b885a2605958a"
+    },
+    {
+      "path": "docs/COOP_PERSONAL_MENUS40.md",
+      "git_blob": "ba69868d1822f65a2a82226422c8878075477bd9",
+      "bytes": 5528,
+      "sha256": "42a048dae049da5757271db62aa335cb59275a5f124afcaf4a086e2ec4b66311"
+    },
+    {
+      "path": "docs/COOP_STAGE_CONTROLLERS40.md",
+      "git_blob": "1d4f511107e95a80a1f0cc17434d72be9f9e8dd5",
+      "bytes": 6415,
+      "sha256": "2b1e2c1c75ba7013c25d2162c686055d53903774e5566a3f82fcd4e08afab7af"
+    },
+    {
+      "path": "RELEASE_NOTES.md",
+      "git_blob": "2f1839dcc3d14a00e352cc5bde3185dbfdeed1a2",
+      "bytes": 75457,
+      "sha256": "53a2b0dde0308bab776b6d8800bdc46c35acf49d29fcb8b1cb60f2df99918678"
+    },
+    {
+      "path": "src/mods/mmx4_coop_lifecycle.c",
+      "git_blob": "a40f13791c1b82d54597028015554a143b90ae09",
+      "bytes": 135195,
+      "sha256": "aaf711bf1a30f3e5eb618772cf51af1f62c000e501156dea60cc67bc90f0d775"
+    },
+    {
+      "path": "src/mods/mmx4_coop_plugin.c",
+      "git_blob": "a4c0417e3e021d243f8cbb7e109f96d87d6ebf38",
+      "bytes": 89536,
+      "sha256": "f61bb4f8758660ba21e04c86ec28b5c3f22738396ff128ebf10e65fae84b7e57"
+    },
+    {
+      "path": "src/mods/mmx4_coop_balance.c",
+      "git_blob": "cb008cb1da44dd8a4cfc357cd8513f2dd445a8e0",
+      "bytes": 26995,
+      "sha256": "d2d4b5bc9acc59decbfa021e415a32e055f3d48c9e3e54ece1796e4b78cf3955"
+    },
+    {
+      "path": "src/mods/mmx4_coop_combat.c",
+      "git_blob": "e56f5e7c7b1b47c3d7a95db74d4df67eb9f11719",
+      "bytes": 50500,
+      "sha256": "3153b42f6dbb5a408c63eafb7b5b8e16a04102b994a62ab7b8d199792636752a"
+    },
+    {
+      "path": "src/mods/mmx4_coop_split.c",
+      "git_blob": "d2afe037a9feb3c96f5dc0b3c80dd8bbd56fe8d5",
+      "bytes": 62318,
+      "sha256": "9f60f3bf2ebaa77fbbdb2453886a1038f8c17f31d3ddf8c67e645952829556b3"
+    },
+    {
+      "path": "src/mods/mmx4_diagnostics.cpp",
+      "git_blob": "139473f5bf1548bdbe1e139969d07a1ca078e9b2",
+      "bytes": 22271,
+      "sha256": "ed73eeaec6467293e3f19858a5a893c81c312fb5b3805a430f5d174fc10bc7fc"
+    },
+    {
+      "path": "src/mods/mmx4_diagnostic_writer.h",
+      "git_blob": "c079ad5f336b38de3010ddcca53ef08825a0f348",
+      "bytes": 8530,
+      "sha256": "a843b82e9b50c3a8dd1024b2a0431f2a571fab95062923f3e388bf80d9c5be4a"
+    },
+    {
+      "path": "src/mods/mmx4_diagnostic_mode.h",
+      "git_blob": "e64ebbaf1e12c202c201928b575e0e2752267623",
+      "bytes": 1214,
+      "sha256": "631a5aa8443a8b9a285e8f2312a0e7f6ba78b7d5726b394234b6aa51ee816038"
+    }
+  ]
+}

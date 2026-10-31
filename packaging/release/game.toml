@@ -1,0 +1,61 @@
+[game]
+name = "Mega Man X5"
+id = "SLUS-01334"
+players = 2
+exe = "mmx5/SLUS_013.34"
+disc = ""
+load_address = "0x80010000"
+entry_pc = "0x8005894C"
+text_size = "0x00082000"
+stack_base = "0x801FFFF0"
+
+[recompiler]
+seeds = "seeds/ghidra_funcs.txt"
+out_dir = "generated"
+
+[runtime]
+debug_port = 0
+window_title = "Mega Man X5"
+memcard_dir = "saves"
+disc_speed = "1x"
+turbo_loads = false
+bios_hle = true
+overlay_cache = false
+overlay_backend = "auto"
+overlay_autocompile_cmd = ""
+
+[video]
+aspect_ratio = "4:3"
+renderer = "opengl"
+internal_resolution = "1080p"
+resolution_reference_lines = 240
+
+frame_interpolation = false
+texture_filtering = "nearest"
+offer_frame_interpolation = false
+
+auto_skip_fmv = false
+
+[widescreen]
+full_2d = true
+gameplay_state_addr = "0x800D1C00"
+gameplay_state_values = ["0x00000009", "0x0000000A"]
+offer = false
+offer_ultrawide = true
+clear_reveal = true
+nw_left_hud_packet_lo = "0x000E8500"
+nw_left_hud_packet_hi = "0x000E9300"
+
+[widescreen.cull]
+auto_screen_x = true
+screen_x_sites = [
+  "0x80032D90",
+  "0x80032E20",
+  "0x80032EB4",
+  "0x80032F48",
+]
+
+[controller]
+default_analog = true
+deadzone       = 12000
+allow_hybrid   = false

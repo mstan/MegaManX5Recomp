@@ -1,0 +1,23 @@
+format_version = 5
+id = "mmx5.diagnostics"
+version = "1.0.0"
+name = "Playtest Diagnostics"
+author = "mstan"
+description = "Displays both players' accepted inputs and records a replay trace with initial memory cards. Enabled by default for playtests."
+resolver = "declarative"
+save_compatibility = "shared"
+
+[[target]]
+game_id = "SLUS-01334"
+disc_sha256 = "be731bc4b9d3211b9267a34b8a68c769199a15479b14004ff25b67cdfebe8af4"
+
+[[feature]]
+id = "inputs"
+name = "Input Display and Recording"
+description = "Shows P1/P2 buttons and an input counter. Writes inputs.csv and starting card copies beneath saves/diagnostics. The co-op netplay playtest profile includes diagnostics automatically."
+group = "Diagnostics"
+default_enabled = true
+
+[[plugin]]
+feature = "inputs"
+id = "mmx5.diagnostics"

@@ -1,0 +1,139 @@
+format_version = 7
+id = "mmx5.coop"
+version = "0.0.1"
+name = "X + Zero Co-op (Alpha)"
+author = "mstan"
+description = "Experimental native co-op alpha with local play and opt-in independent netplay displays."
+resolver = "declarative"
+save_compatibility = "isolated"
+
+[[target]]
+game_id = "SLUS-01334"
+disc_sha256 = "be731bc4b9d3211b9267a34b8a68c769199a15479b14004ff25b67cdfebe8af4"
+
+[[feature]]
+id = "coop"
+name = "X + Zero Co-op"
+description = "X and Zero play together with separate life meters. P1 uses Ride Armor. Online play can use independent displays. Requires OpenGL and a fresh boot."
+group = "Experimental"
+default_enabled = true
+
+[[plugin]]
+feature = "coop"
+id = "mmx5.coop"
+
+[[option]]
+feature = "coop"
+id = "cameras"
+label = "Netplay cameras"
+description = "Unified shares a camera. Split gives each online player an independent display of the shared world. The host chooses for both peers. Offline play uses the Local co-op display setting."
+type = "choice"
+default = "unified"
+[[option.choice]]
+value = "unified"
+label = "Unified"
+[[option.choice]]
+value = "split"
+label = "Split"
+
+[[option]]
+feature = "coop"
+id = "hud_layout"
+label = "Life meter layout"
+description = "Stack the two life meters on the left or place them side by side. Independent displays show the local player's meter in its native position. Requires a fresh boot."
+type = "choice"
+default = "stacked"
+[[option.choice]]
+value = "stacked"
+label = "Stacked"
+[[option.choice]]
+value = "side_by_side"
+label = "Side by side"
+
+[[option]]
+feature = "coop"
+id = "local_cameras"
+label = "Local co-op display"
+description = "Unified shares one screen. Experimental side by side gives each local player a 4:3 camera and HUD in an 8:3 canvas. Each player controls their own pause menu. Shared story scenes appear in both panes. Requires a fresh boot. Online cameras use their separate setting."
+type = "choice"
+default = "split"
+[[option.choice]]
+value = "unified"
+label = "Unified"
+[[option.choice]]
+value = "split"
+label = "Side by side 8:3 (Experimental)"
+
+[[requirement]]
+feature = "coop"
+package = "mmx5.enhancement.widescreen"
+requires_feature = "widescreen"
+when = { local_cameras = "split" }
+
+[[option]]
+feature = "coop"
+id = "separate_etanks"
+label = "Separate E-tank contents"
+description = "Each player stores and spends their own E-tank energy. Tank acquisition and W-tank energy stay shared. Requires a fresh boot. The host chooses for both peers."
+type = "boolean"
+default = "false"
+
+[[option]]
+feature = "coop"
+id = "ultimate_armor_x"
+label = "Ultimate Armor X"
+description = "Equip X's native X5 Ultimate Armor directly. No capsule is required. Preserves native memory-card progress and grants no capsule rewards. Requires a fresh boot. The host chooses for both peers."
+type = "boolean"
+default = "false"
+
+[[option]]
+feature = "coop"
+id = "black_zero"
+label = "Prefer Black Zero after unlock"
+description = "Prefer Black Zero after obtaining his capsule in Sigma stage 3. Normal and Black Zero can then be chosen in the unit selector. This option does not unlock the form. Requires a fresh boot. The host chooses for both peers."
+type = "boolean"
+default = "false"
+
+[[option]]
+feature = "coop"
+id = "keep_zero"
+label = "Keep Zero playable"
+description = "Keep P2 Zero available after the story removes him. Story and ending flags stay native. Local co-op only; netplay uses native availability."
+type = "boolean"
+default = "false"
+
+[[option]]
+feature = "coop"
+id = "door_players"
+label = "Door and refight entry"
+description = "Either player can open a door or use a refight pad. Both players requires living teammates at the same door or pad. Doors let them cross independently; pads transport the team together. Requires a fresh boot. The host chooses for both peers."
+type = "choice"
+default = "either"
+[[option.choice]]
+value = "either"
+label = "Either player"
+[[option.choice]]
+value = "both"
+label = "Both players (Experimental)"
+
+[[option]]
+feature = "coop"
+id = "boss_scaling"
+label = "Co-op boss scaling"
+description = "Elective balance for the eight regular Maverick stages and first Dynamo: X deals half native damage, Zero deals 40%, and ordinary hit recovery is halved. Other encounters use native balance. Requires a fresh boot. The host chooses for both peers."
+type = "boolean"
+default = "false"
+
+[[option]]
+feature = "coop"
+id = "boss_cooldowns"
+label = "Boss hit cooldowns"
+description = "With co-op boss scaling enabled, use separate recovery for each player or one reduced shared recovery. Native protected phases stay protected. Requires a fresh boot. The host chooses for both peers."
+type = "choice"
+default = "per_player"
+[[option.choice]]
+value = "per_player"
+label = "Separate for each player"
+[[option.choice]]
+value = "shared"
+label = "Reduced shared cooldowns"

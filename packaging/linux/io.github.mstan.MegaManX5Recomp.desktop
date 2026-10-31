@@ -2,7 +2,7 @@
 Type=Application
 Name=Mega Man X5 Recompiled
 Comment=Static recompilation of Mega Man X5
-Exec=mmx5-runtime
+Exec=@EXE_NAME@
 Icon=io.github.mstan.MegaManX5Recomp
 Categories=Game;
 Terminal=false

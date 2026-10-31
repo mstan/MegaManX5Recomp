@@ -1,0 +1,91 @@
+{
+  "delivery": {
+    "path": "G:\\Nextcloud\\Games\\PSX\\MegaManX5Recomp-v0.2.5-coop-alpha-debug-windows-x64.zip",
+    "sha256": "18dea12716d5fe2056011940f5b15da41670176bd47355543b58502d4d1751d1",
+    "bytes": 33166422,
+    "source_commit": "779d62d3602e71f1ff3f699cb1609544052af0ec",
+    "executable_sha256": "f93e1410955f0834b36636855c72b25b51a61e28eee3a8c13d7193288a3f9cf9",
+    "version": "v0.2.5-coop-alpha-debug",
+    "one_current_x5_archive": true,
+    "replaced": "v0.2.4-coop-alpha-debug",
+    "local_delivery_only": true
+  },
+  "archive": {
+    "artifact": "C:\\Temp\\Codex\\mmx5-perf-20261027\\MegaManX5Recomp-v0.2.5-coop-alpha-debug-windows-x64.zip",
+    "zip_sha256": "18dea12716d5fe2056011940f5b15da41670176bd47355543b58502d4d1751d1",
+    "bytes": 33166422,
+    "files": 227,
+    "packages": [
+      "mmx5.cheat.black-zero",
+      "mmx5.cheat.ultimate-armor",
+      "mmx5.coop",
+      "mmx5.diagnostics",
+      "mmx5.enhancement.resident-loading",
+      "mmx5.enhancement.skip-alia",
+      "mmx5.enhancement.widescreen",
+      "psx.enhancement.8mb-ram",
+      "psx.enhancement.crt-filter",
+      "psx.enhancement.enhanced-audio",
+      "psx.enhancement.hd-textures",
+      "psx.enhancement.image-filtering",
+      "psx.enhancement.internal-resolution",
+      "psx.enhancement.pgxp",
+      "psx.feature.rewind",
+      "psx.presentation.bezel"
+    ],
+    "source_commit": "779d62d3602e71f1ff3f699cb1609544052af0ec",
+    "executable_sha256": "f93e1410955f0834b36636855c72b25b51a61e28eee3a8c13d7193288a3f9cf9",
+    "version": "v0.2.5-coop-alpha-debug",
+    "aot_pairs": 72,
+    "local_only": true
+  },
+  "checks": {
+    "title": 25,
+    "sdk": 11,
+    "ui": 3,
+    "cold_restores": 3,
+    "owner_hud": "passed",
+    "owner_physical_input": "passed"
+  },
+  "performance": {
+    "stats": {
+      "baseline": {
+        "cpu_ms_per_tick": [
+          15.086805555555555,
+          14.427083333333334
+        ],
+        "ticks_per_second": [
+          59.77523912332169,
+          59.9842425395038
+        ],
+        "cpu_mean": 14.756944444444445,
+        "fps_mean": 59.87974083141275,
+        "rss_peak": 787378176
+      },
+      "candidate": {
+        "cpu_ms_per_tick": [
+          14.253472222222221,
+          12.687708565072302
+        ],
+        "ticks_per_second": [
+          59.88145906274752,
+          59.87420715420637
+        ],
+        "cpu_mean": 13.470590393647262,
+        "fps_mean": 59.87783310847694,
+        "rss_peak": 779677696
+      }
+    },
+    "cpu_change_percent": -8.716940391284433,
+    "fps_change_percent": -0.003185923835535842,
+    "method": "Two A and two B windows, A1/B1/B2/A2. A clear disjoint favorable CPU range is a bounded-workload improvement; mixed small results are neutral/inconclusive. No campaign-wide or wait-only speed claim.",
+    "scope": "This X5 package and idle intro workload only; no reproducible regression observed. No claims about other games using the combined local SDK merge."
+  },
+  "evidence": "G:\\Temp\\Codex\\psxrecomp\\x5-parity\\native-waits-20261027",
+  "limits": [
+    "Older campaign and LAN deferred",
+    "Native cold-card Black Zero unlock persistence unverified",
+    "Full duel winner stories/endings unqualified; cold-save winner persistence unimplemented",
+    "Earlier pre-enrollment host-time starvation stop source unverified; watchdog unchanged"
+  ]
+}

@@ -1,6 +1,7 @@
 [game]
 name = "Mega Man X5"
 id = "SLUS-01334"
+players = 2
 exe = "mmx5/SLUS_013.34"
 disc = "mmx5/Mega Man X5 (USA).cue"
 load_address = "0x80010000"
@@ -9,6 +10,8 @@ text_size = "0x00082000"
 stack_base = "0x801FFFF0"
 
 [recompiler]
+mod_instruction_sites = ["0x800F72D0", "0x800F1C28", "0x80018A4C", "0x80033334", "0x80041B04", "0x80013480", "0x8001850C", "0x80020760", "0x80022044", "0x80022290", "0x800225D8", "0x800228D8", "0x80022920", "0x8002A5FC", "0x8002A638", "0x8002B39C", "0x8003176C", "0x80031BC4", "0x80031E5C", "0x80032184", "0x80038E48", "0x8003BE78", "0x8003C2BC", "0x8003C724", "0x8003D5F8", "0x8003D7AC", "0x8003E75C", "0x8004B7EC", "0x80052EE8", "0x80055074", "0x80056848", "0x800EEA7C", "0x800EEAA4", "0x800EEAD0", "0x800EEB68", "0x800EEC0C", "0x800EECA8", "0x800F1200", "0x800F1510", "0x800F1B40", "0x800F1C18", "0x800F1EF0", "0x800F1F8C", "0x800F2358", "0x800F2474", "0x800F2828", "0x800F2874", "0x800F28A4", "0x800F28CC", "0x800F2978", "0x800F33A4", "0x800F34CC", "0x800F351C", "0x800F3CA8", "0x800F3D60", "0x800F4058", "0x800F4080", "0x800F41A8", "0x800F46F8", "0x800F4D90", "0x800F4E08", "0x800F53F8", "0x800F59A0", "0x800F7EC4", "0x800F7EF4", "0x800F7F4C", "0x800F7F5C", "0x800F7F68", "0x800F7F78", "0x800F80D0", "0x800F8870", "0x800F8BDC", "0x800F961C", "0x800F96A4", "0x800F9734", "0x800F9A00", "0x800FB568", "0x800FB710", "0x800FB774", "0x800FCE74"]
+mod_function_entry_funcs = ["0x800F0C80", "0x800F4D7C", "0x800F8B60", "0x800321EC", "0x800262D8", "0x80025A74", "0x80025D94", "0x80014574", "0x80014944", "0x80020D5C", "0x80021F64", "0x80022084", "0x800221B0", "0x80022960", "0x80022D98", "0x80024B88", "0x80024C60", "0x80025240", "0x8002553C", "0x80025828", "0x80026080", "0x80027370", "0x80027D84", "0x80027F88", "0x8002A440", "0x8002A554", "0x8002A720", "0x8002A7E0", "0x8002ACC4", "0x8002AE50", "0x8002AFB4", "0x8002B4E4", "0x8002C938", "0x8002CA20", "0x8002D0E4", "0x8002D210", "0x8002D27C", "0x8002D800", "0x8002D89C", "0x8002D938", "0x8002D9EC", "0x8002DAA0", "0x80030AE4", "0x80030BB4", "0x80031670", "0x800317B8", "0x80031DD0", "0x8003240C", "0x80035040", "0x8003BAC8", "0x8001255C", "0x8003D29C", "0x8003B1A8", "0x8004DB18", "0x8004C620", "0x80053A4C", "0x80054000", "0x800549E8", "0x80054BB8", "0x80054D9C", "0x8005609C", "0x80056AA0", "0x80066D78", "0x80067198", "0x800688E0", "0x80068C28", "0x80016490", "0x80016D54", "0x80059988", "0x8005D458", "0x8005D7C4", "0x8005E448", "0x8004F0B4", "0x8004F3F4", "0x8004F8E8", "0x80022EDC", "0x80022F3C", "0x80056E88", "0x800F588C", "0x800F65C8", "0x800F8170", "0x80046900", "0x80020B80", "0x800F48B4", "0x800F48F8", "0x800F4968", "0x800F3930", "0x800F4A5C", "0x80050D04", "0x80055798", "0x80055AD0", "0x8002385C", "0x800EF7A4", "0x80031F60", "0x800EFC34", "0x800F26AC", "0x8003D5E0", "0x8003D784", "0x80034A04", "0x80018400", "0x80034E90", "0x80013288", "0x800132F8", "0x800183B4", "0x800272B4", "0x80050F58", "0x80054FE4", "0x80055D24", "0x800EE988", "0x800EEAF0", "0x800F3780", "0x800EF584", "0x800F0260", "0x800F02CC", "0x800EFF84", "0x800F7194", "0x80032F70"]
 bios_config = "psxrecomp-v4/bios/SCPH1001.toml"
 seeds = "seeds/ghidra_funcs.txt"
 out_dir = "generated"
@@ -18,22 +21,10 @@ strict = true
 debug_port = 4520
 window_title = "MegaManX5Recomp"
 memcard_dir = "saves"
-# Disc speed + fast loads — the architecturally-correct model (see MMX6 game.toml
-# for the full rationale). Keep AUTHENTIC guest CD timing (disc_speed="1x") so
-# nothing breaks, and get fast loads by fast-forwarding the whole guest timeline
-# during loads (turbo_loads). Speeding the guest-visible CD device is unsafe for
-# timing-sensitive Psy-Q titles like the Mega Man X engine.
-disc_speed   = "1x"     # authentic guest CD timing (never breaks game timing)
-turbo_loads  = false    # keep the guest timeline at normal speed by default
-# Load acceleration is mod-owned: players use "Fast Loading (host pacing)" /
-# "CD Speed" under Mods -> Quality of Life, both default-off. The generic switch
-# is retired in the framework, but this title still pins a framework that
-# predates that, where offer_turbo_loads IS honoured — without it, a turbo value
-# left in a stale settings.toml is restored on every launch and cannot be turned
-# off from any UI (the launcher draws no Turbo row). Remove once the pin moves.
-offer_turbo_loads = false
+# Title-owned resident loading; drive and host timing stay authentic.
+disc_speed = "1x"
 # HLE BIOS tier, DEFAULT-ON for X5 (2026-07-02): kernel B0 event family served
-# host-side + the boot shell-skip — boots straight past the PSX logo into the
+# host-side + the boot shell-skip â€” boots straight past the PSX logo into the
 # game (kernel init still runs the real recompiled BIOS; unimplemented services
 # fall through to LLE). The launcher's old "Skip PSX BIOS" fast_boot toggle is
 # retired; boot behavior is this per-game decision now. Set false (or
@@ -45,7 +36,9 @@ bios_hle = true
 # <exe>/cache/SLUS-01334/ -> loader rescans + loads. Priority: static > gcc shard
 # > tcc shard > interp. backend "auto" = gcc if a gcc toolchain is present, else
 # the bundled toolchain-free tcc.
-overlay_cache = true
+# Native overlay units currently bypass trusted co-op function/instruction
+# hooks. Keep the compatible overlay interpreter; resident native waits remain.
+overlay_cache = false
 overlay_backend = "auto"
 # Compile RECIPE only (compiler + tool paths). The WRITE cache + READ captures are
 # injected by the runtime (PSX_OVERLAY_CACHE_DIR / PSX_OVERLAY_CAPTURES) so they
@@ -53,15 +46,15 @@ overlay_backend = "auto"
 overlay_autocompile_cmd = "py -3 psxrecomp-v4/tools/compile_overlays.py --game-toml game.toml --recompiler psxrecomp-v4/recompiler/build/psxrecomp-game.exe --runtime-include psxrecomp-v4/runtime/include --cps"
 
 [video]
-# Native presentation. X5 ships 4:3 (authentic). Widescreen is owned by the
-# default-off mmx5.enhancement.widescreen package rather than a generic
-# launcher setting; its trusted plugin selects 16:9 after the mod plan commits.
+# The default-on Custom Renderer follows the live drawable.
 aspect_ratio = "4:3"
 renderer = "opengl"
+internal_resolution = "1080p"
+resolution_reference_lines = 240
 
-# Presentation-only interpolation is likewise owned by the default-off
-# mmx5.enhancement.frame-interpolation package. Hide the generic Settings row
-# and ignore values persisted by older builds so there is one activation path.
+# Interpolation is archived and uncompiled for serial review.
+frame_interpolation = false
+texture_filtering = "nearest"
 offer_frame_interpolation = false
 
 # auto_skip_fmv: auto-skip full-motion videos (XA audio + MDEC). Off for the
@@ -69,44 +62,21 @@ offer_frame_interpolation = false
 # X5 MDEC player loop is understood (X5 ships CAPLOGO.STR / X5OP.STR opening movies).
 auto_skip_fmv = false
 
-# Experimental 16:9 for the pure-2D sprite engine — same mechanism as MMX6:
-# full_2d treats every game frame as gameplay so the native-wide present path
-# engages when [video] aspect_ratio is flipped to "16:9" by the launcher's
-# Widescreen toggle (settings.toml). Inert at 4:3.
-# The background and object-cull hooks below are identity transforms at 4:3,
-# so the launcher aspect toggle remains the single opt-in control.
+# Modern adaptive view: original map tiles in an independent host DMA arena.
 [widescreen]
 full_2d = true
+gameplay_state_addr = "0x800D1C00"
+# Retail state9 is attract gameplay; state10 is player-controlled gameplay.
+gameplay_state_values = ["0x00000009", "0x0000000A"]
 offer = false
-offer_ultrawide = false
+offer_ultrawide = true
+clear_reveal = true
 nw_left_hud_packet_lo = "0x000E8500"
 nw_left_hud_packet_hi = "0x000E9300"
 
-# True wider FOV for the Capcom 2D background engine. X5 draws 21 tile columns
-# into a 32x32 ring. Widescreen prepends/appends four columns, moves the start X
-# left by 64 pixels, widens both streamer edges, and refreshes the full widened
-# ring window once per frame. The RAM layout values are verified against
-# FUN_80028328; see annotations/widescreen_bg2d_sites.md. Regen required.
-[widescreen.bg2d]
-count_site        = "0x80028218" # sltiu v0,t7,0x15
-startcol_site     = "0x80028040" # andi v1,v1,0x1f
-startx_site       = "0x80028058" # sra s6,v0,0x10
-stream_left_site  = "0x800282B8" # addiu a1,s0,-0x10
-stream_right_site = "0x800282CC" # addiu a1,s0,0x150 (320+16)
-cap_site          = "0x8002810C" # slti v0,v1,0x3e8
-layer_base        = "0x8009A1F8"
-ring_base         = "0x800A51A8"
-map_size_addr     = "0x800D1DBC"
-layer_stride_addr = "0x80091D58"
-ring_cols          = 32
-layer_count        = 3
-layer_struct_stride = 84
-packet_cap         = 1024
-
-# Expand both object activation windows and qualified primitive render culls by
-# the per-side 16:9 reveal margin. The explicit pairs keep their original
-# offscreen lead while making enemies activate before entering either wide edge.
-# auto_screen_x covers FUN_80032CEC's four 320x240 quad tests.
+# The legacy [widescreen.bg2d] tile-ring widening path is retired. Its native
+# count/start/stream/cap instructions now run unmodified. This generic GPU
+# primitive clip service remains shared with the modern renderer.
 [widescreen.cull]
 auto_screen_x = true
 screen_x_sites = [
@@ -114,20 +84,6 @@ screen_x_sites = [
   "0x80032E20",
   "0x80032EB4",
   "0x80032F48",
-]
-bias_sites = [
-  "0x8002D86C",
-  "0x8002D908",
-  "0x8002DB0C",
-]
-range_sites = [
-  "0x8002D874",
-  "0x8002D910",
-  "0x8002DB14",
-]
-a1_sites = [
-  "0x8002D948", # FUN_8002D938: move t0,a1
-  "0x8002D9F4", # FUN_8002D9EC: move t0,a1
 ]
 
 # Controller defaults. The Mega Man X engine probes the pad with the DualShock
@@ -140,9 +96,9 @@ default_analog = true
 deadzone       = 12000
 allow_hybrid   = false
 
-# ── Audit-specific config (consumed by psxrecomp tools/*.py and tests) ──
+# â”€â”€ Audit-specific config (consumed by psxrecomp tools/*.py and tests) â”€â”€
 [audit]
-# Dynamic discovery — functions are found by walking control flow from entry_pc.
+# Dynamic discovery â€” functions are found by walking control flow from entry_pc.
 
 # Code region: text segment is contiguous from load_address for text_size bytes.
 [[audit.regions]]

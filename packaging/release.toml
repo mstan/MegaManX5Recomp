@@ -22,7 +22,7 @@ ship = false
 start_here = "packaging/release/START_HERE.txt"
 files = [
   "README.md",
-  "LICENSE",
+  "LICENSE", "PERMISSIONS.md",
   "RELEASE_NOTES.md",
   "docs/AOT_OVERLAYS.md",
   "docs/COOP_X5_027_FOLLOWUPS.md",

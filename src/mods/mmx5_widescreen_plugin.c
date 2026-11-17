@@ -14,12 +14,16 @@
 #define FEATURE "widescreen"
 #define LAYERS 0x8009a1f8u
 static uint32_t arena;
-/* Immutable initial scenery for the intro and Dinorex's first section.
+/* Immutable initial scenery for the intro, Dinorex and Rose's earlier rooms.
  * Native area controllers replace the shared atlas at their next region.
  * A retained old-region camera still requires the original sheet. Keep only
  * ROM-derived host words here; there is no new mutable simulation state. */
-static uint16_t initial_region_atlases[2][512u * 256u];
-static unsigned initial_region_atlas_ready[2];
+static uint16_t initial_region_atlases[5][512u * 256u];
+static unsigned initial_region_atlas_ready[5];
+/* Full VRAM pitch preserves native page/UV addressing. Only indices are
+ * retained; the background bank path still samples the live guest CLUT. */
+static uint16_t grizzly_initial_vram[1024u * 512u];
+#define GRIZZLY_INITIAL_BANK 0xC000u
 
 static int prepare_region_atlas(const uint8_t *dat,uint32_t bytes,
                                 unsigned slot,unsigned record,unsigned asset) {
@@ -45,7 +49,19 @@ static int prepare_region_atlas(const uint8_t *dat,uint32_t bytes,
 int mmx5_widescreen_prepare_region_atlases(const uint8_t *dat,uint32_t bytes) {
     int intro=prepare_region_atlas(dat,bytes,0,100,5);
     int dinorex=prepare_region_atlas(dat,bytes,1,105,3);
-    return intro && dinorex;
+    int rose=prepare_region_atlas(dat,bytes,2,110,3);
+    unsigned grizzly_ready=initial_region_atlas_ready[3];
+    int grizzly=prepare_region_atlas(dat,bytes,3,101,5);
+    if(grizzly && !grizzly_ready)
+        for(unsigned y=0;y<256;++y)
+            memcpy(grizzly_initial_vram+(y+256u)*1024u+320u,
+                   initial_region_atlases[3]+y*512u,512u*sizeof(uint16_t));
+    int sigma1=prepare_region_atlas(dat,bytes,4,123,3);
+    return intro && dinorex && rose && grizzly && sigma1;
+}
+int mmx5_widescreen_resolve_bank(uint16_t id) {
+    if(id!=GRIZZLY_INITIAL_BANK || !initial_region_atlas_ready[3])return 0;
+    return psx_mod_define_texture_bank(id,1024,512,grizzly_initial_vram);
 }
 
 int mmx5_widescreen_project_region_atlas(void) {
@@ -71,17 +87,39 @@ int mmx5_widescreen_project_region_atlas(void) {
             psx_mod_read_half(0x800f4834u)!=2192u ||
             (int16_t)psx_mod_read_half(LAYERS+14u)>=2192) return 1;
         slot=1;
+    } else if (psx_mod_read_byte(0x800d1c0cu)==7u) {
+        /* BIN10's high-bit area5 admits the right shaft and replaces this
+         * shared sheet. The beginning, vine shaft and upper route still
+         * sample DAT110's initial atlas even when their offsets are right.
+         * Area7 is the separate lower-route entrance: keep that region and
+         * the admitted shaft on the original live replacement sheet. */
+        if (psx_mod_read_word(0x800ee970u)!=14u ||
+            psx_mod_read_word(0x80056070u)!=0xac6292f8u ||
+            psx_mod_read_word(0x8007d028u)!=0x111f10e0u ||
+            psx_mod_read_word(0x8007d030u)!=0x10401040u ||
+            psx_mod_read_word(0x8007d048u)!=0x085f0820u ||
+            psx_mod_read_word(0x8007d050u)!=0x1e200780u ||
+            (int16_t)psx_mod_read_half(LAYERS+10u)>=4160 ||
+            ((int16_t)psx_mod_read_half(LAYERS+14u)>=960 &&
+             (int16_t)psx_mod_read_half(LAYERS+0x26u)>=1920)) return 1;
+        slot=2;
+    } else if (psx_mod_read_byte(0x800d1c0cu)==16u) {
+        if (psx_mod_read_word(0x800ee970u)!=30u ||
+            psx_mod_read_word(0x800ef388u)!=0xac4492f8u ||
+            psx_mod_read_half(0x800f8c58u)!=1680u ||
+            (int16_t)psx_mod_read_half(LAYERS+14u)>=1680) return 1;
+        slot=4;
     } else return 1;
     if (!initial_region_atlas_ready[slot]) {
-        psx_mod_counter_add(slot?"mmx5.renderer.dinorex-atlas-unavailable":
-                                 "mmx5.renderer.intro-atlas-unavailable",1);
+        if(slot<2u)psx_mod_counter_add(slot?"mmx5.renderer.dinorex-atlas-unavailable":
+                                            "mmx5.renderer.intro-atlas-unavailable",1);
         return 0;
     }
     /* Same native rectangle800718D8. The renderer transfer journals the old
      * words BEFORE touching the CPU mirror and preserves queued ordering;
      * a GP0 A0 payload would mutate that mirror before journal protection. */
     gr_vram_transfer_in(320,256,512,256,initial_region_atlases[slot]);
-    if(slot)psx_mod_counter_add("mmx5.renderer.dinorex-old-region-atlas",1);
+    if(slot==1u)psx_mod_counter_add("mmx5.renderer.dinorex-old-region-atlas",1);
     return 1;
 }
 static const PSXCapcomBackground background = {0x80093f78u, 0x80091d60u, 3u, 17u, 0x7900u};
@@ -108,10 +146,13 @@ static void mmx5_grizzly_tile_patches(unsigned layer) {
            psx_mod_read_byte(actor+2)>=4u || psx_mod_read_byte(actor+4)!=1u)continue;
         uint32_t parent=psx_mod_read_word(actor+0x20);
         unsigned frame=psx_mod_read_byte(actor+0x1B);
-        if(parent<0x80092090u || parent>=0x80093DD0u ||
-           (parent-0x80092090u)%0x9Cu || !psx_mod_read_byte(parent) ||
-           psx_mod_read_byte(parent+1)!=0x10u || psx_mod_read_byte(parent+0x87)>=2u ||
-           frame>=18u)continue;
+        /* Co-op can retain this native clock for the old train's resident
+         * after its shared parent retires. The full-map painter must consume
+         * that same live frame instead of falling back to static map tiles. */
+        if(frame>=18u || (!mmx5_coop_grizzly_chain_retained(actor) &&
+           (parent<0x80092090u || parent>=0x80093DD0u ||
+            (parent-0x80092090u)%0x9Cu || !psx_mod_read_byte(parent) ||
+            psx_mod_read_byte(parent+1)!=0x10u || psx_mod_read_byte(parent+0x87)>=2u)))continue;
         uint32_t shape=0x800FD408u+psx_mod_read_byte(actor+2)*6u;
         if(psx_mod_read_byte(shape)!=layer)continue;
         uint32_t source=0x800FD30Cu+frame*8u;
@@ -124,20 +165,9 @@ static void mmx5_grizzly_tile_patches(unsigned layer) {
         p->source_y=(int16_t)psx_mod_read_half(source+2);
     }
 }
-static void mmx5_grizzly_panorama_tile(unsigned layer, int *x, int *y,
-                                       unsigned *mirror_x, uint16_t *bank) {
-    (void)mirror_x; (void)bank;
-    if(!layer) {
-        for(unsigned i=0;i<grizzly_tile_patch_count;++i) {
-            const GrizzlyTilePatch *p=&grizzly_tile_patches[i];
-            if(*x>=p->left && *x<p->right && *y>=p->top && *y<p->bottom) {
-                *x=p->source_x+*x-p->left;*y=p->source_y+*y-p->top;
-                psx_mod_counter_add("mmx5.renderer.grizzly-animated-tiles",1);
-                return;
-            }
-        }
-        return;
-    }
+static void mmx5_looping_layer_tile(unsigned layer, int *x, int *y,
+                                     unsigned *mirror_x, uint16_t *bank) {
+    (void)y; (void)mirror_x; (void)bank;
     /* Original28328 wraps a newly exposed column through camera4D..4E.
      * The authored map renderer must sample the same column rather than
      * discard it at the interval boundary while a full view straddles it.
@@ -151,6 +181,27 @@ static void mmx5_grizzly_panorama_tile(unsigned layer, int *x, int *y,
         int relative = (*x - first) % span;
         if (relative < 0) relative += span;
         *x = first + relative;
+    }
+}
+static void mmx5_grizzly_panorama_tile(unsigned layer, int *x, int *y,
+                                       unsigned *mirror_x, uint16_t *bank) {
+    if(layer) {
+        mmx5_looping_layer_tile(layer,x,y,mirror_x,bank);
+        /* Escape's native cave upload replaces the sheet while the old
+         * layer2 sky is still exposed during P2's survivor jump. Retain just
+         * that plane's ROM indices; the entering cave/foreground uses live
+         * VRAM, and fades/palette animation keep their native live CLUTs. */
+        if(layer==2u && mmx5_coop_split_views() && initial_region_atlas_ready[3] &&
+           psx_mod_texture_banks_supported())*bank=GRIZZLY_INITIAL_BANK;
+        return;
+    }
+    for(unsigned i=0;i<grizzly_tile_patch_count;++i) {
+        const GrizzlyTilePatch *p=&grizzly_tile_patches[i];
+        if(*x>=p->left && *x<p->right && *y>=p->top && *y<p->bottom) {
+            *x=p->source_x+*x-p->left;*y=p->source_y+*y-p->top;
+            psx_mod_counter_add("mmx5.renderer.grizzly-animated-tiles",1);
+            return;
+        }
     }
 }
 
@@ -209,6 +260,17 @@ static void mmx5_bg_end(CPUState *cpu, uint32_t address) {
         (!layer || mode == 5u)) {
         mmx5_grizzly_tile_patches(layer);
         policy = mmx5_grizzly_panorama_tile;
+    } else if(layer==1u && parent<0 &&
+        map.left_screen<=map.right_screen && map.right_screen<map.width &&
+        psx_mod_read_byte(0x800d1c0cu)==4u && !psx_mod_read_byte(0x800d1c0du) &&
+        psx_mod_read_word(0x800ee970u)==9u &&
+        psx_mod_read_word(0x800283e8u)==0x9107004du &&
+        psx_mod_read_word(0x80028448u)==0x9087004eu &&
+        psx_mod_read_word(0x800F31A0u)==0xA0A200A1u &&
+        psx_mod_read_word(0x800F35D4u)==0xA0E00057u) {
+        /* Dinorex's fire sheet uses the same native looping page interval.
+         * A full view straddles its edge before28328 resets the origin. */
+        policy=mmx5_looping_layer_tile;
     }
     int packets = psx_capcom_background_render(&background, arena,
         psx_mod_read_word(0x1f800000u), &map, sx, sy, view, native_packet, policy);

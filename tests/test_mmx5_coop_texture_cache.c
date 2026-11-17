@@ -32,7 +32,10 @@ int main(void) {
     pair(WORLD+40000+79920,0x6FFF);
     pair(PRIMARY+0x40000+40000+79920,0x6006);
     pair(HUD+0x8000+0x3000+0x4FB0,0x6007);
-    CHECK(slot(4096,0x6000,4095)==8);
+    /* The second personal duel HUD starts at0x4010, preserving both
+     * native sprite alignment and the retained40-byte triangle grid. */
+    pair(HUD+0x3000+0x4010,0x6008);
+    CHECK(slot(4096,0x6000,4095)==9);
     CHECK(slot(4096,0xA000,0)==0);
     memcpy(saved,ram,sizeof ram);
     unsigned restored=slot(4096,0x6000,4095);

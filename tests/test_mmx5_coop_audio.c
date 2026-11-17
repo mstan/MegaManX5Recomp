@@ -9,6 +9,7 @@
 static uint8_t ram[0x200000],private_ram[0x10000];
 static uint32_t allocated,registered,opened,native_sound,pending_bank;
 static unsigned projected=1,ready=1,local_view,menu_secondary;
+static unsigned duel_arrival;
 static unsigned transfer_busy;
 static PSXModFunctionFilterCallback sound_filter,key_filter,stop_filter,status_filter,volume_filter,off_filter;
 static uint32_t private_bank,private_active,private_stops;
@@ -42,6 +43,9 @@ void psx_mod_counter_add(const char *n,uint32_t v) {(void)n;(void)v;}
 int mmx5_coop_ready(void) {return ready;}
 int mmx5_coop_projected(void) {return projected;}
 int mmx5_coop_menu_secondary(void) {return menu_secondary;}
+int mmx5_coop_duel_arrival_sound(uint32_t caller,uint32_t actor) {
+    return duel_arrival && caller==0x800F7B5Cu && actor==0x8009212Cu;
+}
 int mmx5_coop_finish(CPUState *c,uint32_t v) {c->gpr[2]=v;return 1;}
 int psx_mod_register_function_filter_plugin(const char *id,uint32_t a,PSXModFunctionFilterCallback cb) {
     CHECK(!strcmp(id,"mmx5.coop"));
@@ -100,6 +104,13 @@ uint32_t psx_mod_call_guest_uncharged(CPUState *cpu,uint32_t a,uint32_t ra,uint3
 static void put(uint8_t *p,uint32_t n) {for(unsigned i=0;i<4;++i)p[i]=(uint8_t)(n>>(i*8));}
 int main(void) {
     CHECK(sound_filter && key_filter);CHECK(mmx5_coop_audio_activate());
+    CPUState arrival={0};arrival.gpr[4]=2;arrival.gpr[5]=0x8C;
+    arrival.gpr[31]=0x800F7B5Cu;arrival.gpr[16]=0x8009212Cu;
+    CHECK(!sound_filter(&arrival,SOUND));
+    duel_arrival=1;CHECK(sound_filter(&arrival,SOUND) && !arrival.gpr[2]);
+    arrival.gpr[31]=0x80035EDCu;CHECK(!sound_filter(&arrival,SOUND));
+    arrival.gpr[31]=0x800F7B5Cu;arrival.gpr[5]=0x8D;
+    CHECK(!sound_filter(&arrival,SOUND));duel_arrival=0;
     uint8_t full[12288]={0},saved[12288];
     put(full+88*8,1);put(full+88*8+4,10240);
     put(full+90*8,1);put(full+90*8+4,10240);

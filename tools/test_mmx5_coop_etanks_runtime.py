@@ -1,4 +1,4 @@
-"""One owned native menu/pickup/reload sequence for shared or private E.
+"""One owned native menu/pickup/reload sequence for shared or private tanks.
 
 Resources and checkpoint position are disclosed setup. Original controllers
 must heal, refill, compact and carry the contents; no heal/exit flag is seeded.
@@ -43,7 +43,7 @@ def main():
                       'Contact protection; HP refill disabled before native healing',
                       'Original items allocated at separated P2, not authored-placement admission',
                       'Original checkpoint continuation bypasses retry/exit trigger, not retention'],
-                  limits='Native E menus/refill/compaction/checkpoint retention and shared W only. '
+                  limits='Native E menus/refill/compaction/checkpoint retention and W refill/spending. '
                          'No snapshot/rewind, card-energy persistence, netplay or full-route pass.')
 
     def save():
@@ -113,7 +113,7 @@ def main():
         wait(lambda s: s['bodies'][seat][0x5C] == hp and
              r.read(0x800D4F45, 1) == b'\x01' and not r.read(0x8009A424, 1)[0],
              'Native healing/compaction did not finish at expected HP')
-        require(r.read(PLAY+0x78, 1) == b'\x85', 'E use changed shared W')
+        require(r.read(PLAY+0x78, 1) == b'\x05', 'E use changed P1 W contents')
         sample(label)
         r.screenshot(args.out/(label+'-healed.png'))
         r.resume_native_pause()
@@ -147,7 +147,7 @@ def main():
         flags = int.from_bytes(r.read(PLAY+0x7E, 2), 'little') | 0x4000
         for i, byte in enumerate(struct.pack('<H', flags)):
             r.request('write_ram', addr=hex(PLAY+0x7E+i), val=hex(byte))
-        r.request('write_ram', addr=hex(PLAY+0x78), val='0x85')
+        r.request('write_ram', addr=hex(PLAY+0x78), val='0x05')
         sample('resource-setup')
         use_e(1, 19 if args.private else 27, 'P2-uses-own-eight' if args.private else 'P2-uses-shared-sixteen')
         require(r.players()[0][0x5C] == 13, 'P2 healed P1')
@@ -182,15 +182,22 @@ def main():
         else:
             use_e(0, 17, 'P1-uses-P2-shared-refill-four')
             require(r.players()[1][0x5C] == 32, 'P1 tank healed P2')
-        before = [b[0x5C] for b in r.players()]
+        pickup(0x23, 'P2-native-small-weapon-refill')
+        require(r.read(PLAY+0x78, 1)[0] == (5 if args.private else 7),
+                'P2 refill affected P1 W contents contrary to the selected policy')
+        r.fixture(2, seat=1, hp=32, ammo=0x10)
+        before = r.players()
         open_tank(1, 0x0C)
         pulse(0x4000, 1)
-        wait(lambda s: r.read(PLAY+0x78, 1)[0] & 127 == 0 and
-             r.read(0x800D4F45, 1) == b'\x01', 'Native W use did not complete')
-        require([b[0x5C] for b in r.players()] == before, 'W use changed HP')
-        sample('native-shared-W-spent')
-        r.screenshot(args.out/'native-shared-W.png')
+        r.screenshot(args.out/'native-P2-W.png')
         r.resume_native_pause()
+        s = wait(lambda s: s['bodies'][1][0xA8:0xBA] != before[1][0xA8:0xBA],
+                 'Native P2 W use did not complete')
+        require(s['bodies'][0][0xA8:0xBA] == before[0][0xA8:0xBA], 'P2 W use changed P1 ammo')
+        require([b[0x5C] for b in s['bodies']] == [b[0x5C] for b in before], 'W use changed HP')
+        require(r.read(PLAY+0x78, 1)[0] == (5 if args.private else 0),
+                'P2 spend affected P1 W contents contrary to the selected policy')
+        sample('native-P2-W-spent')
         report['success'] = True
     except Exception:
         report['error'] = traceback.format_exc()

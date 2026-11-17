@@ -138,6 +138,11 @@ static int open_bank(CPUState *cpu,AudioBank *bank) {
 }
 static int character_sound(CPUState *cpu,uint32_t address) {
     unsigned group=cpu->gpr[4]&0x7Fu;
+    if(group==2 && cpu->gpr[5]==0x8Cu &&
+       mmx5_coop_duel_arrival_sound(cpu->gpr[31],cpu->gpr[16])) {
+        psx_mod_counter_add("mmx5.coop.duel-walk-arrival-sound-suppressed",1);
+        return mmx5_coop_finish(cpu,0);
+    }
     if(sound_call || !mmx5_coop_ready() || !mmx5_coop_projected() ||
        psx_mod_local_view_scope() || psx_mod_read_byte(MMX5_PLAY)!=10 ||
        (group!=1 && group!=3))return 0;

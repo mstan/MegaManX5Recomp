@@ -1,21 +1,20 @@
-Mega Man X5 @VERSION@
+Mega Man X5 @VERSION@ - Stable
 
-Launch MegaManX5Recomp.exe and select your own USA SLUS-01334 disc image.
-OpenBIOS is included. Use OpenGL; keep a normal window and normal audio.
+1. Extract the package and launch MegaManX5Recomp.exe.
+2. Select your own Mega Man X5 USA SLUS-01334 disc image (.cue + .bin preferred).
+3. Assign separate controls for Player 1 and Player 2, then press PLAY.
+4. Choose Player 1's hero and form, then Player 2's remaining hero and form.
 
-X + Zero Co-op is enabled with local side-by-side cameras and Either-player
-doors. Keep Zero remains off. Choose each player's separate controller in the
-launcher; the release retains the delivered input.ini/keybinds.ini mappings.
-Alia hint suppression, custom rendering and diagnostics remain enabled.
+Co-op uses OpenGL and starts with side-by-side views and Either-player doors.
+Custom Renderer fits the window using Adaptive aspect; each split pane is 4:3.
+Alia hint suppression and Input Display and Recording start enabled. Change
+these options in Mods. Your saved settings are retained when updating.
 
-Internal Resolution starts at 4x. Choose 1x to 32x in Mods; hardware and GPU
-memory can clamp higher choices. Your saved choices are retained.
+Internal Resolution starts at 4x; larger choices depend on your GPU and memory.
+OpenBIOS is included. No game disc, retail BIOS or personal saves are included.
 
-This source preserves the v0.2.8 co-op fixes: 23/25 owner reports have bounded
-passes; A02/M06 and full-route/LAN limits remain as documented in RELEASE_NOTES.md
-and docs/COOP_X5_027_FOLLOWUPS.md. No fresh game-wide qualification is implied.
-Trusted overlays remain interpreted; native resident loading/frame waits remain.
+Keep saves/ and your settings when replacing a build. Use native SAVE and LOAD
+for durable campaign progress; save states are specific to their build.
+Online peers need the same release and compatible mod settings.
 
-Native memory cards live in saves/. Back them up before moving existing cards
-with the game closed. No personal cards, settings or QA states are included.
-Old snapshots are build-specific and need not work in this build.
+See README.md, docs/COOP_GUIDE.md and RELEASE_NOTES.md for more information.

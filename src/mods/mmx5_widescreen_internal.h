@@ -13,3 +13,5 @@ void mmx5_widescreen_view_restore(const Mmx5WidescreenViewContext *context);
 int mmx5_widescreen_prepare_region_atlases(const uint8_t *dat,uint32_t bytes);
 /* Success also includes scopes that do not need a substitution. */
 int mmx5_widescreen_project_region_atlas(void);
+/* Reconstruct immutable background banks referenced by restored draw packets. */
+int mmx5_widescreen_resolve_bank(uint16_t id);

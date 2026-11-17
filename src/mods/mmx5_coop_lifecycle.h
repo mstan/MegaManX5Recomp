@@ -15,6 +15,8 @@ typedef struct {
 
 void mmx5_coop_lifecycle_init(Mmx5CoopLifecycle *s);
 int mmx5_coop_living(const Mmx5CoopLifecycle *s, unsigned player);
+/* Retain a dying view; spectate only an actually living partner. */
+unsigned mmx5_coop_spectator_seat(const Mmx5CoopLifecycle *s,unsigned seat);
 /* Called on native death entry, before the death animation finishes. */
 void mmx5_coop_fatal(Mmx5CoopLifecycle *s, unsigned player);
 /* A new stage/team respawn clears FALLEN. The story PvP duel has its explicit

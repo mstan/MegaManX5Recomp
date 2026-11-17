@@ -1,9 +1,9 @@
 format_version = 7
 id = "mmx5.coop"
 version = "0.0.1"
-name = "X + Zero Co-op (Alpha)"
+name = "X + Zero Co-op"
 author = "mstan"
-description = "Experimental native co-op alpha with local play and opt-in independent netplay displays."
+description = "Play the Mega Man X5 campaign together with local split-screen or online play."
 resolver = "declarative"
 save_compatibility = "isolated"
 
@@ -14,8 +14,8 @@ disc_sha256 = "be731bc4b9d3211b9267a34b8a68c769199a15479b14004ff25b67cdfebe8af4"
 [[feature]]
 id = "coop"
 name = "X + Zero Co-op"
-description = "X and Zero play together with separate life meters. P1 uses Ride Armor. Online play can use independent displays. Requires OpenGL and a fresh boot."
-group = "Experimental"
+description = "X and Zero play together with separate life meters. Either player can use Ride Armor. Online play can use independent displays. Requires OpenGL and a fresh boot."
+group = "Gameplay"
 default_enabled = true
 
 [[plugin]]
@@ -62,7 +62,7 @@ value = "unified"
 label = "Unified"
 [[option.choice]]
 value = "split"
-label = "Side by side 8:3 (Experimental)"
+label = "Side by side 8:3"
 
 [[requirement]]
 feature = "coop"
@@ -73,8 +73,8 @@ when = { local_cameras = "split" }
 [[option]]
 feature = "coop"
 id = "separate_etanks"
-label = "Separate E-tank contents"
-description = "Each player stores and spends their own E-tank energy. Tank acquisition and W-tank energy stay shared. Requires a fresh boot. The host chooses for both peers."
+label = "Separate tank contents"
+description = "Each player stores and spends their own E-tank and W-tank energy. Tank acquisition is shared. Requires a fresh boot. The host chooses for both peers."
 type = "boolean"
 default = "false"
 

@@ -215,7 +215,7 @@ Doors accept either player by default; the Both-player option requires the pair.
 Offline co-op save states/rewind have bounded local qualification. Broad
 boss/reward/ending progression and network coverage remain open. Keep native
 memory-card saves for ongoing campaigns. Progress comes from the supplied
-native card, if present. See docs/COOP_PARITY_BURNDOWN.md for bounded evidence.
+native card, if present. See docs/COOP_GUIDE.md for bounded evidence.
 ''',encoding='utf-8')
     if args.door_players=='both':
         with (out/'README.txt').open('a',encoding='utf-8') as note:
@@ -236,14 +236,14 @@ native card, if present. See docs/COOP_PARITY_BURNDOWN.md for bounded evidence.
     manifest=dict(branch=branch,source_commit=revision,executable_sha256=hashlib.sha256(exe.read_bytes()).hexdigest(),
                   bios_sha256=hashlib.sha256(bios.read_bytes()).hexdigest(),
                   framework_commit=framework_revision,netplay_cameras=['unified','split'],
-                  default_camera=args.local_cameras,human_validated=False,source_docs=str(root/'docs/COOP_PARITY_BURNDOWN.md'),
+                  default_camera=args.local_cameras,human_validated=False,source_docs=str(root/'docs/COOP_GUIDE.md'),
                   controller_players=2,debug_test_build=args.debug_test_build,
                   overlay_cache=not args.no_overlay_cache,door_players=args.door_players,
                   lobby_version=version.read_text().strip() if version.is_file() else None,
                   qualification_cheats=bool(re.search(r'^MMX5_COOP_TEST_CHEATS:BOOL=ON$',cache,re.M)))
     (out/'docs').mkdir(exist_ok=True)
-    shutil.copy2(root/'docs/COOP_PARITY_BURNDOWN.md',out/'docs/COOP_PARITY_BURNDOWN.md')
-    for name in ('COOP_PLAYTESTING.md','COOP_HUMAN_SETUP_QUEUE.md'):
+    shutil.copy2(root/'docs/COOP_GUIDE.md',out/'docs/COOP_GUIDE.md')
+    for name in ('COOP_GUIDE.md',):
         if (root/'docs'/name).is_file():shutil.copy2(root/'docs'/name,out/'docs'/name)
     manifest['execution']=json.loads((out/'mmx5-runtime.execution.json').read_text(encoding='utf-8'))
     manifest['diagnostics_default_on']=True

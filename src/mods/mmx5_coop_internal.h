@@ -20,10 +20,15 @@ int mmx5_coop_ready(void);
 void mmx5_coop_silent_hint(void);
 /* Only suppress the shared stop/music call in the second native menu step. */
 int mmx5_coop_menu_secondary(void);
+int mmx5_coop_duel_arrival_sound(uint32_t caller,uint32_t actor);
 int mmx5_coop_projected(void);
 int mmx5_coop_split_views(void);
+/* Logical seat plus one while an old native train chain remains resident. */
+unsigned mmx5_coop_grizzly_chain_retained(uint32_t actor);
 /* Native Zero/Black Zero choice, including the current unit preview. */
 int mmx5_coop_zero_form(void);
+int mmx5_coop_armor_selection_owned(void);
+void mmx5_coop_zero_normal_palette(void);
 const uint8_t *mmx5_coop_first_body(void);
 const uint8_t *mmx5_coop_second_body(void);
 uint16_t mmx5_coop_input(unsigned seat);

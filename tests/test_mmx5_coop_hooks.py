@@ -39,6 +39,9 @@ for name in ('mmx5_diagnostics.cpp', 'mmx5_widescreen_plugin.c', 'mmx5_resident.
     required={int(value,16) for value in re.findall(
         r'psx_mod_register_function_(?:entry|filter)_plugin\([^,]+,\s*(0x[0-9a-fA-F]+)',text)}
     assert required<=configured, f'{name}: callbacks lack generated coverage'
+instruction_addresses=[int(value,16) for value in re.findall(
+    r'psx_mod_register_instruction_plugin\((?:ID|"mmx5\.coop"),\s*(0x[0-9a-fA-F]+)',source)]
+assert len(instruction_addresses)==len(set(instruction_addresses)), 'Framework rejects duplicate instruction hooks even with different expected words'
 instructions={int(value,16) for value in re.findall(
     r'psx_mod_register_instruction_plugin\((?:ID|"mmx5\.coop"),\s*(0x[0-9a-fA-F]+)',source)}
 assert 0x800EEC0C in instructions, 'Missing native intro layer command publication'
@@ -52,6 +55,21 @@ for table in ('black_reads', 'ultimate_reads'):
         sites={int(value,16) for value in re.findall(r'\{\s*(0x[0-9a-fA-F]+)[uU]?\s*,',body[1])}
         assert sites, f'{table}: form instruction table is empty'
         instructions.update(sites)
+capacity=re.search(r'\blife_capacity_reads\[\]\s*=\s*\{(.*?)\n\};',source,re.S)
+assert capacity, 'Missing co-op capacity consumer table'
+instructions.update(int(value,16) for value in re.findall(
+    r'\{\s*(0x[0-9a-fA-F]+)[uU]?\s*,',capacity[1]))
+parts=re.search(r'\bparts_sites\[\]\[2\]\s*=\s*\{(.*?)\n    \};',source,re.S)
+assert parts, 'Missing independent equipment consumer table'
+part_sites={int(value,16) for value in re.findall(
+    r'\{\s*(0x[0-9a-fA-F]+)[uU]?\s*,',parts[1])}
+instructions.update(part_sites)
+if shards:
+    memory_sites=set()
+    for shard in shards:
+        memory_sites.update(int(value,16) for value in re.findall(
+            r'psx_mod_memory_address\(cpu,\s*(0x[0-9a-fA-F]+)',shard.read_text(encoding='utf-8')))
+    assert {pc for pc in part_sites if pc<0x800EE970}<=memory_sites, 'Regenerate native equipment loads'
 with (root/'game.toml').open('rb') as stream:
     configured_instructions={int(value,16) for value in tomllib.load(stream)['recompiler'].get('mod_instruction_sites',[])}
 assert instructions==configured_instructions, 'Instruction hooks lack generated coverage'

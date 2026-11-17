@@ -84,9 +84,15 @@ def prepare(args):
     with recording.open('rb') as source:
         if source.readline().rstrip(b'\r\n') != b'# mmx5-input-v2':
             raise ValueError('Expected a version 2 diagnostic recording')
+        plan = None
         for prefix in (b'# execution ', b'# plan ', b'# build '):
-            if not source.readline().startswith(prefix):
+            identity = source.readline()
+            if not identity.startswith(prefix):
                 raise ValueError('Incomplete diagnostic identity header')
+            if prefix == b'# plan ':
+                value = identity[len(prefix):].strip()
+                if re.fullmatch(rb'[0-9a-fA-F]{64}', value):
+                    plan = value.decode('ascii').lower()
         last_native, count = 0, 0
         while True:
             offset = source.tell()
@@ -134,9 +140,11 @@ def prepare(args):
     for dependency in executable.parent.glob('*.dll'):
         shutil.copy2(dependency,output/dependency.name)
     copy_native_libraries(executable, output)
-    for name in ('assets', 'mods'):
+    for name in ('assets', 'mods', 'bios'):
         # Extracted AppImages place the ELF under usr/bin and the title
-        # resources beside the explicitly supplied payload game.toml.
+        # resources beside the explicitly supplied payload game.toml. Public
+        # builds also require their bundled BIOS beside the copied executable,
+        # even when --bios names the original installation's image.
         for root in (executable.parent, game.parent):
             source = root / name
             if source.is_dir():
@@ -163,6 +171,8 @@ def prepare(args):
         for token in ('openbios','scph1001'):
             directory=output/'saves'/token;directory.mkdir()
             shutil.copy2(baseline,directory/f'state_{entry:08X}_slot00.pst')
+            if plan is not None:
+                shutil.copy2(baseline,directory/f'state_{entry:08X}_mods_{plan}_slot00.pst')
         shutil.copy2(baseline,output/'diagnostic-baseline.pst')
     trace = output / 'replay-inputs.csv'
     with recording.open('rb') as source, trace.open('xb') as dest:

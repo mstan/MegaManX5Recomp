@@ -43,7 +43,7 @@ def main():
     parser.add_argument('--local-cameras',choices=('unified','split'),default='unified')
     parser.add_argument('--door-players',choices=('either','both'),default='either')
     parser.add_argument('--separate-etanks',action='store_true',
-                        help='Enable the optional private E energy policy; acquisition and W remain shared')
+                        help='Give each hero private E- and W-tank contents while sharing acquisition')
     parser.add_argument('--render-verify',action='store_true',help='Verify private draw transactions restore machine state')
     parser.add_argument('--renderer-off',action='store_true',help='Disable standalone renderer preference to test the local-split requirement')
     parser.add_argument('--cameras',choices=('unified','split'),default='unified',

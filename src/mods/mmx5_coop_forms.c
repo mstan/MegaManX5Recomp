@@ -45,10 +45,8 @@ void mmx5_coop_forms_configure(int ultimate_x, int black_zero) {
     coop_choices[1] = black_zero != 0;
 }
 
-unsigned mmx5_coop_forms_enabled(unsigned character) {
+unsigned mmx5_coop_forms_requested(unsigned character) {
     if (character > 1) return 0;
-    if(character==1 && mod_runtime_snapshot_package_active(COOP_PACKAGE))
-        return mmx5_coop_zero_form();
     unsigned agreed = mod_runtime_snapshot_package_active(COOP_PACKAGE) &&
                       coop_choices[character];
     /* A stale offline selection cannot affect a synchronized profile. The
@@ -57,12 +55,20 @@ unsigned mmx5_coop_forms_enabled(unsigned character) {
     return agreed || mod_runtime_snapshot_package_active(
         character ? BLACK_PACKAGE : ULTIMATE_PACKAGE);
 }
+unsigned mmx5_coop_forms_enabled(unsigned character) {
+    if(character==1 && mod_runtime_snapshot_package_active(COOP_PACKAGE))
+        return mmx5_coop_zero_form();
+    return mmx5_coop_forms_requested(character);
+}
 
 unsigned mmx5_coop_forms_roster(unsigned character, unsigned native_roster) {
-    /* Native New Game selects Fourth Armor1, not base X0. This explicit
-     * cheat equips Ultimate for any native X armor selection; disabling it
-     * restores the genuine selection without changing progress bytes. */
+    /* Before a co-op unit selection, retain the automatic starting form.
+     * The native selector then owns the explicit equipment choice, including
+     * Fourth Armor with the Ultimate code enabled. Standalone auto-equip
+     * behavior and genuine native progress bytes remain unchanged. */
     return character == 0 && native_roster <= 4 &&
+           (!mod_runtime_snapshot_package_active(COOP_PACKAGE) ||
+            !mmx5_coop_armor_selection_owned()) &&
            mmx5_coop_forms_enabled(0) ? 4u : native_roster;
 }
 
@@ -144,7 +150,10 @@ static void black_read(CPUState *cpu, uint32_t address) {
          * source. Allocating-seat/deferred scheduling for those producers
          * still needs runtime qualification; no owner history is invented. */
         if(mmx5_coop_forms_enabled(1))cpu->gpr[2] |= BLACK_BIT;
-        else cpu->gpr[2] &= ~BLACK_BIT;
+        else {
+            cpu->gpr[2] &= ~BLACK_BIT;
+            if(coop && address==0x8003C724u)mmx5_coop_zero_normal_palette();
+        }
         return;
     }
 }

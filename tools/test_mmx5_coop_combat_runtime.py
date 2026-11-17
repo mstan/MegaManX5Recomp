@@ -25,6 +25,8 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--session',type=Path,required=True)
     parser.add_argument('--out',type=Path,required=True)
+    parser.add_argument('--scene-cancel',action='store_true',
+                        help='Only check a live X/P2 buster discarded by original stand/beam/return; requires Zero/P1')
     args=parser.parse_args()
     session=json.loads(args.session.read_text());exe=Path(session['command'][0]).resolve()
     require(Path(psutil.Process(session['pid']).exe()).resolve()==exe,'Not the owned process')
@@ -52,6 +54,32 @@ def main():
         previous=counter(r,'mmx5.coop.enrolled');r.load_location(1,0,1);wait_ready(r,previous)
         seat=next(i for i,body in enumerate(r.players()) if body[2]==0);other=seat^1
         report['x_seat']=seat
+        if args.scene_cancel:
+            require(seat==1,'Scene-cancel setup requires Zero/P1 and X/P2')
+            wait(lambda:all(b[4:6]==b'\x01\x02' for b in r.players()),'Native incoming unfinished')
+            case=dict(name='active-buster-native-scene-return',before=snapshot(r))
+            report['cases'].append(case)
+            r.input(0x8000,seat);ticks(120);r.input(0,seat)
+            wait(lambda:r.players()[seat][0x98]>0,'No live native buster before scene')
+            case['live_shot']=snapshot(r)
+            r.fixture(5);wait(lambda:r.personal_effects()['scene'][0]>0,'Native stand scene not admitted')
+            ticks(110);case['hidden']=snapshot(r);r.fixture(6)
+            wait(lambda:r.personal_effects()['scene']==[0,0] and
+                 all(b[4:6]==b'\x01\x02' for b in r.players()),'Native beam/return unfinished',40)
+            r.fixture(12,hp=0);ticks(90);case['returned']=snapshot(r)
+            body=r.players()[seat]
+            require(not (body[0x98]|body[0x99]|body[0xA6]),'Discarded projectile retained an attack counter')
+            allocation_counter=f'mmx5.coop.p{seat+1}-buster-child-allocations'
+            before=counter(r,allocation_counter)
+            r.input(0x8000,seat);ticks(120);case['charged_again']=snapshot(r)
+            require(r.players()[seat][0x95] in (0x12,0x14),'No native full charge after return')
+            r.input(0,seat)
+            wait(lambda:counter(r,allocation_counter)>before,'Full-charge release blocked after scene')
+            case['released_again']=snapshot(r)
+            wait(lambda:not r.players()[seat][0x98] and not effects(),'New native shot did not retire')
+            require(all(b[4]==1 for b in r.players()),'Scene/counter check lost a hero')
+            case['expired']=snapshot(r);report['success']=True
+            return
         for phase in ('before-menu','after-p2-menu','after-p1-menu'):
             if phase!='before-menu':
                 owner=1 if phase=='after-p2-menu' else 0

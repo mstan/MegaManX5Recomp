@@ -6,6 +6,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+int mmx5_coop_duel_nova_active(const uint8_t *body);
 
 #define MMX5_COOP_DUEL_BODY_BYTES 0x158u
 #define MMX5_COOP_DUEL_PROXY_BYTES 0x9Cu

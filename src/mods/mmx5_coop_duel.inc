@@ -5,9 +5,34 @@ static int duel_scope(void) {
         psx_mod_read_byte(PLAY+12)==18 && !psx_mod_read_byte(PLAY+13) &&
         psx_mod_read_word(0x800EE970u)==0x20u;
 }
+static void duel_giga_input(CPUState *cpu,uint32_t address) {
+    (void)address;
+    /* All native X Giga variants share this mapped-input admission. Let
+     * the original ANDI take its ordinary no-attack branch before it can
+     * spend energy or start a pose. This follows the resident body when
+     * either seat owns X and leaves Zero's attacks and stage use intact. */
+    if(cpu && duel_scope() && cpu->gpr[16]==PLAYER &&
+       !psx_mod_read_byte(PLAYER+2) && (cpu->gpr[2]&0x40u)) {
+        cpu->gpr[2]&=~0x40u;
+        psx_mod_counter_add("mmx5.coop.duel-giga-denied",1);
+    }
+}
+static int duel_fill_pair_present(void) {
+    /* The conversation owns the authored shared view. Once the native
+     * meters appear, each pane should already frame its own real player. */
+    return duel_scope() && story_duel.phase==2 && story_duel.arrived &&
+        story_duel.opponent && psx_mod_read_byte(PLAY+0x24);
+}
+int mmx5_coop_duel_arrival_sound(uint32_t caller,uint32_t actor) {
+    /* BIN28's hidden Zero shell beams in even when the real companion has
+     * walked through the door. Only retire that shell's arrival cue. */
+    return caller==0x800F7B5Cu && duel_scope() && story_duel.phase<=2 &&
+        scene_owner && actor==story_duel.opponent;
+}
 static int duel_participant(unsigned seat) {
-    return life.status[seat]==MMX5_COOP_ALIVE || life.status[seat]==MMX5_COOP_DYING ||
-        life.status[seat]==MMX5_COOP_FALLEN;
+    /* Select withdraws a configured partner from ordinary gameplay, not
+     * from the two-hero story encounter. Unavailable heroes remain native. */
+    return life.status[seat]!=MMX5_COOP_UNAVAILABLE;
 }
 static int duel_inner_door(uint32_t actor) {
     /* Original BIN28 placement9, FCF C4: class8/sub8 at6384,768.
@@ -23,7 +48,7 @@ static int duel_inner_door(uint32_t actor) {
         (life.status[0]==MMX5_COOP_ALIVE || life.status[1]==MMX5_COOP_ALIVE);
 }
 static void duel_revive(CPUState *cpu,unsigned seat) {
-    if(life.status[seat]!=MMX5_COOP_DYING && life.status[seat]!=MMX5_COOP_FALLEN)return;
+    if(life.status[seat]==MMX5_COOP_ALIVE)return;
     uint8_t play[sizeof saved_play],camera[sizeof saved_camera],inventory[0x158];
     uint8_t projection_play[sizeof saved_play],projection_camera[sizeof saved_camera];
     uint32_t caller_resources[6],projection_resources[6];
@@ -33,6 +58,9 @@ static void duel_revive(CPUState *cpu,unsigned seat) {
     for(unsigned i=0;i<6;++i)caller_resources[i]=psx_mod_read_word(SCRATCH+resource_offsets[i]);
     unsigned was=projected,old_busy=busy;busy=1;both_project(seat);
     capture(PLAYER,inventory,sizeof inventory);clear_buster_effects(seat);
+    if(seat && (life.status[seat]==MMX5_COOP_ABSENT ||
+                life.status[seat]==MMX5_COOP_LEAVING))
+        memcpy(inventory,returning_body,sizeof inventory);
     clear_personal_drawables(seat);
     for(unsigned i=0;i<sizeof first.shots;++i)psx_mod_write_byte(SHOTS+i,0);
     /* Like ordinary enrollment, native3BAC8 expects a fresh body. It does
@@ -53,9 +81,10 @@ static void duel_revive(CPUState *cpu,unsigned seat) {
     guest(cpu,0x8003DF20u,PLAYER,inventory[0x93]);guest(cpu,0x8003EE38u,PLAYER,0);
     psx_mod_write_byte(PLAYER+0x5C,psx_mod_read_byte(PLAY+0x47+story_duel.character[seat]));
     psx_mod_write_byte(PLAYER+0x5D,psx_mod_read_byte(PLAYER+0x5C));
-    /* Remain hidden like an outgoing passenger until the real NPC intro
-     * supplies the incoming destination. scene_tick owns that same beam. */
-    psx_mod_write_byte(PLAYER+3,0);psx_mod_write_byte(PLAYER+4,3);
+    /* Scene admission requires a live body. Its ordinary departure captures
+     * this initialized actor, then the real NPC supplies the return anchor.
+     * Starting in hidden major3 would bypass that capture and strand it. */
+    psx_mod_write_byte(PLAYER+3,1);psx_mod_write_byte(PLAYER+4,1);
     both_project(was);project(PLAY,play,sizeof play);project(CAMERA,camera,sizeof camera);
     memcpy(saved_play,projection_play,sizeof saved_play);memcpy(saved_camera,projection_camera,sizeof saved_camera);
     memcpy(resources,projection_resources,sizeof resources);
@@ -63,6 +92,7 @@ static void duel_revive(CPUState *cpu,unsigned seat) {
      *SCRATCH+28. A nested body projection must restore that caller override. */
     for(unsigned i=0;i<6;++i)psx_mod_write_word(SCRATCH+resource_offsets[i],caller_resources[i]);
     busy=old_busy;life.status[seat]=MMX5_COOP_ALIVE;life.wipe=0;
+    if(seat)join_phase=0;
     psx_mod_counter_add(seat?"mmx5.coop.duel-p2-revived":"mmx5.coop.duel-p1-revived",1);
 }
 static void duel_begin(CPUState *cpu,uint32_t actor,unsigned seat) {
@@ -72,13 +102,22 @@ static void duel_begin(CPUState *cpu,uint32_t actor,unsigned seat) {
     memset(&story_duel,0,sizeof story_duel);
     story_duel.phase=1;story_duel.door=actor;story_duel.entrant=(uint8_t)seat;
     story_duel.character[0]=(uint8_t)a;story_duel.character[1]=(uint8_t)b;
+    int returning=life.status[seat^1u]!=MMX5_COOP_ALIVE;
     duel_revive(cpu,seat^1u);
+    if(returning) {
+        /* Native fatal disables foreground follow at CAMERA44. A fresh
+         * stage initializer normally restores it; this encounter revives
+         * bodies in place instead. Restore that same follow admission so
+         * the original door can reach its camera target and finish carrying. */
+        psx_mod_write_byte(CAMERA+0x44,1);
+        if(split_valid)for(unsigned i=0;i<2;++i)split_cameras[i][0x44]=1;
+    }
     /* PvP owns current health only. Earned native maxima/card data stay intact. */
     for(unsigned i=0;i<2;++i) {
         uint8_t *body=i?second.body:first.body;
-        body[0x5C]=body[0x5D]=story_duel.health[i]=32;
+        body[0x5C]=body[0x5D]=story_duel.health[i]=DUEL_HP;
         if(i==projected) {
-            psx_mod_write_byte(PLAYER+0x5C,32);psx_mod_write_byte(PLAYER+0x5D,32);
+            psx_mod_write_byte(PLAYER+0x5C,DUEL_HP);psx_mod_write_byte(PLAYER+0x5D,DUEL_HP);
         }
     }
     life.select_frames=life.select_armed=0;
@@ -97,6 +136,12 @@ static int duel_loser_body(void) {
 }
 static void duel_defeat_begin(CPUState *cpu,unsigned loser) {
     clear_buster_effects(loser);clear_personal_drawables(loser);
+    /* The defeated body no longer receives an ordinary player/shot pass.
+     * Retire its live attacks before that suspension, in both the resident
+     * pool and its retained context; otherwise a last shot stays drawn. */
+    PlayerContext *defeated=loser?&second:&first;
+    memset(defeated->shots,0,sizeof defeated->shots);
+    project(SHOTS,defeated->shots,sizeof defeated->shots);
     /* Original BIN28 EECC0 initializes stand48 with player animation51:
      * the authored crouched injury pose, for either hero's normal art.
      * Do not enter native38C08/major2, which emits ordinary death orbs. */
@@ -128,21 +173,9 @@ static void duel_defeat_tick(CPUState *cpu) {
         psx_mod_write_word(PLAYER+12,floor);psx_mod_write_word(PLAYER+0x1C,floor);
         psx_mod_write_word(PLAYER+0x24,0);
     }
-    uint32_t emitter=psx_mod_read_word(story_duel.opponent+0x80);
-    /* Native575D0 ramps the blast toward white and signals PLAY+2A above
-     * 16/31 brightness. Both NPC scripts consume that signal into phase3.
-     * Hide the loser at that authored flash, while explosions still run,
-     * rather than keeping the crouch until the controller finally retires. */
-    if(psx_mod_read_byte(story_duel.opponent+5)>=3 &&
-       emitter>=0x8009E7A0u && emitter<0x8009F9A0u &&
-       !((emitter-0x8009E7A0u)%0x30u) &&
-       (!psx_mod_read_byte(emitter) ||
-        (psx_mod_read_byte(emitter+1)==0x1A && psx_mod_read_byte(emitter+4)>=4))) {
-        psx_mod_write_byte(PLAYER+3,0);psx_mod_write_byte(PLAYER+4,3);
-        psx_mod_write_byte(PLAYER+5,0);psx_mod_write_byte(PLAYER+6,0);
-        life.status[loser]=MMX5_COOP_FALLEN;
-        psx_mod_counter_add("mmx5.coop.duel-defeat-vanished",1);
-    }
+    /* Keep the defeated hero crouched through the native result dialogue.
+     * The native room departure retires it together with the encounter;
+     * neither the explosion flash nor zero HP starts an ordinary game over. */
     both_project(was);
 }
 static int duel_authored_draw(uint32_t actor) {
@@ -357,9 +390,12 @@ static void duel_damage(CPUState *cpu,uint32_t address) {
     both_project(duel_attacker^1u);capture(PLAYER,before,sizeof before);
     uint8_t lock=psx_mod_read_byte(PLAY+0x1C);
     project(actor,incoming,sizeof incoming);
+    int nova=mmx5_coop_duel_nova_active(before);
+    if(nova)psx_mod_write_byte(PLAYER+0x7A,0);
     duel_native_injury=1;
     uint32_t result=guest(cpu,0x800317B8u,actor,0);
     duel_native_injury=0;
+    if(nova)psx_mod_write_byte(PLAYER+0x7A,before[0x7A]);
     capture(PLAYER,after,sizeof after);unsigned remaining=0;
     if(!mmx5_coop_duel_damage_result(before,after,result,&remaining)) {
         /* Positive native317B8 changes only this body and scoped rank/lock
@@ -368,6 +404,14 @@ static void duel_damage(CPUState *cpu,uint32_t address) {
         duel_transfer_failed=1;
         remaining=before[0x5C]&127u;
     } else {
+        if(nova && remaining) {
+            /* Native317B8 accepted the real contact and deducted HP. Consume
+             * its pending hurt reaction while retaining Nova's motion and
+             * attack. The ordinary grace interval bounds repeated contacts. */
+            psx_mod_write_byte(PLAYER+0x5C,(uint8_t)remaining);
+            arrival_grace(cpu);
+            psx_mod_counter_add("mmx5.coop.duel-nova-unflinching-injuries",1);
+        }
         story_duel.health[duel_attacker^1u]=(uint8_t)remaining;
         psx_mod_counter_add(duel_attacker?"mmx5.coop.duel-p2-injuries":
                                         "mmx5.coop.duel-p1-injuries",1);
@@ -397,7 +441,7 @@ static int duel_injury_amount(CPUState *cpu,uint32_t address) {
 }
 static void duel_contacts(CPUState *cpu) {
     if(story_duel.phase!=3 || scene_owner || psx_mod_read_byte(PLAY+1) ||
-       psx_mod_read_byte(PLAY+0x1C) || psx_mod_read_byte(PLAY+0x0F) ||
+       (psx_mod_read_byte(PLAY+0x1C) && !personal_giga()) || psx_mod_read_byte(PLAY+0x0F) ||
        contact_call || projected || world_owner || failed)return;
     uint32_t actor=story_duel.opponent;
     /* These are the original normal story tables: BIN28 F2668..F2680
@@ -410,6 +454,8 @@ static void duel_contacts(CPUState *cpu) {
     capture(CAMERA,camera,sizeof camera);
     uint32_t hits=psx_mod_read_word(PLAY+0xB4),hurt=psx_mod_read_word(PLAY+0xB8);
     uint32_t maximum=psx_mod_read_word(PLAY+0xBC);
+    uint8_t personal_lock=psx_mod_read_byte(PLAY+0x1C);
+    if(personal_lock)psx_mod_write_byte(PLAY+0x1C,0);
     capture_player(&first);contact_call=duel_contact_call=1;duel_transfer_failed=0;
     for(unsigned attacker=0;attacker<2 && story_duel.phase==3 && !duel_transfer_failed;++attacker) {
         unsigned defender=attacker^1u;
@@ -436,6 +482,7 @@ static void duel_contacts(CPUState *cpu) {
     /* A PvP hit is not a campaign enemy hit, rank bonus or damage penalty. */
     psx_mod_write_word(PLAY+0xB4,hits);psx_mod_write_word(PLAY+0xB8,hurt);
     psx_mod_write_word(PLAY+0xBC,maximum);
+    psx_mod_write_byte(PLAY+0x1C,personal_lock);
     contact_call=duel_contact_call=duel_attacker=0;
     if(duel_transfer_failed) {
         failed=1;psx_mod_counter_add("mmx5.coop.duel-injury-invariant-failed",1);
@@ -463,10 +510,10 @@ static void duel_after_world(CPUState *cpu) {
      * is fatal. A nonlethal injury must never briefly empty the boss meter. */
     psx_mod_write_byte(story_duel.opponent+0x5C,(uint8_t)(hp&0x7Fu));
     /* Native fill can leave its red damage trail at48/96. That authored
-     * health is not a PvP injury: keep the trail within the32HP contract. */
-    if(psx_mod_read_byte(story_duel.opponent+0x5D)>32)
-        psx_mod_write_byte(story_duel.opponent+0x5D,32);
-    psx_mod_write_byte(PLAY+0xA2,32);
+     * health is not a PvP injury: keep the trail within the duel HP contract. */
+    if(psx_mod_read_byte(story_duel.opponent+0x5D)>DUEL_HP)
+        psx_mod_write_byte(story_duel.opponent+0x5D,DUEL_HP);
+    psx_mod_write_byte(PLAY+0xA2,DUEL_HP);
 }
 /* Project display-only maxima during the original HUD call. The native
  * intro keeps its actual fill target/readiness; campaign maxima never change. */
@@ -489,7 +536,7 @@ static uint32_t duel_native_hud(CPUState *cpu,uint32_t address,uint32_t a0,uint3
         psx_mod_write_byte(story_duel.opponent+0x5C,(uint8_t)opponent_hp);
         psx_mod_write_byte(story_duel.opponent+0x5D,(uint8_t)opponent_hp);
     }
-    psx_mod_write_byte(PLAY+0x47,32);psx_mod_write_byte(PLAY+0x48,32);psx_mod_write_byte(PLAY+0xA2,32);
+    psx_mod_write_byte(PLAY+0x47,DUEL_HP);psx_mod_write_byte(PLAY+0x48,DUEL_HP);psx_mod_write_byte(PLAY+0xA2,DUEL_HP);
     uint32_t begin=psx_mod_read_word(SCRATCH+0x110),result=guest(cpu,address,a0,a1);
     uint32_t end=psx_mod_read_word(SCRATCH+0x110);
     if(end>=begin && end-begin<=0x1000 && !((end-begin)%36))
@@ -505,14 +552,48 @@ static uint32_t duel_native_hud(CPUState *cpu,uint32_t address,uint32_t a0,uint3
     }
     return result;
 }
-static int duel_personal_hud(CPUState *cpu,uint32_t address) {
-    if(!hud_call || !duel_hud_active() || hud_seat!=(story_duel.entrant^1u))return 0;
-    if(address==0x800262D8u && cpu->gpr[5])return 0; /* Keep the right boss bar. */
-    cpu->gpr[2]=0;return 1;
-}
 
+static int grizzly_intro_text(CPUState *cpu,uint32_t address) {
+    unsigned id=cpu->gpr[4]&0x7FFFu;
+    if(address!=0x8002385Cu || duel_text_call || !ready || !enrolled || failed ||
+       !scene_owner || scene_owner>2 || psx_mod_local_view_scope() ||
+       !grizzly_stage() || (id!=0x2Bu && id!=0x5Du) ||
+       psx_mod_read_byte(PLAY+0x0F) ||
+       psx_mod_read_word(0x800FDAE8u)!=0x800FAB00u ||
+       psx_mod_read_word(0x800FDB7Cu)!=0x800FAE28u ||
+       psx_mod_read_word(0x800FDB80u)!=0x800FAEF8u ||
+       psx_mod_read_word(0x800FAEACu)!=0x0C008E17u ||
+       psx_mod_read_word(0x800FAEC0u)!=0x0C008E17u)return 0;
+    unsigned seat=scene_owner-1u;
+    unsigned character=seat==projected?psx_mod_read_byte(PLAYER+2):
+        (seat?second.body:first.body)[2];
+    if(character>1 || life.status[seat]!=MMX5_COOP_ALIVE)return 0;
+    for(uint32_t actor=0x80092090u;actor<0x80093DD0u;actor+=0x9Cu) {
+        unsigned phase=psx_mod_read_byte(actor+6);
+        if(!psx_mod_read_byte(actor) || psx_mod_read_byte(actor+1)!=0x36 ||
+           psx_mod_read_byte(actor+2) || psx_mod_read_byte(actor+4)!=1 ||
+           psx_mod_read_byte(actor+5)!=9 || (phase!=5 && phase!=6))continue;
+        /* FAB00's introduction requests 2B/5D in phase 5, then phase 6 waits
+         * for the same native text to finish. A busy 2385C queues only its
+         * ID, so select the recipient again when that request is delivered;
+         * a caller-only gate would lose the bank on the queued replay.
+         * Scope the portrait identity and persistent message cursor here,
+         * leaving the campaign, shared AI and later reward paths intact. */
+        uint8_t campaign=psx_mod_read_byte(PLAY+0x44);
+        uint32_t messages=psx_mod_read_word(SCRATCH+0x48);
+        duel_text_call=1;
+        psx_mod_write_byte(PLAY+0x44,(uint8_t)character);
+        psx_mod_write_word(SCRATCH+0x48,assets[character].message_root);
+        uint32_t result=guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);
+        psx_mod_write_byte(PLAY+0x44,campaign);
+        psx_mod_write_word(SCRATCH+0x48,messages);
+        duel_text_call=0;cpu->gpr[2]=result;return 1;
+    }
+    return 0;
+}
 static int duel_text(CPUState *cpu,uint32_t address) {
     if(intro_boss_text_skip(cpu,address))return 1;
+    if(grizzly_intro_text(cpu,address))return 1;
     unsigned id=cpu->gpr[4]&0x7FFFu;
     if(duel_text_call || story_duel.phase!=4 || !story_duel.winner ||
        !duel_story_character || duel_story_character>2 ||

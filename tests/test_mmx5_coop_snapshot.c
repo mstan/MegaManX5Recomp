@@ -18,9 +18,32 @@ static void *checked_realloc(void *p,size_t n) {CHECK(!allocation_forbidden);++a
 
 static Mmx5WidescreenViewContext wide;
 static unsigned enabled_forms[2];
-uint8_t psx_mod_read_byte(uint32_t address) {(void)address;CHECK(0);return 0;}
-uint32_t psx_mod_read_word(uint32_t address) {(void)address;CHECK(0);return 0;}
+static uint8_t ride_fixture[8];
+uint8_t psx_mod_read_byte(uint32_t address) {
+    CHECK(extra_ride_record && address>=extra_ride_record && address-extra_ride_record<8);
+    return ride_fixture[address-extra_ride_record];
+}
+uint32_t psx_mod_read_word(uint32_t address) {
+    CHECK(extra_ride_record && address>=extra_ride_record && address-extra_ride_record<=4);
+    return le32(ride_fixture+address-extra_ride_record);
+}
+uint16_t psx_mod_read_half(uint32_t address) {
+    CHECK(extra_ride_record && address>=extra_ride_record && address-extra_ride_record<=6);
+    return (uint16_t)(ride_fixture[address-extra_ride_record] |
+        ride_fixture[address-extra_ride_record+1]<<8);
+}
+void mmx5_coop_project(uint32_t address,const void *data,size_t bytes) {
+    CHECK(extra_ride_record && address==extra_ride_record && bytes==sizeof ride_fixture);
+    memcpy(ride_fixture,data,bytes);
+}
+void mmx5_coop_capture(uint32_t address,void *data,size_t bytes) {
+    CHECK(extra_ride_record && address==extra_ride_record && bytes==sizeof ride_fixture);
+    memcpy(data,ride_fixture,bytes);
+}
 unsigned mmx5_coop_forms_enabled(unsigned character) {
+    CHECK(character<2);return enabled_forms[character];
+}
+unsigned mmx5_coop_forms_requested(unsigned character) {
     CHECK(character<2);return enabled_forms[character];
 }
 static uint16_t resolved_id,resolved_pixel;
@@ -29,6 +52,7 @@ int psx_mod_define_texture_bank(uint16_t id,uint32_t width,uint32_t height,const
 }
 void mmx5_widescreen_view_save(Mmx5WidescreenViewContext *v) {*v=wide;}
 void mmx5_widescreen_view_restore(const Mmx5WidescreenViewContext *v) {wide=*v;}
+int mmx5_widescreen_resolve_bank(uint16_t id) {(void)id;return 0;}
 int mmx5_coop_audio_snapshot_ready(void) {return 1;}
 void mmx5_coop_audio_snapshot(Mmx5SnapshotIO *s) {mmx5_snapshot_fixed(s,123);}
 int psx_mod_local_view_scope(void) {return 0;}
@@ -83,7 +107,54 @@ static void form_source_roundtrip(const uint8_t *automatic,uint32_t len) {
     allocation_forbidden=1;snapshot_read(automatic,len);allocation_forbidden=0;
     CHECK(x_asset_source==2);check_source_binding(0,2);check_source_binding(1,1);
     CHECK(snapshot_write(bad,len) && !memcmp(automatic,bad,len));
+    /* A session code remains enabled while the native unit picker selects
+     * Fourth. Save/load must retain that choice and its real DAT92 source. */
+    armor_selection_seen=1;selected_x_armor=1;
+    x_asset_source=3;bind_character_source(0,3);
+    CHECK(snapshot_write(bad,len) && snapshot_validate(bad,len));
+    x_asset_source=2;bind_character_source(0,2);armor_selection_seen=0;
+    CHECK(snapshot_validate(bad,len) && !armor_selection_seen && x_asset_source==2);
+    allocation_forbidden=1;snapshot_read(bad,len);allocation_forbidden=0;
+    CHECK(armor_selection_seen && selected_x_armor==1 && x_asset_source==3);
+    check_source_binding(0,3);
+    bad[selector]=1;CHECK(!snapshot_validate(bad,len));
+    CHECK(snapshot_validate(automatic,len));
+    allocation_forbidden=1;snapshot_read(automatic,len);allocation_forbidden=0;
+    CHECK(x_asset_source==2 && !armor_selection_seen);
     free(bad);free(ultimate);free(base);
+}
+static void retained_image_roundtrip(void) {
+    UiBank original=ui_banks[0];CharacterAssets *native=&source_assets[3];
+    uint8_t backup[0x200];memcpy(backup,native->graphics,sizeof backup);
+    uint32_t table=0x100,header=0x00100004;
+    for(unsigned directory=0x30;directory<=0x38;directory+=4)
+        memcpy(native->graphics+directory,&table,4);
+    memcpy(native->graphics+table,&header,4);
+    unsigned at=table+4;
+    for(unsigned group=0;group<4;++group) {
+        native->graphics[at++]=0;native->graphics[at++]=0;
+        for(unsigned word=0;word<16;++word) {
+            unsigned row=(group*16+word)/4;
+            uint16_t value=(uint16_t)(0x3210+(row%4)*0x4444);
+            native->graphics[at++]=(uint8_t)value;native->graphics[at++]=(uint8_t)(value>>8);
+        }
+    }
+    memcpy(native->graphics+at,"\x00\x80\x00\x00\x00\x00",6);
+    for(unsigned directory=0x30;directory<=0x38;directory+=4) {
+        ui_banks[0]=(UiBank){5,0x7841,0x4000,0x7000,{0},3|(directory<<8),3};
+        for(unsigned i=0;i<16;++i)ui_banks[0].colors[i]=(uint16_t)(0x4000+i);
+        uint32_t len=snapshot_bytes();CHECK(len && len<1000000);
+        uint8_t *saved=malloc(len);CHECK(saved && snapshot_write(saved,len));
+        ui_banks[0]=original;CHECK(snapshot_validate(saved,len));
+        allocation_forbidden=1;snapshot_read(saved,len);allocation_forbidden=0;
+        CHECK(ui_banks[0].source==(3|(directory<<8)) && ui_banks[0].reflection==3);
+        CHECK(snapshot_resolve_bank(0x7000) && resolved_pixel==0x400f);
+        free(saved);
+    }
+    ui_banks[0].source=MMX5_COOP_ARMOR_SOURCES;CHECK(snapshot_bytes()==UINT32_MAX);
+    ui_banks[0].source=3|(0x31<<8);CHECK(snapshot_bytes()==UINT32_MAX);
+    ui_banks[0]=original;ui_banks[0].reflection=4;CHECK(snapshot_bytes()==UINT32_MAX);
+    ui_banks[0]=original;memcpy(native->graphics,backup,sizeof backup);
 }
 static void paired_scene_roundtrip(void) {
     life.status[0]=life.status[1]=MMX5_COOP_ALIVE;
@@ -198,7 +269,7 @@ static void duel_state_roundtrip(void) {
     story_duel.native_body[155]=0xB7;
     story_duel.colors[0]=0x13;story_duel.colors[63]=0xF2;
     story_duel.intro_complete=story_duel.arrived=1;
-    story_duel.health[0]=17;story_duel.health[1]=0;
+    story_duel.health[0]=DUEL_HP;story_duel.health[1]=0;
     uint8_t wire[258],copy[258];
     Mmx5SnapshotIO io={wire,NULL,sizeof wire,0,MMX5_SNAPSHOT_WRITE,1};
     snapshot_duel(&io);CHECK(io.ok && io.pos==sizeof wire);
@@ -212,12 +283,12 @@ static void duel_state_roundtrip(void) {
           story_duel.facing[1]==0x40 && story_duel.native_body[155]==0xB7 &&
           story_duel.token[0]==0x71 && story_duel.token[1]==0xE2 &&
           story_duel.colors[0]==0x13 && story_duel.colors[63]==0xF2 &&
-          story_duel.intro_complete && story_duel.arrived && story_duel.health[0]==17);
+          story_duel.intro_complete && story_duel.arrived && story_duel.health[0]==DUEL_HP);
     io=(Mmx5SnapshotIO){copy,NULL,sizeof copy,0,MMX5_SNAPSHOT_WRITE,1};
     snapshot_duel(&io);CHECK(io.ok && !memcmp(wire,copy,sizeof wire));
     /* Invalid admission/role/pointer wire must not mutate the live duel. */
     static const unsigned offsets[]={0,4,19,23,24,25,28,32,253,253,254,255,256,257};
-    static const uint8_t values[]={0x11,0x91,0,0,5,2,0,0,0,2,2,2,33,33};
+    static const uint8_t values[]={0x11,0x91,0,0,5,2,0,0,0,2,2,2,DUEL_HP+1,DUEL_HP+1};
     for(unsigned i=0;i<sizeof offsets/sizeof offsets[0];++i) {
         memcpy(copy,wire,sizeof wire);copy[offsets[i]]=values[i];
         io=(Mmx5SnapshotIO){NULL,copy,sizeof copy,0,MMX5_SNAPSHOT_VALIDATE,1};
@@ -248,19 +319,24 @@ int main(void) {
     enabled_forms[0]=enabled_forms[1]=1;x_asset_source=2;
     bind_character_source(0,2);bind_character_source(1,1);
     arena=0x9F000000;primary_arena=0x9F080000;hud_arena=0x9F100000;
+    extra_ride_record=0x9F140000;
+    memcpy(ride_fixture,"\x00\x1e\x01\x03\xe8\x00\x9b\x01",sizeof ride_fixture);
     ready=enrolled=ever_enrolled=1;counterpart=1;split_views=1;split_valid=1;
-    separate_etanks=etanks_initialized=1;private_etanks[0][0]=7;private_etanks[1][1]=19;
+    separate_etanks=etanks_initialized=1;private_tank_contents[0][0]=7;private_tank_contents[1][1]=19;
+    private_tank_contents[0][2]=5;private_tank_contents[1][2]=11;
     boss_scaling=boss_per_player=1;boss_generations[0]=17;
     CHECK(mmx5_coop_damage_bind(&boss_balance[0].damage,0x80092090,17,0x80092090));
     boss_balance[0].descriptor=1;boss_balance[0].damage.remainder=9;
     boss_balance[0].vulnerable_table=0x80075C00;boss_balance[0].window=1;
     boss_balance[0].window_phase=3;boss_balance[0].cooldown.ticks[1]=14;
     life.status[1]=MMX5_COOP_FALLEN;life.select_armed=1;scene_owner=2;scene_phase=3;
+    scene_corridor_arrow=14;scene_capsule=1;
     second.body[2]=1;second.body[0x5C]=23;second.shots[4]=9;second.glow[0]=7;
     first.car[5]=5;both_door.old_min=-123;both_door.phase=2;both_door.owner=2;
     pickup_owners[0].actor=0x80098120;pickup_owners[0].seat=1;
     car_source_owner[2]=2;solid_history[1].carried=0x80;
     solid_history[2].controller_p2=1;
+    hit_count=1;hit_history[0]=(HitHistory){0x80092090,{7,8},2};
     landing_effects[3]=(LandingEffect){0x9F058000,0x9F098000,2};
     wide=(Mmx5WidescreenViewContext){0x800A0000,1,1,-123,0};
     bank_count=1;view_bank_count=1;
@@ -282,8 +358,20 @@ int main(void) {
     unsigned before=allocations;CHECK(snapshot_validate(saved,len));CHECK(allocations==before);
     CHECK(!snapshot_validate(saved,len-1));CHECK(!snapshot_validate(saved,len+1));
     saved[0]^=1;CHECK(!snapshot_validate(saved,len));saved[0]^=1;
-    CHECK(saved[4]==13 && !saved[5] && !saved[6] && !saved[7]);
-    saved[4]=12;CHECK(!snapshot_validate(saved,len));saved[4]=13;
+    CHECK(saved[4]==20 && !saved[5] && !saved[6] && !saved[7]);
+    saved[4]=19;CHECK(!snapshot_validate(saved,len));saved[4]=20;
+    scene_capsule=2;CHECK(!snapshot_write(copy,len));scene_capsule=1;
+    scene_corridor_arrow=15;CHECK(!snapshot_write(copy,len));scene_corridor_arrow=14;
+    /* The live capture recipient must survive restore, and an invalid seat
+     * must be rejected without mutating it. Locate its actual wire byte by
+     * comparing two valid states instead of duplicating walker offsets. */
+    hit_history[0].capture_owner=1;CHECK(snapshot_write(copy,len));
+    unsigned owner_offset=0,owner_changes=0;
+    for(unsigned i=0;i<len;++i)if(saved[i]!=copy[i]) {owner_offset=i;++owner_changes;}
+    CHECK(owner_changes==1 && saved[owner_offset]==2 && copy[owner_offset]==1);
+    hit_history[0].capture_owner=2;copy[owner_offset]=3;
+    CHECK(!snapshot_validate(copy,len) && hit_history[0].capture_owner==2);
+    memcpy(copy,saved,len);
     enabled_forms[0]=0;CHECK(!snapshot_validate(saved,len));enabled_forms[0]=1;
     enabled_forms[1]=0;CHECK(snapshot_validate(saved,len));enabled_forms[1]=1;
     for(unsigned i=0;i<MMX5_COOP_ARMOR_SOURCES;++i) {
@@ -298,11 +386,13 @@ int main(void) {
     balance_attempted=1;CHECK(!snapshot_ready());balance_attempted=0;
     balance_pending_actor=0x80092090;CHECK(!snapshot_ready());balance_pending_actor=0;
     split_views=0;CHECK(!snapshot_validate(saved,len));split_views=1;
-    CHECK(second.body[0x5C]==23 && menu_backups[0].pixels[123]==369 && private_etanks[0][0]==7);
+    CHECK(second.body[0x5C]==23 && menu_backups[0].pixels[123]==369 && private_tank_contents[0][0]==7);
     CHECK(snapshot_validate(saved,len));
     /* Load an older, larger cache into a smaller live timeline and vice versa. */
-    second.body[0x5C]=4;private_etanks[0][0]=0;scene_owner=0;pause_owner=-1;
+    second.body[0x5C]=4;memset(private_tank_contents,0,sizeof private_tank_contents);
+    scene_owner=0;scene_corridor_arrow=scene_capsule=0;pause_owner=-1;
     solid_history[2].controller_p2=0;
+    hit_history[0].capture_owner=0;
     memset(boss_balance,0,sizeof boss_balance);boss_generations[0]=0;
     memset(&landing_effects[3],0,sizeof landing_effects[3]);
     x_asset_source=0;bind_character_source(0,0);bind_character_source(1,0);
@@ -310,14 +400,21 @@ int main(void) {
     duel_story_character=0;
     selected_zero_form=armor_selecting_seat=armor_list_seat=0;
     armor_previous_input[0]=armor_previous_input[1]=0;
+    memset(ride_fixture,0xff,sizeof ride_fixture);
     allocation_forbidden=1;snapshot_read(saved,len);allocation_forbidden=0;
+    CHECK(!memcmp(ride_fixture,"\x00\x1e\x01\x03\xe8\x00\x9b\x01",sizeof ride_fixture));
     CHECK(duel_story_character==2);
     CHECK(selected_zero_form==1 && armor_selecting_seat==1 && armor_list_seat==2 &&
           armor_previous_input[0]==0x40 && armor_previous_input[1]==0x2000);
-    CHECK(second.body[0x5C]==23 && private_etanks[0][0]==7 && scene_owner==2 && pause_owner==1);
+    CHECK(second.body[0x5C]==23 && private_tank_contents[0][0]==7 && scene_owner==2 && pause_owner==1);
+    CHECK(private_tank_contents[0][2]==5 && private_tank_contents[1][2]==11);
+    CHECK(scene_corridor_arrow==14 && scene_capsule==1);
     CHECK(banks[0].pixels[0]==23 && view_banks[0].pixels[32767]==(uint16_t)(456+32767));
     CHECK(menu_backups[0].pixels[123]==369 && both_door.old_min==-123 && solid_history[1].carried==0x80);
     CHECK(solid_history[2].controller_p2==1);
+    CHECK(hit_count==1 && hit_history[0].actor==0x80092090 &&
+          hit_history[0].token[0]==7 && hit_history[0].token[1]==8 &&
+          hit_history[0].capture_owner==2);
     CHECK(x_asset_source==2);check_source_binding(0,2);check_source_binding(1,1);
     CHECK(boss_generations[0]==17 && boss_balance[0].damage.remainder==9 &&
           boss_balance[0].cooldown.ticks[1]==14 && boss_balance[0].window==1);
@@ -342,9 +439,13 @@ int main(void) {
     balance_bad=(Mmx5SnapshotIO){NULL,balance_wire,balance_count.pos,0,MMX5_SNAPSHOT_VALIDATE,1};
     snapshot_balance(&balance_bad);CHECK(!balance_bad.ok && boss_balance[0].descriptor==1);
     free(balance_wire);
-    form_source_roundtrip(saved,len);
+    form_source_roundtrip(saved,len);retained_image_roundtrip();
     paired_scene_roundtrip();
     duel_state_roundtrip();
     large_retained_cache();
-    puts("X5 schema13 snapshot roundtrip, unit choice/input history, duel role/pointer rejection, paired state2/range rejection, six form/source/UI bindings and allocation-free read passed");return 0;
+    /* No allocation means no guest projection, including address zero. */
+    extra_ride_record=0;len=snapshot_bytes();copy=realloc(copy,len);CHECK(copy);
+    CHECK(snapshot_write(copy,len) && snapshot_validate(copy,len));
+    allocation_forbidden=1;snapshot_read(copy,len);allocation_forbidden=0;
+    puts("X5 schema18 snapshot roundtrip, puffer recipient/range rejection, ride placement/absent record, unit choice/input history, duel role/pointer rejection, paired state2/range rejection, six form/source/UI bindings and allocation-free read passed");return 0;
 }

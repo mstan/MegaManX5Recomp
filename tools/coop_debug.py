@@ -96,6 +96,19 @@ class Runtime:
     def lifecycle(self):
         return tuple(self.read(self.diagnostic()+0x40, 4))
 
+    def checkpoint_pose(self, seat, checkpoint):
+        """Position one living hero/view at an authored checkpoint in this area.
+
+        Offline setup only; does not activate the checkpoint, load scenery,
+        finish traversal or set room/progression flags. Native physics and
+        placement admission remain responsible for the resulting scene.
+        """
+        if seat not in (0, 1) or not 0 <= checkpoint < 128:
+            raise ValueError('Expected seat0/1 and a native checkpoint index')
+        self.fixture(19, seat=seat, hp=checkpoint)
+        if not int.from_bytes(self.read(self.diagnostic()+0x64, 4), 'little'):
+            raise RuntimeError('Native checkpoint pose rejected')
+
     def rescan_placements(self, left, right, top, bottom):
         """Load original placements after teleporting past viewport admission.
 

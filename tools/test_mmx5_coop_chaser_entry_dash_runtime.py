@@ -16,6 +16,7 @@ import traceback
 import psutil
 
 from coop_debug import Runtime, PLAY
+from audit_mmx5_coop_locations import counter
 from test_mmx5_coop_chaser_runtime import snapshot as car_snapshot
 
 CAMERA = 0x8009A1F8
@@ -52,6 +53,7 @@ def observe(r, label, ui=False):
     row['cars_decoded'] = [describe_car(bytes.fromhex(c)) for c in row['cars']]
     camera = r.read(CAMERA, 0xFC)
     row['camera'] = camera.hex()
+    row['retained_cameras'] = r.read(r.diagnostic()+0x710, 0x1F8).hex()
     row['camera_layers'] = [dict(x=struct.unpack_from('<h', camera, a+0xA)[0],
                                   y=struct.unpack_from('<h', camera, a+0xE)[0],
                                   previous_x=struct.unpack_from('<h', camera, a+0x16)[0],
@@ -164,8 +166,7 @@ def main():
                 'Attach to owned gameplay; this driver does not skip title/story prerequisites')
         r.resume_native_pause()
         r.release()
-        enrollments = next(c['count'] for c in r.request('mod_counters')['counters']
-                           if c['name'] == 'mmx5.coop.enrolled')
+        enrollments = counter(r, 'mmx5.coop.enrolled')
         # Right reaches the authored short road after arrival. No jump/READY,
         # pose, collision or success state is forced. P1 becomes neutral below.
         hold(0, RIGHT, 'native opening approach'); hold(1, RIGHT, 'native opening approach')
@@ -190,8 +191,7 @@ def main():
                     break
             require(time.monotonic() < deadline, 'Native checkpoint0 entrance did not reach grounded driving')
             time.sleep(.01)
-        now = next(c['count'] for c in r.request('mod_counters')['counters']
-                   if c['name'] == 'mmx5.coop.enrolled')
+        now = counter(r, 'mmx5.coop.enrolled')
         require(now > enrollments, 'No fresh native co-op enrollment')
         require(r.read(0x800EE970, 4) == b'\x0b\x00\x00\x00', 'Wrong original Chaser overlay')
         for body_hex, car in zip(row['players'], row['cars_decoded']):

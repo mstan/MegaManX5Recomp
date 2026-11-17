@@ -25,16 +25,21 @@ static void mounted_return_rules(void) {
     rides[0].kind=1;rides[0].state=2;CHECK(!mmx5_coop_armor_return_anchor(&rider,rides,&out));
     rides[0].state=1;rides[0].box=0;CHECK(!mmx5_coop_armor_return_anchor(&rider,rides,&out));
     rides[0].box=0x800FDE84u;rider.locked=1;CHECK(!mmx5_coop_armor_return_anchor(&rider,rides,&out));
-    rider.locked=0;rider.owner=1;CHECK(!mmx5_coop_armor_return_anchor(&rider,rides,&out));
+    rider.locked=0;rider.owner=1;CHECK(mmx5_coop_armor_return_anchor(&rider,rides,&out));
+    CHECK(out.x==rides[0].x); /* P2 can occupy the original physical suit. */
     rider.owner=0;rider.native_overlay=0;CHECK(!mmx5_coop_armor_return_anchor(&rider,rides,&out));
     rider.native_overlay=1;rides[1]=rides[0];rides[1].x=160u<<16;
     CHECK(mmx5_coop_armor_return_anchor(&rider,rides,&out));
     CHECK(out.x==rides[0].x); /* Two occupied suits retain their rider. */
-    rider.owner=1;CHECK(!mmx5_coop_armor_return_anchor(&rider,rides,&out));
+    rider.owner=1;CHECK(mmx5_coop_armor_return_anchor(&rider,rides,&out));
+    CHECK(out.x==rides[0].x);
     rider.mounted=254;CHECK(mmx5_coop_armor_return_anchor(&rider,rides,&out));
     CHECK(out.x==rides[1].x);
     rides[0].flags=0;CHECK(mmx5_coop_armor_return_anchor(&rider,rides,&out));
+    rider.owner=0;CHECK(mmx5_coop_armor_return_anchor(&rider,rides,&out));
+    CHECK(out.x==rides[1].x); /* P1 can occupy the extra physical suit. */
     rider.owner=0;rider.mounted=255;CHECK(!mmx5_coop_armor_return_anchor(&rider,rides,&out));
+    rider.mounted=0;CHECK(!mmx5_coop_armor_return_anchor(&rider,rides,&out));
     CHECK(mmx5_coop_return_probe_safe(8,0,27,27));
     CHECK(mmx5_coop_return_probe_safe(9,0,27,27));
     CHECK(!mmx5_coop_return_probe_safe(0,0,27,27));
@@ -50,6 +55,16 @@ int main(void) {
     mounted_return_rules();
     Mmx5CoopLifecycle s;
     mmx5_coop_lifecycle_init(&s);
+    CHECK(mmx5_coop_spectator_seat(&s,0)==0 && mmx5_coop_spectator_seat(&s,1)==1);
+    s.status[0]=MMX5_COOP_DYING;
+    CHECK(mmx5_coop_spectator_seat(&s,0)==0); /* Show the actual death. */
+    s.status[0]=MMX5_COOP_FALLEN;
+    CHECK(mmx5_coop_spectator_seat(&s,0)==1); /* Then follow the survivor. */
+    s.status[1]=MMX5_COOP_DYING;
+    CHECK(mmx5_coop_spectator_seat(&s,0)==0 && mmx5_coop_spectator_seat(&s,1)==1);
+    s.status[1]=MMX5_COOP_FALLEN;
+    CHECK(mmx5_coop_spectator_seat(&s,0)==0 && mmx5_coop_spectator_seat(&s,1)==1);
+    mmx5_coop_lifecycle_respawn(&s);
     /* Holding Select at boot does not count as a deliberate departure. */
     for (int n=0;n<100;++n) CHECK(mmx5_coop_join_input(&s,1,1,1)==MMX5_COOP_NO_ACTION);
     mmx5_coop_join_input(&s,0,1,1);

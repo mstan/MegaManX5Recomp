@@ -23,10 +23,14 @@ class Preparation(unittest.TestCase):
         (self.session/'session.json').write_text(json.dumps(value))
     def test_restore_segment_has_private_baseline_and_original_bundle_is_untouched(self):
         self.metadata({'netplay':False,'baseline':'baseline.pst'})
+        plan='ab'*32
+        trace=self.session/'inputs.csv'
+        trace.write_text(trace.read_text().replace('# plan p',f'# plan {plan}'))
         original=b'validated-runtime-state';(self.session/'baseline.pst').write_bytes(original)
         output,_,trace=replay.prepare(self.args)
         for token in ('openbios','scph1001'):
             self.assertEqual((output/'saves'/token/'state_800DAE8C_slot00.pst').read_bytes(),original)
+            self.assertEqual((output/'saves'/token/f'state_800DAE8C_mods_{plan}_slot00.pst').read_bytes(),original)
         self.assertEqual((self.session/'baseline.pst').read_bytes(),original)
         self.assertEqual((output/'diagnostic-baseline.pst').read_bytes(),original)
         self.assertEqual(trace.read_text().count('N '),1)
@@ -42,6 +46,14 @@ class Preparation(unittest.TestCase):
         self.metadata({'netplay':False})
         output,_,_=replay.prepare(self.args)
         self.assertFalse((output/'diagnostic-baseline.pst').exists())
+    def test_public_replay_retains_its_required_bundled_bios(self):
+        bios=self.root/'bios';bios.mkdir()
+        (bios/'openbios.bin').write_bytes(b'original bundled BIOS')
+        (bios/'OpenBIOS.LICENSE').write_text('bundled notice')
+        output,_,_=replay.prepare(self.args)
+        (bios/'openbios.bin').write_bytes(b'changed original')
+        self.assertEqual((output/'bios/openbios.bin').read_bytes(),b'original bundled BIOS')
+        self.assertEqual((output/'bios/OpenBIOS.LICENSE').read_text(),'bundled notice')
     def test_network_bundle_does_not_launch_as_offline_replay(self):
         self.metadata({'netplay':True,'baseline':'baseline.pst'})
         with self.assertRaisesRegex(ValueError,'Netplay'):replay.prepare(self.args)
@@ -76,6 +88,7 @@ class Preparation(unittest.TestCase):
         (payload/'mods').mkdir();(payload/'mods/state.toml').write_text('installation choices')
         (payload/'mods/bundled').mkdir();(payload/'mods/bundled/package').write_text('bundled mod')
         (payload/'assets').mkdir();(payload/'assets/icon.png').write_bytes(b'icon')
+        (payload/'bios').mkdir();(payload/'bios/openbios.bin').write_bytes(b'packaged BIOS')
         (self.session/'settings.toml').write_text('[video]\nvsync = false\n[memcard]\ndir = "personal"\n')
         (image/'lib').mkdir();(image/'lib/libSDL2.so.0').write_bytes(b'packaged library')
         (binary.parent/'libadjacent.so.1').write_bytes(b'adjacent library')
@@ -86,6 +99,7 @@ class Preparation(unittest.TestCase):
         self.assertEqual((payload/'mods/state.toml').read_text(),'installation choices')
         self.assertEqual((output/'mods/bundled/package').read_text(),'bundled mod')
         self.assertEqual((output/'assets/icon.png').read_bytes(),b'icon')
+        self.assertEqual((output/'bios/openbios.bin').read_bytes(),b'packaged BIOS')
         self.assertEqual((output/'lib/libSDL2.so.0').read_bytes(),b'packaged library')
         self.assertEqual((output/'lib/libadjacent.so.1').read_bytes(),b'adjacent library')
         settings=(output/'settings.toml').read_text()

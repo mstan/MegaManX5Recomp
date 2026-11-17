@@ -25,7 +25,7 @@ files = [
   "LICENSE", "PERMISSIONS.md",
   "RELEASE_NOTES.md",
   "docs/AOT_OVERLAYS.md",
-  "docs/COOP_X5_027_FOLLOWUPS.md",
+  "docs/COOP_GUIDE.md",
   {from = "packaging/release/input.ini", to = "input.ini"},
 ]
 

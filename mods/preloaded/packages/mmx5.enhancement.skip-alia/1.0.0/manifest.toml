@@ -14,7 +14,7 @@ disc_sha256 = "be731bc4b9d3211b9267a34b8a68c769199a15479b14004ff25b67cdfebe8af4"
 [[feature]]
 id = "skip-alia"
 name = "Skip Alia Hints"
-description = "Skip automatic stage hints without pausing either player. Enabled by default for solo and local co-op; always enabled in netplay. Requires a fresh boot."
+description = "Skip automatic stage hints and their co-op teleport interruptions. Recommended for uninterrupted co-op. Enabled by default for solo and local co-op; always enabled in netplay. Requires a fresh boot."
 group = "Gameplay"
 default_enabled = true
 

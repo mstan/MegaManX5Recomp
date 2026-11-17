@@ -30,11 +30,17 @@ def main():
     parser.add_argument('--session', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--stage', type=int, choices=tuple(CHECKPOINTS), required=True)
+    parser.add_argument('--checkpoint', type=int, choices=range(256),
+                        help='Original checkpoint override for a specific native approach')
     parser.add_argument('--entry-only', action='store_true',
                         help='Park after actual native admission/full HP; do not lower boss HP or run the finisher')
     parser.add_argument('--post-intro-prerequisite', action='store_true',
                         help='Disclosed phase1/old-story-queue bypass; never credits intro completion')
+    parser.add_argument('--confirm-seat', type=int, choices=(0,1),
+                        help='Only this seat confirms; require actual dialogue owned by the other seat')
     args = parser.parse_args()
+    if args.confirm_seat is not None and args.post_intro_prerequisite:
+        parser.error('--confirm-seat must exercise the original story prerequisites')
     parent = json.loads(args.session.read_text(encoding='utf-8'))
     exe = Path(parent['command'][0]).resolve()
     require(Path(psutil.Process(parent['pid']).exe()).resolve() == exe, 'Not the owned process')
@@ -44,10 +50,12 @@ def main():
     args.out.mkdir(parents=True, exist_ok=False)
     (args.out/'harness.py').write_bytes(Path(__file__).read_bytes())
     section, boss_class = MAVERICKS[args.stage]
+    checkpoint=CHECKPOINTS[args.stage] if args.checkpoint is None else args.checkpoint
     report = dict(success=False, human_validation=False, stage=args.stage, section=section,
-                  checkpoint=CHECKPOINTS[args.stage], boss_class=hex(boss_class),
+                  checkpoint=checkpoint, boss_class=hex(boss_class),
                   executable_sha256=parent['executable_sha256'], session=str(args.session.resolve()),
                   samples=[], writes=[], input=[], entry_status='unverified', clear_status='unverified',
+                  confirm_seat=args.confirm_seat, other_owner_dialogue_observed=False,
                   bypassed_prerequisites=['Original checkpoint loader bypasses route traversal',
                                          'HP-only refill; original contact and hurt recovery remain enabled'],
                   limits='This native entry/final-hit/report only. No full fight, route, later rewards/save/selector or netplay pass.')
@@ -85,7 +93,7 @@ def main():
                 report['writes'].append(dict(address=hex(address), before=old, value=value,
                                             purpose='chapter/old-story prerequisite only'))
         previous = counter(r, 'mmx5.coop.enrolled')
-        r.load_location(args.stage, section, CHECKPOINTS[args.stage])
+        r.load_location(args.stage, section, checkpoint)
         deadline = time.monotonic()+100
         moving = False
         signature = None
@@ -104,6 +112,9 @@ def main():
                 if (boss and boss[4] == 1 and 0 < boss[0x5C] < 128 and
                         boss[0x5C] == p[0xA2] and unlocked):
                     r.release()
+                    if args.confirm_seat is not None:
+                        require(report['other_owner_dialogue_observed'],
+                                'No native dialogue owned by the other seat was exercised')
                     report['fight_ready'] = sample('fight-ready')[0]
                     report['entry_status'] = 'passed bounded native admission/HP fill/control return'
                     break
@@ -112,7 +123,11 @@ def main():
                         r.release()
                         moving = False
                     if p[0x1C]:
-                        seat = max(0, s['scene'][0]-1)
+                        owner = max(0, s['scene'][0]-1)
+                        seat = owner if args.confirm_seat is None else args.confirm_seat
+                        if (args.confirm_seat is not None and owner != seat and
+                                s['scene'][0] and r.read(0x80091C44,2)==b'\xff\x03'):
+                            report['other_owner_dialogue_observed'] = True
                         report['input'].append(dict(seat=seat, button='Cross', purpose='original scene text'))
                         r.tap(0x4000, .10, seat)
                 elif unlocked and not moving and all(b[4:6] == b'\x01\x02' for b in s['bodies']):

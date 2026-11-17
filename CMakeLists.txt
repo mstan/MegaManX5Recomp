@@ -124,7 +124,6 @@ set_property(SOURCE src/mods/mmx5_startup_log.cpp APPEND PROPERTY COMPILE_DEFINI
 # mods/bundled broke it silently -- nothing a configure, compile or link step
 # can see. The two mmx5.* packages went on landing in mods/packages, which
 # neither the launcher nor the release packager's Add-ModCatalog reads.
-# Bead beads-eio.3.101.
 set(MMX5_PRELOADED_MODS "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded")
 
 psxrecomp_v4_add_runtime_target(psx-runtime
@@ -199,7 +198,8 @@ if(BUILD_TESTING)
     target_include_directories(mmx5_coop_pixel_codec_test PRIVATE src/mods)
     add_test(NAME mmx5_coop_pixel_codec_test COMMAND mmx5_coop_pixel_codec_test)
     add_executable(mmx5_coop_snapshot_test tests/test_mmx5_coop_snapshot.c
-        src/mods/mmx5_coop_pixel_codec.c src/mods/mmx5_coop_damage.c)
+        src/mods/mmx5_coop_pixel_codec.c src/mods/mmx5_coop_damage.c src/mods/mmx5_coop_assets.c
+        src/mods/mmx5_coop_lifecycle.c src/mods/mmx5_coop_views.c)
     target_include_directories(mmx5_coop_snapshot_test PRIVATE src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")
     if(MSVC)
         target_compile_options(mmx5_coop_snapshot_test PRIVATE /Gy /Gw)

@@ -9,6 +9,11 @@ int mmx5_coop_living(const Mmx5CoopLifecycle *s, unsigned p) {
     return p < 2 && (s->status[p] == MMX5_COOP_ALIVE ||
                     s->status[p] == MMX5_COOP_JOINING || s->status[p] == MMX5_COOP_LEAVING);
 }
+unsigned mmx5_coop_spectator_seat(const Mmx5CoopLifecycle *s,unsigned seat) {
+    if(seat>1)seat=0;
+    if(mmx5_coop_living(s,seat) || s->status[seat]==MMX5_COOP_DYING)return seat;
+    return mmx5_coop_living(s,seat^1u)?seat^1u:seat;
+}
 void mmx5_coop_fatal(Mmx5CoopLifecycle *s, unsigned p) {
     if (p > 1 || s->status[p] == MMX5_COOP_FALLEN || s->status[p] == MMX5_COOP_DYING) return;
     s->status[p] = MMX5_COOP_DYING;

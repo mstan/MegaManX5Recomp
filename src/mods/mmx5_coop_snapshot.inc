@@ -82,9 +82,11 @@ static void snapshot_ui_cache(Mmx5SnapshotIO *s,UiBank *cache,unsigned *used,uns
         UiBank b=cache[i];
 #define UI_FIELD(field,n,max) b.field=mmx5_snapshot_integer(s,b.field,n,max)
         UI_FIELD(page,2,UINT16_MAX);UI_FIELD(clut,2,32767);UI_FIELD(uv,2,UINT16_MAX);
-        UI_FIELD(id,2,UINT16_MAX);UI_FIELD(source,1,MMX5_COOP_ARMOR_SOURCES-1);
+        UI_FIELD(id,2,UINT16_MAX);UI_FIELD(source,4,0x38FFu);UI_FIELD(reflection,1,3);
 #undef UI_FIELD
-        if(b.id!=first_id+i || (b.page&0x180))s->ok=0;
+        unsigned source=b.source&255u,directory=b.source>>8;
+        if(b.id!=first_id+i || (b.page&0x180) || source>=MMX5_COOP_ARMOR_SOURCES ||
+           (directory && directory!=0x30 && directory!=0x34 && directory!=0x38))s->ok=0;
         for(unsigned j=0;j<16;++j)b.colors[j]=(uint16_t)mmx5_snapshot_integer(s,b.colors[j],2,UINT16_MAX);
         if(s->mode==MMX5_SNAPSHOT_READ)cache[i]=b;
     }
@@ -141,16 +143,16 @@ static void snapshot_balance(Mmx5SnapshotIO *io) {
     }
 }
 static int snapshot_ready(void) {
-    const unsigned calls[]={busy,projected,stage_call,player_call,world_owner,render_call,camera_call,
+    const unsigned calls[]={busy,projected,stage_call,player_call,world_owner,render_call,camera_call,second_terrain_pending,
         camera_update_call,split_camera_call,split_scan_call,split_supplemental,split_bounds_call,
         local_view_call,spatial_call,personal_effect_call,personal_visual_call,area_call,
         ai_pool_call,ai_call,ai_suspended,effect_allocate_call,effect_init_call,
         hud_call,hud_icon_call,upload_call,allocation_call,solid_call,contact_call,pickup_call,
-        scene_call,door_call,door_traversal_call,door_terrain_call,ride_call,ride_spawn_call,
+        scene_call,door_call,door_traversal_call,door_terrain_call,ride_call,ride_spawn_call,ride_deferred_slots,
         balance_current,balance_call,balance_contact_call,balance_draw_call,
         balance_pending_actor,balance_pending_function,balance_prepared,balance_attempted,
         duel_contact_call,duel_native_contact,duel_native_injury,duel_render_art!=NULL,duel_opponent_call,duel_text_call,
-        personal_menu_call,personal_rendering,personal_shared_call,armor_ui_call};
+        personal_menu_call,personal_rendering,personal_shared_call,armor_ui_call,armor_name_call};
     for(unsigned i=0;i<sizeof calls/sizeof calls[0];++i)if(calls[i])return 0;
     return !psx_mod_local_view_scope() && source_assets[0].loaded && source_assets[1].loaded &&
         source_assets[MMX5_COOP_ARMOR_SOURCES-1].loaded && mmx5_coop_audio_snapshot_ready();
@@ -172,7 +174,7 @@ static void snapshot_duel(Mmx5SnapshotIO *s) {
     mmx5_snapshot_bytes(s,d.colors,sizeof d.colors);
     story=mmx5_snapshot_integer(s,story,1,2);
     DUEL_FIELD(intro_complete,1,1);DUEL_FIELD(arrived,1,1);
-    for(unsigned i=0;i<2;++i)DUEL_FIELD(health[i],1,32);
+    for(unsigned i=0;i<2;++i)DUEL_FIELD(health[i],1,DUEL_HP);
 #undef DUEL_FIELD
     if((d.phase==4)!=(d.winner!=0))s->ok=0;
     if(d.phase>=3 && (!d.intro_complete || !d.arrived))s->ok=0;
@@ -206,7 +208,7 @@ static void snapshot_stair(Mmx5SnapshotIO *s) {
 }
 static void snapshot_walk(Mmx5SnapshotIO *s) {
     mmx5_snapshot_fixed(s,0x42503558u); /* X5PB */
-    mmx5_snapshot_fixed(s,16); /* Per-view native stair atlas animation. */
+    mmx5_snapshot_fixed(s,20); /* Retain capsule scene kind through passenger return. */
     mmx5_snapshot_fixed(s,split_views);mmx5_snapshot_fixed(s,local_split);
     mmx5_snapshot_fixed(s,both_door_players);mmx5_snapshot_fixed(s,keep_zero);
     mmx5_snapshot_fixed(s,separate_etanks);
@@ -230,11 +232,13 @@ static void snapshot_walk(Mmx5SnapshotIO *s) {
 #endif
     mmx5_snapshot_fixed(s,arena);mmx5_snapshot_fixed(s,primary_arena);
     mmx5_snapshot_fixed(s,hud_arena);mmx5_snapshot_fixed(s,diagnostic);
+    mmx5_snapshot_fixed(s,armor_empty_parts);
+    mmx5_snapshot_fixed(s,armor_name_frame);
     mmx5_snapshot_fixed(s,extra_ride_record);
     uint8_t ride_record[8]={0};
     if(extra_ride_record)capture(extra_ride_record,ride_record,sizeof ride_record);
     mmx5_snapshot_bytes(s,ride_record,sizeof ride_record);
-    if(s->ok && s->mode==MMX5_SNAPSHOT_READ)
+    if(extra_ride_record && s->ok && s->mode==MMX5_SNAPSHOT_READ)
         project(extra_ride_record,ride_record,sizeof ride_record);
     for(unsigned c=0;c<2;++c) {
         CharacterAssets *a=&assets[c];
@@ -253,14 +257,18 @@ static void snapshot_walk(Mmx5SnapshotIO *s) {
     uint32_t source=mmx5_snapshot_integer(s,x_asset_source,1,MMX5_COOP_ARMOR_SOURCES-1);
     MMX5_SNAPSHOT_FIELD(s,selected_x_armor,1,4);
     MMX5_SNAPSHOT_BOOL(s,selected_zero_form);
-    MMX5_SNAPSHOT_BOOL(s,armor_selection_seen);
+    uint32_t selection_owned=mmx5_snapshot_integer(s,armor_selection_seen,1,1);
+    if(s->mode==MMX5_SNAPSHOT_READ)armor_selection_seen=selection_owned;
     MMX5_SNAPSHOT_FIELD(s,armor_selecting_seat,1,2);
     MMX5_SNAPSHOT_FIELD(s,armor_list_seat,1,3);
     for(unsigned seat=0;seat<2;++seat)MMX5_SNAPSHOT_U16(s,armor_previous_input[seat]);
     MMX5_SNAPSHOT_BOOL(s,armor_roster_active);
     MMX5_SNAPSHOT_FIELD(s,armor_native_count,1,6);
     mmx5_snapshot_bytes(s,armor_native_roster,sizeof armor_native_roster);
-    if(source==1 || (mmx5_coop_forms_enabled(0) && source!=2))s->ok=0;
+    /* A code can supply the initial Ultimate body, then expose it as one
+     * explicit native unit choice. Fourth and the other selected sources
+     * remain valid once that selector owns equipment. */
+    if(source==1 || (!selection_owned && mmx5_coop_forms_enabled(0) && source!=2))s->ok=0;
     if(s->ok && s->mode==MMX5_SNAPSHOT_READ) {
         x_asset_source=source;bind_character_source(0,source);bind_character_source(1,1);
     }
@@ -272,12 +280,14 @@ static void snapshot_walk(Mmx5SnapshotIO *s) {
     BYTES(saved_play);BYTES(saved_camera);
     for(unsigned i=0;i<6;++i)U32(resources[i]);
     BOOL(ready);BOOL(enrolled);BOOL(failed);BOOL(counterpart);BOOL(etanks_initialized);
-    for(unsigned c=0;c<2;++c)for(unsigned i=0;i<2;++i)MMX5_SNAPSHOT_FIELD(s,private_etanks[c][i],1,32);
+    for(unsigned seat=0;seat<2;++seat)
+        for(unsigned slot=0;slot<sizeof private_tank_contents[seat];++slot)
+            MMX5_SNAPSHOT_FIELD(s,private_tank_contents[seat][slot],1,32);
     BOOL(split_valid);MMX5_SNAPSHOT_FIELD(s,split_owner,1,2);U32(split_table);
     BYTES(split_cameras);BYTES(split_visits);
     MMX5_SNAPSHOT_FIELD(s,ai_owner,1,1);U32(ai_pool);U32(ai_pending);U32(ai_function);
     MMX5_SNAPSHOT_U8(s,ai_first_freeze);U32(area_actor);U32(area_function);
-    U32(dinorex_fire.actor);MMX5_SNAPSHOT_FIELD(s,dinorex_fire.owner,1,2);BYTES(dinorex_fire.camera);
+    U32(dinorex_sequence.actor);MMX5_SNAPSHOT_FIELD(s,dinorex_sequence.owner,1,2);BYTES(dinorex_sequence.camera);
     snapshot_stair(s);
     for(unsigned c=0;c<2;++c)U32(personal_visual_ticks[c]);
     for(unsigned i=0;i<96;++i)MMX5_SNAPSHOT_FIELD(s,personal_effect_owner[i],1,2);
@@ -307,7 +317,10 @@ static void snapshot_walk(Mmx5SnapshotIO *s) {
     BOOL(section_pending);BOOL(stage_departed);
     MMX5_SNAPSHOT_FIELD(s,hit_count,2,256);
     /* Fixed capacity avoids reading a count into live state during validation. */
-    for(unsigned i=0;i<256;++i) {U32(hit_history[i].actor);BYTES(hit_history[i].token);}
+    for(unsigned i=0;i<256;++i) {
+        U32(hit_history[i].actor);BYTES(hit_history[i].token);
+        MMX5_SNAPSHOT_FIELD(s,hit_history[i].capture_owner,1,2);
+    }
     for(unsigned i=0;i<64;++i) {
         MMX5_SNAPSHOT_U8(s,solid_history[i].sides);MMX5_SNAPSHOT_U8(s,solid_history[i].carried);
         MMX5_SNAPSHOT_U8(s,solid_history[i].car_sides);MMX5_SNAPSHOT_U8(s,solid_history[i].car_carried);
@@ -315,6 +328,8 @@ static void snapshot_walk(Mmx5SnapshotIO *s) {
     }
     for(unsigned i=0;i<128;++i) {U32(pickup_owners[i].actor);MMX5_SNAPSHOT_FIELD(s,pickup_owners[i].seat,1,1);}
     MMX5_SNAPSHOT_FIELD(s,scene_owner,1,2);MMX5_SNAPSHOT_FIELD(s,scene_phase,1,6);
+    MMX5_SNAPSHOT_FIELD(s,scene_corridor_arrow,1,14);
+    MMX5_SNAPSHOT_BOOL(s,scene_capsule);
     MMX5_SNAPSHOT_FIELD(s,paired_victory,1,2);BYTES(scene_body);U32(scene_y);
     U32(both_door.actor);MMX5_SNAPSHOT_U16(s,both_door.old_min);MMX5_SNAPSHOT_U16(s,both_door.old_max);
     MMX5_SNAPSHOT_U16(s,both_door.target_min);MMX5_SNAPSHOT_U16(s,both_door.target_max);MMX5_SNAPSHOT_U16(s,both_door.right);
@@ -362,16 +377,13 @@ static int snapshot_resolve_bank(uint16_t id) {
         unsigned edge=b->pixel_count==256?16:256;
         return psx_mod_define_texture_bank(id,edge,edge,b->pixels);
     }
-    if(u && u->id==id && u->source<3) {
-        uint16_t pixels[256];unsigned bx=(u->page&15)*64,by=(u->page&16)*16;
-        for(unsigned y=0;y<16;++y)for(unsigned x=0;x<16;++x) {
-            unsigned v=((u->uv>>8)+y)&255,w=((u->uv&255)+x)&255;
-            uint16_t p=source_assets[u->source].ui_pixels[(by+v)*1024+bx+w/4];
-            pixels[y*16+x]=u->colors[(p>>((w&3)*4))&15];
-        }
+    if(u && u->id==id && (u->source&255u)<MMX5_COOP_ARMOR_SOURCES) {
+        uint16_t pixels[256];
+        if(!retained_tile_pixels(&source_assets[u->source&255u],u->page,u->uv,
+                                u->reflection,u->source>>8,u->colors,pixels))return 0;
         return psx_mod_define_texture_bank(id,16,16,pixels);
     }
-    return 0;
+    return mmx5_widescreen_resolve_bank(id);
 }
 static void snapshot_restored(void) {
     (void)psx_mod_forget_texture_bank_range(0x6000,4096);

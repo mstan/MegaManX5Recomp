@@ -3,12 +3,16 @@
 
 unsigned mmx5_coop_duel_attack_damage(unsigned type) {
     switch(type) {
-    case 0x00: case 0x3A:return 2;
-    case 0x09: case 0x18: case 0x19: case 0x1E:return 3;
+    /* Ranged basics stay useful against the freely available saber while
+     * the native charged-buster tiers retain their stronger payoff. */
+    case 0x00: case 0x3A:return 3;
+    case 0x09:return 4;
+    case 0x18: case 0x19: case 0x1D: case 0x1E:return 3;
     case 0x12: case 0x13: case 0x14: case 0x1A:return 5;
     case 0x15:return 1;
-    case 0x16: case 0x17: case 0x2A:return 6;
-    case 0x02: case 0x0B: case 0x1D: case 0x21:return 0;
+    case 0x16:return 5; /* Ultimate Nova Strike. */
+    case 0x17: case 0x2A:return 6;
+    case 0x02: case 0x0B: case 0x21:return 0;
     default:return type<=0x31?4:0;
     }
 }
@@ -35,7 +39,13 @@ int mmx5_coop_duel_damage_ready(
         const uint8_t defender[MMX5_COOP_DUEL_BODY_BYTES]) {
     return valid_body(defender) && !(defender[0x5C]&0x80u) &&
            !defender[0x61] && !defender[0xA4] && !defender[0xCC] &&
-           !defender[0x7A];
+           (!defender[0x7A] || (defender[0x7A]==1 &&
+                               mmx5_coop_duel_nova_active(defender)));
+}
+
+int mmx5_coop_duel_nova_active(const uint8_t *body) {
+    return body && body[0] && !body[2] && body[4]==1 &&
+           body[5]==0x22 && body[0xFA]==4;
 }
 
 int mmx5_coop_duel_damage_target(

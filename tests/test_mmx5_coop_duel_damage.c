@@ -22,12 +22,15 @@ static void body(uint8_t *p) {
 }
 
 int main(void) {
-    assert(mmx5_coop_duel_attack_damage(0)==2);
-    assert(mmx5_coop_duel_attack_damage(9)==3);
+    assert(mmx5_coop_duel_attack_damage(0)==3);
+    assert(mmx5_coop_duel_attack_damage(9)==4);
+    assert(mmx5_coop_duel_attack_damage(0x3A)==3);
     assert(mmx5_coop_duel_attack_damage(0x12)==5);
     assert(mmx5_coop_duel_attack_damage(0x18)==3);
     assert(mmx5_coop_duel_attack_damage(0x1A)==5);
+    assert(mmx5_coop_duel_attack_damage(0x1D)==3); /* W-Shredder's real attack. */
     assert(mmx5_coop_duel_attack_damage(0x2A)==6);
+    assert(mmx5_coop_duel_attack_damage(0x16)==5);
     assert(!mmx5_coop_duel_attack_damage(2));
     assert(!mmx5_coop_duel_attack_damage(0x21));
     assert(!mmx5_coop_duel_attack_damage(0x80));
@@ -65,6 +68,16 @@ int main(void) {
     assert(!mmx5_coop_duel_damage_ready(defender));
     assert(mmx5_coop_duel_damage_target(proxy,defender,0,1,0x80076560u,0));
     assert(proxy[0x61]); /* native317B8 would reject an NPC-slot attacker */
+    body(defender);defender[2]=0;defender[5]=0x22;
+    defender[0xFA]=4;defender[0x7A]=1;
+    assert(mmx5_coop_duel_damage_ready(defender));
+    defender[0x7A]=2;
+    assert(!mmx5_coop_duel_damage_ready(defender));
+    defender[0x7A]=1;
+    defender[0x61]=1;
+    assert(!mmx5_coop_duel_damage_ready(defender));
+    defender[0x61]=0;defender[0xFA]=2;
+    assert(!mmx5_coop_duel_damage_ready(defender));
     body(defender);defender[0xD5]=0xFF;
     assert(!mmx5_coop_duel_damage_target(proxy,defender,0,1,0x80076560u,0));
     body(defender);defender[0x5C]=0x80;

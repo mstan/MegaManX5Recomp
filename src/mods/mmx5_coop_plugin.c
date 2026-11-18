@@ -2938,7 +2938,7 @@ static int capsule_return_committed(const uint8_t *body) {
     }
     return 0;
 }
-static int capsule_return_scene(const uint8_t *body) {
+static uint32_t capsule_return_scene(const uint8_t *body) {
     /* Light releases stand14 after the text, before the optional action18
      * grant. Both healthy returns belong to the same native capsule; neither
      * should manufacture a new injury timer on its companion. */
@@ -2949,9 +2949,18 @@ static int capsule_return_scene(const uint8_t *body) {
         unsigned phase=psx_mod_read_byte(actor+5);
         if(psx_mod_read_byte(actor) && psx_mod_read_byte(actor+1)==0x1A &&
            psx_mod_read_byte(actor+2)<=8 && psx_mod_read_byte(actor+4)==1 &&
-           phase>=2 && phase<=11 && capsule_near(actor,x,y))return 1;
+           phase>=2 && phase<=11 && capsule_near(actor,x,y))return actor;
     }
     return 0;
+}
+static int capsule_return_pending(uint32_t actor,const uint8_t *body) {
+    if(actor<0x800C6A10u || actor>=0x800C9310u ||
+       (actor-0x800C6A10u)%0xA4u || !psx_mod_read_byte(actor) ||
+       psx_mod_read_byte(actor+1)!=0x1A || psx_mod_read_byte(actor+2)>8 ||
+       psx_mod_read_byte(actor+4)!=1)return 0;
+    unsigned phase=psx_mod_read_byte(actor+5);
+    return phase>=2 && phase<11 && capsule_near(actor,
+        (int16_t)(le32(body+8)>>16),(int16_t)(le32(body+12)>>16));
 }
 static void pickup_armor_collider(CPUState *cpu,uint32_t address) {
     (void)address;
@@ -3476,7 +3485,8 @@ static void scene_tick(CPUState *cpu) {
     if(owner)memcpy(leader,second.body,sizeof leader);else capture(PLAYER,leader,sizeof leader);
     /* The owner can leave the capsule before its passenger beam finishes.
      * Retain the observed native scene kind across that normal movement. */
-    if(capsule_return_scene(leader))scene_capsule=1;
+    uint32_t capsule=capsule_return_scene(leader);
+    if(capsule)scene_capsule=1;
     int locked=leader[0xD0] || leader[0xD4] || leader[0x7A] ||
         psx_mod_read_byte(PLAY+0x10) ||
         (scene_phase && psx_mod_read_byte(PLAY+0x1C));
@@ -3578,6 +3588,12 @@ static void scene_tick(CPUState *cpu) {
     int armor=0;
     if(scene_phase==3) {
         if((locked && !held_arrival) || leader[4]!=1 || leader[5]<2)return;
+        /* Text releases stand14 before the optional native armor grant
+         * reacquires action18. Materializing in that gap beams the partner
+         * out a second time and captures its unfinished incoming pose.
+         * Retain the actual capsule until its original program finishes or
+         * the owner leaves it; the native grant/abort remains authoritative. */
+        if(capsule && capsule_return_pending(capsule,leader))return;
         /* The corridor owner regains control on its receiving arrow. Wait
          * until it leaves that native admission rectangle before selecting
          * the companion's beam anchor. Otherwise the owner can walk out
@@ -3658,6 +3674,7 @@ static void scene_tick(CPUState *cpu) {
         psx_mod_write_byte(PLAYER+0x15,duel_scope()?story_duel.facing[1]:leader[0x15]);
         guest(cpu,0x8003A2C8,PLAYER,0);guest(cpu,0x8003B33C,PLAYER,1);
         psx_mod_write_word(PLAYER+0x68,0);psx_mod_write_word(PLAYER+0x54,0);scene_phase=4;
+        psx_mod_counter_add("mmx5.coop.scene-incoming-starts",1);
     } else if(scene_phase==6) {
         /* The companion has arrived during the original dialogue. Keep its
          * native hold until the owner releases control; never beam twice. */

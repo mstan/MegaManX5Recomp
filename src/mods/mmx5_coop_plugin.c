@@ -3789,6 +3789,7 @@ static int both_door_pending_intro(void) {
         if(!psx_mod_read_byte(actor) || psx_mod_read_byte(actor+4))continue;
         unsigned kind=psx_mod_read_byte(actor+1);
         if((!stage && kind==0x31u) || (stage>=1 && stage<=8 && kind>=0x32u && kind<=0x39u) ||
+           (stage==16 && kind==0x3Au) ||
            (stage==17 && kind==0x3Cu) ||
            (stage==18 && (kind==0x40u || kind==0x41u)) || (stage==12 && kind==0x42u))return 1;
     }
@@ -4226,6 +4227,13 @@ static int both_door_pending_boss(uint32_t actor) {
        psx_mod_read_word(0x800FB4A4u)==0x800F7FC4u &&
        psx_mod_read_word(0x800F8084u)==0x0C00F4A7u)return 1;
     if(stage>=1 && stage<=8)return !subtype && kind>=0x32u && kind<=0x39u;
+    /* Shadow Devil also issues stand14 before its original assembly.
+     * Starting it inside the paired carry loses that command when the door
+     * restores control, leaving its introduction waiting on the wrong pose. */
+    if(stage==16 && kind==0x3Au && !subtype &&
+       psx_mod_read_word(0x800EE970u)==0x1Eu &&
+       psx_mod_read_word(0x800F8D5Cu)==0x800F3D54u &&
+       psx_mod_read_word(0x800F22F8u)==0x0C00F4A7u)return 1;
     /* Rangda Bangda also begins with stand14. Admit that native shared
      * introduction after the crossing, so it acquires and releases both
      * heroes instead of stranding the projected companion in stand14. */

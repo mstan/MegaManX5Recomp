@@ -144,6 +144,8 @@ static uint32_t diagnostic;
 #ifndef PSX_NO_DEBUG_TOOLS
 static unsigned fixture_location_pending,fixture_stage,fixture_section,fixture_checkpoint;
 static unsigned fixture_scenery_pending;
+static uint32_t fixture_damage_actor;
+static unsigned fixture_damage_stage,fixture_damage_kind;
 /* Original8002ACC4 indexes these resident arrays. Validate the complete
  * pointer chain before admitting an offline location request. */
 static int fixture_location_valid(unsigned stage,unsigned section,unsigned checkpoint) {
@@ -1017,6 +1019,8 @@ static void world_tick(CPUState *cpu,uint32_t address) {
 #endif
 #ifndef PSX_NO_DEBUG_TOOLS
     fixture_scenery_begin(cpu,address);
+    if(fixture_damage_actor && (psx_mod_read_byte(PLAY)!=10 ||
+       psx_mod_read_byte(PLAY+12)!=fixture_damage_stage))fixture_damage_actor=0;
     if(diagnostic && !psx_mod_netplay_is_active()) {
         uint32_t sequence=psx_mod_read_word(diagnostic+0x50);
         if(sequence!=fixture_sequence) {
@@ -1046,6 +1050,22 @@ static void world_tick(CPUState *cpu,uint32_t address) {
                 } else {
                     uint8_t *body=seat?second.body:first.body;body[0x5C]=(uint8_t)hp;
                     for(unsigned i=0;i<9;++i) {body[0xA8+i*2]=(uint8_t)ammo;body[0xA9+i*2]=(uint8_t)(ammo>>8);}
+                }
+            }
+            if(command==20 && enrolled && !failed && !scene_owner &&
+               !psx_mod_read_byte(PLAY+1) && !psx_mod_read_byte(PLAY+0x1C)) {
+                /* Offline forced damage: the next original boss shot query
+                 * receives a lethal hit. Its caller still owns death entry,
+                 * effects, rewards, module changes and actual progression. */
+                uint32_t actor=psx_mod_read_word(PLAY+0x20);
+                if(actor>=0x80092090u && actor<0x80093DD0u &&
+                   !((actor-0x80092090u)%0x9Cu) && psx_mod_read_byte(actor) &&
+                   psx_mod_read_byte(actor+1)>=0x31u &&
+                   psx_mod_read_byte(actor+1)<=0x43u && psx_mod_read_byte(actor+4)==1 &&
+                   (psx_mod_read_byte(actor+0x5C)&127u)) {
+                    fixture_damage_actor=actor;fixture_damage_kind=psx_mod_read_byte(actor+1);
+                    fixture_damage_stage=psx_mod_read_byte(PLAY+12);
+                    psx_mod_write_word(diagnostic+0x64,1);
                 }
             }
             if(command==3) {
@@ -2496,6 +2516,22 @@ static unsigned puffer_recipient(uint32_t actor,unsigned target) {
 }
 static int contact_canonical(CPUState *cpu,uint32_t address) {
     if(contact_call || (projected && !world_owner) || !enrolled || failed || psx_mod_read_byte(PLAY)!=10)return 0;
+#ifndef PSX_NO_DEBUG_TOOLS
+    if(fixture_damage_actor && !psx_mod_netplay_is_active() &&
+       !psx_mod_local_view_scope() && address==0x80031DD0u &&
+       cpu->gpr[4]==fixture_damage_actor) {
+        uint32_t actor=fixture_damage_actor;fixture_damage_actor=0;
+        if(psx_mod_read_byte(PLAY+12)==fixture_damage_stage &&
+           psx_mod_read_word(PLAY+0x20)==actor && psx_mod_read_byte(actor) &&
+           psx_mod_read_byte(actor+1)==fixture_damage_kind &&
+           psx_mod_read_byte(actor+4)==1) {
+            psx_mod_write_byte(actor+0x5C,0);
+            cpu->gpr[2]=UINT32_MAX;
+            psx_mod_counter_add("mmx5.coop.fixture-forced-boss-hits",1);
+            return 1;
+        }
+    }
+#endif
     contact_call=1;uint32_t actor=cpu->gpr[4],argument=cpu->gpr[5],result=0;
     unsigned seat=world_owner?1:0;
     unsigned rose_capture=rose_capture_actor(actor);
@@ -8595,6 +8631,9 @@ static void activate(void) {
     join_phase=0;join_y=0;memset(returning_body,0,sizeof returning_body);
     effect_allocate_call=effect_init_call=0;memset(death_origins,0,sizeof death_origins);
     memset(landing_effects,0,sizeof landing_effects);fixture_sequence=0;
+#ifndef PSX_NO_DEBUG_TOOLS
+    fixture_damage_actor=fixture_damage_stage=fixture_damage_kind=0;
+#endif
 #ifdef MMX5_COOP_TEST_CHEATS
     test_chord=test_god_mask=test_contact_mask=test_commands=0;
     psx_mod_counter_add("mmx5.coop.test-cheats-enabled",1);

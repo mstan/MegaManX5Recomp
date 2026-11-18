@@ -2457,11 +2457,21 @@ static int whale_puffer(uint32_t actor) {
         psx_mod_read_word(0x80101674u)==0x800F2978u;
 }
 static unsigned rose_capture_actor(uint32_t actor) {
-    if(psx_mod_read_byte(PLAY+12)!=7 || psx_mod_read_byte(PLAY+13) ||
-       psx_mod_read_word(0x800EE970u)!=14 ||
+    if(psx_mod_read_byte(PLAY+13) ||
        actor<0x80096D98u || actor>=0x80098118u ||
        (actor-0x80096D98u)%0x9Cu || !psx_mod_read_byte(actor))return 0;
     unsigned type=psx_mod_read_byte(actor+1),subtype=psx_mod_read_byte(actor+2);
+    /* The refight uses a separate copy of the same native hand program.
+     * Its contact leaf has the same immediate PLAYER.CA postcondition,
+     * but its dispatcher and state tables live in BIN18 rather than BIN13. */
+    if(psx_mod_read_byte(PLAY+12)==12 && psx_mod_read_word(0x800EE970u)==22 &&
+       type==0x27 && !subtype &&
+       psx_mod_read_word(0x800F6ECCu)==0x800FE0C8u &&
+       psx_mod_read_word(0x800FEE54u)==0x800FE1ACu &&
+       psx_mod_read_word(0x800FEE98u)==0x800FD6B0u &&
+       psx_mod_read_word(0x800FD5B4u)==0x0C00C5EEu &&
+       psx_mod_read_word(0x800FD5C4u)==0x822200CAu)return 2;
+    if(psx_mod_read_byte(PLAY+12)!=7 || psx_mod_read_word(0x800EE970u)!=14)return 0;
     if(type==6 && subtype==4 &&
        psx_mod_read_word(0x800FADC8u)==0x800F2448u &&
        psx_mod_read_word(0x800F2EB4u)==0x0C00C5EEu &&
@@ -2490,7 +2500,8 @@ static int contact_canonical(CPUState *cpu,uint32_t address) {
     unsigned seat=world_owner?1:0;
     unsigned rose_capture=rose_capture_actor(actor);
     int rose_query=rose_capture &&
-        cpu->gpr[31]==(rose_capture==1?0x800F2EBCu:0x800F63F0u);
+        cpu->gpr[31]==(rose_capture==1?0x800F2EBCu:
+                      psx_mod_read_byte(PLAY+12)==12?0x800FD5BCu:0x800F63F0u);
     if(address==0x800317B8u && ai_call && (rose_query || (whale_puffer(actor) &&
        psx_mod_read_byte(actor+4)==1 && psx_mod_read_byte(actor+0x62)==3 &&
        !psx_mod_read_byte(actor+0x60)))) {
@@ -6264,7 +6275,9 @@ static int rose_capture_tick(CPUState *cpu,uint32_t address) {
     if(ai_pool_call || ai_call || !enrolled || failed || split_available() ||
        psx_mod_read_byte(PLAY)!=10)return 0;
     unsigned family=rose_capture_actor(cpu->gpr[4]);
-    if(!family || address!=(family==1?0x800F2448u:0x800F6EFCu))return 0;
+    uint32_t function=family==1?0x800F2448u:
+        psx_mod_read_byte(PLAY+12)==12?0x800FE0C8u:0x800F6EFCu;
+    if(!family || address!=function)return 0;
     if(projected)return world_owner?canonical_world_call(cpu,address,rose_capture_tick):0;
     /* Unified cameras normally keep the original P1 AI pass. A capturing
      * actor must instead execute its contact AND immediate CA/pose checks
@@ -8884,6 +8897,7 @@ PSX_MOD_CONSTRUCTOR(mmx5_register_coop) {
     psx_mod_register_function_filter_plugin(ID,0x800221B0,ai_pool_tick);
     psx_mod_register_function_filter_plugin(ID,0x800F2448,rose_capture_tick);
     psx_mod_register_function_filter_plugin(ID,0x800F6EFC,rose_capture_tick);
+    psx_mod_register_function_filter_plugin(ID,0x800FE0C8,rose_capture_tick);
     psx_mod_register_function_filter_plugin(ID,0x8005609C,spatial_stage_actor);
     psx_mod_register_function_filter_plugin(ID,0x80056AA0,spatial_stage_actor);
     psx_mod_register_function_filter_plugin(ID,0x80056E88,spatial_stage_actor);

@@ -4986,11 +4986,9 @@ static int corridor_arrow_near(int x,int y) {
 }
 static int corridor_arrow_admission(CPUState *cpu,uint32_t address) {
     uint32_t actor=cpu->gpr[4];
-    if(address!=0x800F26ACu || area_call || busy || projected || !enrolled || failed ||
-       psx_mod_local_view_scope() || scene_owner || both_door_active() || car_context() ||
-       !both_living(0) || !both_living(1) || psx_mod_read_byte(PLAY)!=10 ||
+    if(address!=0x800F26ACu || area_call || !enrolled || failed ||
+       psx_mod_local_view_scope() || psx_mod_read_byte(PLAY)!=10 ||
        psx_mod_read_byte(PLAY+12)!=2 || psx_mod_read_byte(PLAY+13)!=1 ||
-       psx_mod_read_byte(PLAY+0x10) || psx_mod_read_byte(PLAY+0x1C) ||
        psx_mod_read_word(0x800EE970u)!=7 || psx_mod_read_word(address)!=0x27BDFFD0u ||
        psx_mod_read_word(0x800F9358u)!=0x800F2B98u ||
        psx_mod_read_word(0x800F9DE0u)!=address ||
@@ -4998,6 +4996,18 @@ static int corridor_arrow_admission(CPUState *cpu,uint32_t address) {
        !psx_mod_read_byte(actor) || psx_mod_read_byte(actor+1)!=0x15 ||
        psx_mod_read_byte(actor+2) || psx_mod_read_byte(actor+4)!=1 ||
        psx_mod_read_byte(actor+5)!=1)return 0;
+    /* The original controller rearms when its owner leaves the receiver,
+     * before the companion's beam has necessarily finished. A second raw
+     * admission during that beam bypasses the new source-pair enrollment
+     * and returns the companion to the previous corridor's floor. Let the
+     * existing return settle before another idle arrow can acquire a hero. */
+    if(scene_owner) {
+        psx_mod_counter_add("mmx5.coop.corridor-arrow-return-waits",1);
+        cpu->gpr[2]=0;return 1;
+    }
+    if(busy || projected || both_door_active() || car_context() ||
+       !both_living(0) || !both_living(1) ||
+       psx_mod_read_byte(PLAY+0x10) || psx_mod_read_byte(PLAY+0x1C))return 0;
     unsigned seat=0;
     if(!corridor_arrow_near((int16_t)psx_mod_read_half(PLAYER+10),
                             (int16_t)psx_mod_read_half(PLAYER+14))) {

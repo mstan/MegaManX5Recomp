@@ -1,3 +1,16 @@
+# v1.0.1
+
+A campaign polish update for Mega Man X5 Recompiled.
+
+- Smoother character effects and armor colors during shared scenes.
+- More reliable partner returns after capsules and stage transfers.
+- Improved paired boss-door entry and stage arrival cameras.
+- Environmental fire effects stay within the appropriate player view.
+
+Keep your native memory cards and launcher settings when updating. Save states
+are specific to a build; use the game's SAVE and LOAD for durable progress.
+Online players should update to the same release.
+
 # v1.0 stable
 
 Play the Mega Man X5 campaign together as X and Zero on Windows PC.

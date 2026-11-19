@@ -2084,9 +2084,14 @@ static int stage_tick(CPUState *cpu,uint32_t address) {
             uint16_t held=seat?raw:psx_mod_read_half(PAD);
             if(life.status[seat]!=MMX5_COOP_ALIVE || body[2] || body[4]!=1 ||
                !body[0xD0] || (held&0x0090u) ||
-               !(body[0x9B]|body[0x9C]|body[0x9D]|body[0x9E]))continue;
+               !(body[0x9B]|body[0x9C]|body[0x9D]) && body[0x9E]<=1)continue;
             if(seat)enter_second();
             guest(cpu,0x8003F250,PLAYER,0);
+            /* Native attack release3F35C also restores the selected armor's
+             * palette. The script suspends that ordinary attack pass, so
+             * cancelling only its charge leaves the last flash colors held.
+             * Timer9E==1 is the native idle increment, not a new charge. */
+            guest(cpu,0x8003C5D8,PLAYER,0);
             clear_personal_drawables(seat);
             if(seat)leave_second();
         }

@@ -8445,7 +8445,8 @@ static void dinorex_fire_draw_layer(const uint8_t canonical[0xFC]) {
     int x=(int16_t)psx_mod_read_half(CAMERA+10);
     project(CAMERA+0x54,canonical+0x54,0x54);
     int view_x;
-    if(dinorex_fire_view_region(local_view_seat,&view_x)) {
+    int visible_region=dinorex_fire_view_region(local_view_seat,&view_x);
+    if(visible_region) {
         int reference_x=left+64;
         int delta=view_x-reference_x;
         left+=delta;right+=delta;
@@ -8464,7 +8465,7 @@ static void dinorex_fire_draw_layer(const uint8_t canonical[0xFC]) {
     /* The original CP2 approach already admits the burst at cameraY2416.
      * Its upper ledge and lower corridor share the image/contact mapping;
      * F29B4 still owns the native terrain, cover and fatal predicates. */
-    if((int16_t)psx_mod_read_half(CAMERA+0x1A)<2192 ||
+    if(!visible_region || (int16_t)psx_mod_read_half(CAMERA+0x1A)<2192 ||
        (int16_t)psx_mod_read_half(CAMERA+0x28)<2416 ||
        right<=left || x>=right || x+320<=left)
         psx_mod_write_byte(CAMERA+0x57,0);

@@ -3217,6 +3217,21 @@ static void paired_victory_tick(CPUState *cpu,unsigned owner,const uint8_t *lead
     capture(PLAY,play,sizeof play);capture(CAMERA,camera,sizeof camera);
     unsigned old_busy=busy;busy=scene_call=1;
     if(companion)enter_second();
+    /* The companion's attack dispatcher is suspended by the shared defeat
+     * hold. Retire its old projectiles instead of drawing their last frame
+     * through palette/asset changes and the victory pose. Boss explosions
+     * and other world effects retain their original update and lifetime. */
+    unsigned retired=0;
+    for(unsigned i=0;i<32;++i)if(psx_mod_read_byte(SHOTS+i*0x9Cu)) {
+        psx_mod_write_byte(SHOTS+i*0x9Cu,0);
+        psx_mod_write_byte(SHOTS+i*0x9Cu+3,0);++retired;
+    }
+    if(retired) {
+        clear_buster_effects(companion);
+        psx_mod_write_byte(PLAYER+0x98,0);psx_mod_write_byte(PLAYER+0x99,0);
+        psx_mod_write_byte(PLAYER+0xA6,0);
+        psx_mod_counter_add("mmx5.coop.defeat-projectiles-retired",retired);
+    }
     if(paired_victory==1) {
         /* Replay the observed original stand/facing command once, rather
          * than transporting the still-living companion out of the arena. */
@@ -6795,13 +6810,18 @@ static int split_camera_finish(CPUState *cpu,uint32_t address) {
          * status is published. That lock must not copy its camera over a
          * partner whose death animation is already running. */
     } else if((scene_owner && !duel_fill_pair_present()) || both_door_native_carry() || car_context() ||
+       (!scene_owner && life.status[other]==MMX5_COOP_ALIVE &&
+        first.body[4]==1 && !first.body[5] && second.body[4]==1 && !second.body[5]) ||
        (whale_authored_camera() && !whale_exit) ||
        (!mmx5_coop_living(&life,other) && life.status[other]!=MMX5_COOP_DYING)) {
         /* A native door transports both bodies under one authored camera
          * command. Following P2 against its previous room's bounds clamps
          * it at the old right edge while P1 continues through, then crushes
          * it on closure. Retain that shared camera through the carry/release;
-         * ordinary independent follow resumes when the passage retires. */
+         * ordinary independent follow resumes when the passage retires.
+         * During the pair's initial beams, Dinorex's stage controller owns
+         * the downward camera while native follow remains disabled. Share
+         * that authored view until either hero finishes its own arrival. */
         memcpy(split_cameras[other],canonical,sizeof canonical);
     } else if(!projected || duel_fill_pair_present()) {
         /* Original primary/parallax updates run once for this extra camera,

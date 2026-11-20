@@ -1,3 +1,6 @@
+> [!NOTE]
+> A special thank you to Thomu, Moro, and JMOTZU for their extensive playtesting in the Co-op mod. Also, a special thank you to Thomu for his generous support towards the project's development.
+
 # Mega Man X5 Recompiled
 
 Mega Man X5 on Windows PC, with X and Zero playable together throughout the

@@ -1,3 +1,15 @@
+# v1.0.2
+
+- Training encounters and camera areas now activate from either player's view.
+- Player 2 can descend Training's ladder with an independent camera.
+- Options > Button Configuration has separate action assignments for each
+  player. Press Select to switch players; native memory-card saves retain both
+  layouts. The launcher also supports separate controller and keyboard mappings.
+
+Keep your native memory cards and launcher settings when updating. Use the
+game's SAVE and LOAD for progress across releases. Online players should use
+the same release.
+
 # v1.0.1
 
 A campaign polish update for Mega Man X5 Recompiled.

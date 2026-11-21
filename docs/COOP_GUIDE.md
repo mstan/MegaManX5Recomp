@@ -11,6 +11,13 @@ saved campaign unlock progress.
 
 ## Cameras, menus and doors
 
+The launcher's controller setup has a Configure button for each player. Use it
+to map that player's keyboard or selected controller. In X5's Options > Button
+Configuration, press Select to switch between Player One and Player Two, then
+assign that player's seven action buttons. Either controller can edit Player
+Two's assignments. Save campaign progress to retain both layouts on the native
+memory card.
+
 Side-by-side is the default local display. Each pane follows its own hero and
 shows that hero's life meter. Unified view and online camera choices are in
 Mods. Either player may press Start for their own pause menu; the player who

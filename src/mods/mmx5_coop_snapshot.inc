@@ -152,7 +152,8 @@ static int snapshot_ready(void) {
         balance_current,balance_call,balance_contact_call,balance_draw_call,
         balance_pending_actor,balance_pending_function,balance_prepared,balance_attempted,
         duel_contact_call,duel_native_contact,duel_native_injury,duel_render_art!=NULL,duel_opponent_call,duel_text_call,
-        personal_menu_call,personal_rendering,personal_shared_call,armor_ui_call,armor_name_call};
+        personal_menu_call,personal_rendering,personal_shared_call,armor_ui_call,armor_name_call,
+        bindings_call,bindings_name_call};
     for(unsigned i=0;i<sizeof calls/sizeof calls[0];++i)if(calls[i])return 0;
     return !psx_mod_local_view_scope() && source_assets[0].loaded && source_assets[1].loaded &&
         source_assets[MMX5_COOP_ARMOR_SOURCES-1].loaded && mmx5_coop_audio_snapshot_ready();
@@ -208,7 +209,7 @@ static void snapshot_stair(Mmx5SnapshotIO *s) {
 }
 static void snapshot_walk(Mmx5SnapshotIO *s) {
     mmx5_snapshot_fixed(s,0x42503558u); /* X5PB */
-    mmx5_snapshot_fixed(s,20); /* Retain capsule scene kind through passenger return. */
+    mmx5_snapshot_fixed(s,22); /* Native button configuration title group. */
     mmx5_snapshot_fixed(s,split_views);mmx5_snapshot_fixed(s,local_split);
     mmx5_snapshot_fixed(s,both_door_players);mmx5_snapshot_fixed(s,keep_zero);
     mmx5_snapshot_fixed(s,separate_etanks);
@@ -234,6 +235,7 @@ static void snapshot_walk(Mmx5SnapshotIO *s) {
     mmx5_snapshot_fixed(s,hud_arena);mmx5_snapshot_fixed(s,diagnostic);
     mmx5_snapshot_fixed(s,armor_empty_parts);
     mmx5_snapshot_fixed(s,armor_name_frame);
+    mmx5_snapshot_fixed(s,bindings_name_frame);
     mmx5_snapshot_fixed(s,extra_ride_record);
     uint8_t ride_record[8]={0};
     if(extra_ride_record)capture(extra_ride_record,ride_record,sizeof ride_record);
@@ -262,6 +264,8 @@ static void snapshot_walk(Mmx5SnapshotIO *s) {
     MMX5_SNAPSHOT_FIELD(s,armor_selecting_seat,1,2);
     MMX5_SNAPSHOT_FIELD(s,armor_list_seat,1,3);
     for(unsigned seat=0;seat<2;++seat)MMX5_SNAPSHOT_U16(s,armor_previous_input[seat]);
+    MMX5_SNAPSHOT_BOOL(s,bindings_seat);
+    for(unsigned seat=0;seat<2;++seat)MMX5_SNAPSHOT_U16(s,bindings_previous[seat]);
     MMX5_SNAPSHOT_BOOL(s,armor_roster_active);
     MMX5_SNAPSHOT_FIELD(s,armor_native_count,1,6);
     mmx5_snapshot_bytes(s,armor_native_roster,sizeof armor_native_roster);

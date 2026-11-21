@@ -3,7 +3,7 @@ id = "mmx5.coop"
 version = "0.0.1"
 name = "X + Zero Co-op"
 author = "mstan"
-description = "Play the Mega Man X5 campaign together with local split-screen or online play."
+description = "Play the Mega Man X5 campaign together with local split-screen or online play. In Options > Button Configuration, Select switches the player's action assignments."
 resolver = "declarative"
 save_compatibility = "isolated"
 

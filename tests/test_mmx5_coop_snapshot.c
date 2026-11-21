@@ -358,8 +358,10 @@ int main(void) {
     unsigned before=allocations;CHECK(snapshot_validate(saved,len));CHECK(allocations==before);
     CHECK(!snapshot_validate(saved,len-1));CHECK(!snapshot_validate(saved,len+1));
     saved[0]^=1;CHECK(!snapshot_validate(saved,len));saved[0]^=1;
-    CHECK(saved[4]==20 && !saved[5] && !saved[6] && !saved[7]);
-    saved[4]=19;CHECK(!snapshot_validate(saved,len));saved[4]=20;
+    CHECK(saved[4]==22 && !saved[5] && !saved[6] && !saved[7]);
+    saved[4]=21;CHECK(!snapshot_validate(saved,len));saved[4]=22;
+    bindings_call=1;CHECK(!snapshot_ready());bindings_call=0;
+    bindings_seat=2;CHECK(!snapshot_write(copy,len));bindings_seat=0;
     scene_capsule=2;CHECK(!snapshot_write(copy,len));scene_capsule=1;
     scene_corridor_arrow=15;CHECK(!snapshot_write(copy,len));scene_corridor_arrow=14;
     /* The live capture recipient must survive restore, and an invalid seat

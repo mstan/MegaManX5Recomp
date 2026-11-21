@@ -23,6 +23,7 @@
 #include "mmx5_coop_snapshot.h"
 #include "mmx5_coop_forms.h"
 #include "mmx5_coop_armor.h"
+#include "mmx5_coop_bindings.h"
 #include "mmx5_coop_duel_damage.h"
 #include "mmx5_coop_duel_appearance.h"
 #include "mmx5_diagnostics.h"
@@ -1455,6 +1456,7 @@ static uint16_t input(unsigned seat) {
     return (uint16_t)((raw<<8)|(raw>>8));
 }
 #include "mmx5_coop_armor.inc"
+#include "mmx5_coop_bindings.inc"
 
 static int native_armor_overlay(void) {
     /* BIN member 6 (logical ID 10), stage 4/section 1. These VMAs contain
@@ -6961,7 +6963,9 @@ static void split_scan_rectangle(CPUState *cpu,PSXPlacementRect region) {
 static int split_scan(CPUState *cpu,uint32_t address) {
     if(split_scan_call || !split_available())return 0;
     unsigned stage=psx_mod_read_byte(PLAY+12),section=psx_mod_read_byte(PLAY+13);
-    if(stage>=19 || section>1)return 0;
+    /* Training22 uses the same native placement records as the campaign.
+     * Admit its enemies and camera areas from either living view too. */
+    if((stage>=19 && stage!=22) || section>1)return 0;
     uint32_t table=psx_mod_read_word(0x80072EACu+stage*8u+section*4u);
     /* Records are eight bytes, but original BIN1's Grizzly table FBD3C is
      * only word aligned. Rejecting it skips the two-view activation union. */
@@ -7894,6 +7898,7 @@ static int pegasus_burst_draw(CPUState *cpu,uint32_t address) {
     cpu->gpr[2]=result;return 1;
 }
 static int render_hook(CPUState *cpu,uint32_t address) {
+    if(bindings_name_draw(cpu,address))return 1;
     if(armor_name_draw(cpu,address))return 1;
     if(render_call)return cull_sprite_draw(cpu,address);
     if(pegasus_burst_draw(cpu,address))return 1;
@@ -8619,6 +8624,7 @@ static void activate(void) {
     selected_x_armor=1;selected_zero_form=mmx5_coop_forms_requested(1);
     armor_selection_seen=armor_ui_call=armor_selecting_seat=armor_list_seat=0;
     memset(armor_previous_input,0,sizeof armor_previous_input);
+    bindings_seat=bindings_call=bindings_name_call=0;memset(bindings_previous,0,sizeof bindings_previous);
     armor_roster_active=armor_native_count=0;memset(armor_native_roster,0,sizeof armor_native_roster);
     x_asset_source=mmx5_coop_armor_source(mmx5_coop_forms_roster(0,selected_x_armor));
     keep_zero=!psx_mod_netplay_is_active() &&
@@ -8717,8 +8723,9 @@ static void activate(void) {
     diagnostic=psx_mod_alloc_guest_memory(0x1000,16);
     armor_empty_parts=psx_mod_alloc_guest_memory(4,4);
     armor_name_frame=psx_mod_alloc_guest_memory(64,4);
+    bindings_name_frame=psx_mod_alloc_guest_memory(256,4);
     if(armor_empty_parts)psx_mod_write_word(armor_empty_parts,0);
-    if(!arena || !primary_arena || !hud_arena || !diagnostic || !armor_empty_parts || !armor_name_frame)failed=1;
+    if(!arena || !primary_arena || !hud_arena || !diagnostic || !armor_empty_parts || !armor_name_frame || !bindings_name_frame)failed=1;
     extra_ride_record=psx_mod_alloc_guest_memory(8,4);if(!extra_ride_record)failed=1;
     /* Host residency is available even when the first action is loading a
      * state. Guest art/VAB initialization still belongs to native enrollment. */
@@ -8761,7 +8768,7 @@ static uint32_t state_digest(void) {
         boss_scaling,boss_per_player,
         x_asset_source,selected_x_armor,selected_zero_form,armor_selection_seen,
         armor_selecting_seat,armor_list_seat,armor_previous_input[0],armor_previous_input[1],
-        armor_native_count,armor_roster_active,
+        armor_native_count,armor_roster_active,bindings_seat,bindings_previous[0],bindings_previous[1],
         mmx5_coop_forms_enabled(0),mmx5_coop_forms_enabled(1),
         split_views,split_valid,split_owner,split_table,
         ai_pool_call,ai_call,ai_owner,ai_suspended,ai_pool,ai_pending,ai_function,ai_first_freeze,
@@ -8909,12 +8916,15 @@ static void life_capacity_read(CPUState *cpu,uint32_t address) {
     }
 }
 PSX_MOD_CONSTRUCTOR(mmx5_register_coop) {
+    psx_mod_register_function_filter_plugin(ID,0x8003D688,bindings_mapper);
+    psx_mod_register_function_filter_plugin(ID,0x8002B8F0,bindings_editor);
+    psx_mod_register_instruction_plugin(ID,0x8004D2D0u,0x14A20005u,bindings_icon);
     psx_mod_register_instruction_plugin(ID,0x8003E20Cu,0x30420040u,duel_giga_input);
     psx_mod_register_instruction_plugin(ID,0x800F4150u,0xA462A226u,dinorex_native_camera_focus);
     for(unsigned i=0;i<sizeof life_capacity_reads/sizeof life_capacity_reads[0];++i)
         psx_mod_register_instruction_plugin(ID,life_capacity_reads[i].site,
             life_capacity_reads[i].instruction,life_capacity_read);
-    static const PSXModSnapshotProvider snapshot={16,snapshot_bytes,snapshot_write,
+    static const PSXModSnapshotProvider snapshot={18,snapshot_bytes,snapshot_write,
         snapshot_validate,snapshot_read,snapshot_ready};
     psx_mod_register_snapshot_provider(ID,&snapshot);
     psx_mod_register_savestate_plugin(ID,snapshot_restored);

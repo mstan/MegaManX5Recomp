@@ -76,7 +76,8 @@ No personal saves, settings or game disc data are included in the download.
 
 **Gameplay Input Recording** is a visible mod, enabled by default. Its local
 diagnostics help reproduce problems; your saved on/off choice applies offline
-and online. **Input Display** is a separate optional control, off by default. When reporting
+and online on the next launch. **Input Display** is a separate optional control,
+off by default. When reporting
 an issue, include the release version, stage, hero assignments and relevant
 diagnostics. Keep personal files and extracted game data out of public reports.
 

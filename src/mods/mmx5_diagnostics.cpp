@@ -46,6 +46,7 @@ uint32_t sequence;
 bool started,inside,replaying,replay_failed;
 bool owns_sources;
 bool recording_failed;
+bool recording_choice, display_choice;
 std::string replay_path;
 std::string baseline_path;
 bool baseline_loaded;
@@ -288,10 +289,10 @@ void begin() {
     }
 }
 bool recording_enabled() {
-    return PSXRecompV4::mod_runtime_local_feature_enabled("mmx5.diagnostics", "inputs");
+    return recording_choice;
 }
 bool display_enabled() {
-    return PSXRecompV4::mod_runtime_local_feature_enabled("mmx5.diagnostics", "osd");
+    return display_choice;
 }
 void state_loaded(const uint8_t *image,uint32_t size) {
     // The trusted co-op callback does not override this player's local choice.
@@ -398,6 +399,10 @@ int inputs(CPUState *cpu,uint32_t address) {
     return mmx5_coop_finish(cpu,result);
 }
 void activate() {
+    // The Mods editor persists next-launch preferences without changing the
+    // active plan. Retain this launch's local choices until the next activation.
+    recording_choice=PSXRecompV4::mod_runtime_local_feature_enabled("mmx5.diagnostics","inputs");
+    display_choice=PSXRecompV4::mod_runtime_local_feature_enabled("mmx5.diagnostics","osd");
     release_sources();
     close_recording();replay.close();recording.clear();replay.clear();
     started=inside=replaying=replay_failed=recording_failed=false;sequence=0;
@@ -409,7 +414,9 @@ void activate() {
     replay_path=path?path:"";
     const char *baseline=getenv("MMX5_DIAGNOSTIC_BASELINE");
     baseline_path=baseline?baseline:"";
-    recording_location(replay_path.empty()?"Waiting for game inputs. Playtest Diagnostics must be enabled."
+    recording_location(replay_path.empty()?
+        (recording_choice?"Waiting for game inputs. Gameplay Input Recording is enabled."
+                         :"Gameplay Input Recording is off for this launch.")
         :"Offline diagnostic replay active; no new recording is created.");
     /* Present digital pads during startup and between decoded game inputs;
      * playback also works in a hidden run without physical controllers. */

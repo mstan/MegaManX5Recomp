@@ -244,7 +244,7 @@ int main(int argc,char **argv) {
     CHECK(std::distance(std::filesystem::directory_iterator(
         std::filesystem::path(application_root)/"saves/diagnostics"),
         std::filesystem::directory_iterator{})==folder_count);
-    diagnostics_active=true;
+    diagnostics_active=true;activate();
     state_loaded(restored_image,sizeof restored_image);
     CHECK(sequence==0 && started && recording.is_open() && pending_baseline.empty());
     CHECK(counters["mmx5.diagnostics.state-segments"]==1);
@@ -311,6 +311,12 @@ int main(int argc,char **argv) {
     CHECK(recording.is_open() && !recording_failed && shown[0].empty() && shown[1].empty());
     online=false;activate();CHECK(inputs(&cpu,0x8001255Cu));recording.flush();
     CHECK(recording.is_open() && !recording_failed && shown[0].empty() && shown[1].empty());
+    // An in-game Mods edit is saved for the next launch. It must not pause
+    // this trace or turn its optional display on before activation.
+    const unsigned committed_sequence=sequence;
+    diagnostics_active=false;display_active=true;
+    CHECK(inputs(&cpu,0x8001255Cu));recording.flush();
+    CHECK(recording.is_open() && sequence==committed_sequence+1 && shown[0].empty() && shown[1].empty());
     diagnostics_active=false;display_active=true;activate();CHECK(inputs(&cpu,0x8001255Cu));
     CHECK(!recording.is_open() && !shown[0].empty() && !shown[1].empty());
     state_loaded(restored_image,sizeof restored_image);CHECK(!recording.is_open());

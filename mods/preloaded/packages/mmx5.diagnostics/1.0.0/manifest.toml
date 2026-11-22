@@ -1,7 +1,7 @@
 format_version = 11
 id = "mmx5.diagnostics"
 version = "1.0.0"
-name = "Playtest Diagnostics"
+name = "Gameplay Diagnostics"
 author = "mstan"
 description = "Records accepted game inputs and starting memory cards locally. The optional input display has its own switch."
 resolver = "declarative"

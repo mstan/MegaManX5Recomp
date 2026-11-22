@@ -1,5 +1,5 @@
 #!/bin/sh
-# AppImage entry point. Tokens (@NAME@) are stamped by tools/package_appimage.sh
+# AppImage entry point. Product tokens are stamped by tools/package_appimage.sh
 # from packaging/release/app.conf, so this file is title-neutral.
 set -eu
 

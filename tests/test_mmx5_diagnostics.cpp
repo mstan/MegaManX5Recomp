@@ -27,6 +27,7 @@ static std::string save_root,shown[2];
 static std::string application_root;
 static bool online;
 static bool diagnostics_active=true;
+static bool display_active=true;
 static bool coop_active=true,split_active=true,partner_initialized=true;
 static bool projected_context;
 static std::array<uint8_t,0x158> canonical_first;
@@ -67,6 +68,10 @@ int memcard_export_raw(int,uint8_t *out) {memset(out,0xAB,MEMCARD_SIZE);return 0
 const char *savestate_root_dir(void) {return save_root.c_str();}
 void host_osd_set_diagnostics(const char *a,const char *b) {shown[0]=a?a:"";shown[1]=b?b:"";}
 namespace PSXRecompV4 {
+bool mod_runtime_local_feature_enabled(const std::string& package,const std::string& feature) {
+    return package=="mmx5.diagnostics" &&
+           ((feature=="inputs" && diagnostics_active) || (feature=="osd" && display_active));
+}
 std::string mod_runtime_plan_fingerprint_portable() {return {};}
 const std::string& mod_runtime_fingerprint() {static const std::string fp="fixture-plan";return fp;}
 const std::filesystem::path& mod_runtime_root() {static const auto root=std::filesystem::path(save_root)/"mods";return root;}
@@ -296,6 +301,20 @@ int main(int argc,char **argv) {
         if(text.find("D 1 9 0 1 4\n")!=std::string::npos)fixture_provenance=true;
     }
     CHECK(fixture_provenance);
+    // Local choices remain independent under the forced online callback.
+    diagnostics_active=false;display_active=false;online=true;activate();
+    CHECK(!coop_inputs(&cpu,0x8001255Cu) && !recording.is_open() && !started && sequence==0);
+    state_loaded(restored_image,sizeof restored_image);
+    CHECK(!recording.is_open() && pending_baseline.empty());
+    diagnostics_active=true;display_active=false;activate();
+    CHECK(coop_inputs(&cpu,0x8001255Cu));recording.flush();
+    CHECK(recording.is_open() && !recording_failed && shown[0].empty() && shown[1].empty());
+    online=false;activate();CHECK(inputs(&cpu,0x8001255Cu));recording.flush();
+    CHECK(recording.is_open() && !recording_failed && shown[0].empty() && shown[1].empty());
+    diagnostics_active=false;display_active=true;activate();CHECK(inputs(&cpu,0x8001255Cu));
+    CHECK(!recording.is_open() && !shown[0].empty() && !shown[1].empty());
+    state_loaded(restored_image,sizeof restored_image);CHECK(!recording.is_open());
+    diagnostics_active=true;
     // A directory/write failure is visible both on the input display and in
     // the location pointer. It must never show REC with an unusable recording.
     online=false;activate();

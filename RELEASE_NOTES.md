@@ -1,3 +1,14 @@
+# v1.0.3
+
+- Gameplay Input Recording and the optional Input Display have separate Mods
+  controls. Recording starts enabled, display starts disabled, and saved
+  recording preferences apply offline and online.
+- Windows and Linux public/playtest packaging uses the shared release command
+  and the same recording defaults, with native finite-frame profile training.
+
+Keep your native memory cards and launcher settings when updating. Use the
+same release for online play; save states are build-specific.
+
 # v1.0.2
 
 - Training encounters and camera areas now activate from either player's view.

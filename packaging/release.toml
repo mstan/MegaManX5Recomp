@@ -10,6 +10,8 @@ launcher_boxart = "recomp/launcher/boxart.tga"
 
 [build]
 regenerate = true
+pgo_train_frames = 600
+pgo_train_headless = true
 cmake_args = ["-DPSX_RECOMP_UI=ON", "-DPSX_ENABLE_VULKAN=OFF", "-DPSX_PGXP_VARIANT=OFF", "-DPSX_NETPLAY=ON", "-DPSX_GL_BATCH_IMPL=HLE", "-DMMX5_COOP_TEST_CHEATS=OFF"]
 
 [aot]
@@ -17,6 +19,13 @@ mode = "none"
 
 [overlay_toolchain]
 ship = false
+
+[diagnostics]
+game_id = "SLUS-01334"
+package_id = "mmx5.diagnostics"
+replay_helper = false
+# Retain the existing optional HD texture package; no pack is bundled.
+allow_hd_textures = true
 
 [payload]
 start_here = "packaging/release/START_HERE.txt"

@@ -1,9 +1,9 @@
-format_version = 5
+format_version = 11
 id = "mmx5.diagnostics"
 version = "1.0.0"
 name = "Playtest Diagnostics"
 author = "mstan"
-description = "Displays both players' accepted inputs and records a replay trace with initial memory cards. Enabled by default for playtests."
+description = "Records accepted game inputs and starting memory cards locally. The optional input display has its own switch."
 resolver = "declarative"
 save_compatibility = "shared"
 
@@ -13,11 +13,24 @@ disc_sha256 = "be731bc4b9d3211b9267a34b8a68c769199a15479b14004ff25b67cdfebe8af4"
 
 [[feature]]
 id = "inputs"
-name = "Input Display and Recording"
-description = "Shows P1/P2 buttons and an input counter. Writes inputs.csv and starting card copies beneath saves/diagnostics. The co-op netplay playtest profile includes diagnostics automatically."
+name = "Gameplay Input Recording"
+description = "Writes inputs.csv and starting card copies beneath saves/diagnostics. Enabled by default; your saved choice applies offline and online."
 group = "Diagnostics"
 default_enabled = true
 
 [[plugin]]
 feature = "inputs"
 id = "mmx5.diagnostics"
+netplay = "host_only"
+
+[[feature]]
+id = "osd"
+name = "Input Display"
+description = "Shows both players' buttons and the input counter. Recording works with this display off."
+group = "Diagnostics"
+default_enabled = false
+
+[[plugin]]
+feature = "osd"
+id = "mmx5.diagnostics.osd"
+netplay = "host_only"

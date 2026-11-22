@@ -287,12 +287,15 @@ void begin() {
         psx_mod_counter_add("mmx5.diagnostics.recording-failed",1);
     }
 }
+bool recording_enabled() {
+    return PSXRecompV4::mod_runtime_local_feature_enabled("mmx5.diagnostics", "inputs");
+}
+bool display_enabled() {
+    return PSXRecompV4::mod_runtime_local_feature_enabled("mmx5.diagnostics", "osd");
+}
 void state_loaded(const uint8_t *image,uint32_t size) {
-    /* Co-op also registers this observer for the fixed netplay profile.
-     * Offline co-op alone must not start recording when Diagnostics is off:
-     * its native input hook is absent, producing only unplayable C rows. */
-    if(!psx_mod_netplay_is_active() &&
-       !mod_runtime_snapshot_package_active("mmx5.diagnostics"))return;
+    // The trusted co-op callback does not override this player's local choice.
+    if(!recording_enabled())return;
     if(!replay_path.empty()) {
         // PSX_LOAD_SLOT restores a segment's baseline before its first input.
         // A later manual jump cannot be reconciled with that segment's rows.
@@ -340,7 +343,8 @@ std::string input_line(unsigned seat,uint16_t buttons) {
     return text;
 }
 int inputs(CPUState *cpu,uint32_t address) {
-    if(inside || psx_mod_local_view_scope())return 0;
+    if(inside || psx_mod_local_view_scope() ||
+       (!recording_enabled() && !display_enabled()))return 0;
     inside=true;
     uint32_t result=mmx5_coop_call(cpu,address,cpu->gpr[4],cpu->gpr[5]);
 
@@ -349,7 +353,7 @@ int inputs(CPUState *cpu,uint32_t address) {
     if(!started && !baseline_path.empty() && !baseline_loaded) {
         inside=false;return mmx5_coop_finish(cpu,result);
     }
-    if(!started)begin();
+    if(!started && recording_enabled())begin();
     Row row=sample(replaying);
     if(replaying) {
         std::string line;
@@ -386,8 +390,10 @@ int inputs(CPUState *cpu,uint32_t address) {
             fprintf(stderr,"mmx5.diagnostics: %s\n",recording.error_text());
         }
     }
-    auto first=input_line(0,(uint16_t)row[2]),second=input_line(1,(uint16_t)row[3]);
-    host_osd_set_diagnostics(first.c_str(),second.c_str());
+    if(display_enabled()) {
+        auto first=input_line(0,(uint16_t)row[2]),second=input_line(1,(uint16_t)row[3]);
+        host_osd_set_diagnostics(first.c_str(),second.c_str());
+    }else host_osd_set_diagnostics(nullptr,nullptr);
     ++sequence;inside=false;
     return mmx5_coop_finish(cpu,result);
 }
@@ -466,6 +472,8 @@ PSX_MOD_CONSTRUCTOR(mmx5_register_diagnostics) {
     psx_mod_register_snapshot_loaded_observer("mmx5.coop",state_loaded);
     psx_mod_register_activation_plugin("mmx5.diagnostics",activate);
     psx_mod_register_function_filter_plugin("mmx5.diagnostics",0x8001255Cu,inputs);
+    psx_mod_register_activation_plugin("mmx5.diagnostics.osd",activate);
+    psx_mod_register_function_filter_plugin("mmx5.diagnostics.osd",0x8001255Cu,inputs);
     /* The executable's netplay profile installs only the co-op plugin.
      * This callback is also part of that fixed playtest profile. */
     psx_mod_register_function_filter_plugin("mmx5.coop",0x8001255Cu,coop_inputs);

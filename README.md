@@ -74,8 +74,9 @@ memory cards preserve campaign progress. Save states are specific to a build;
 use the game's SAVE and LOAD for progress you want to keep across updates.
 No personal saves, settings or game disc data are included in the download.
 
-**Input Display and Recording** is a visible mod, enabled by default. Its local
-diagnostics help reproduce problems; you can turn it off in Mods. When reporting
+**Gameplay Input Recording** is a visible mod, enabled by default. Its local
+diagnostics help reproduce problems; your saved on/off choice applies offline
+and online. **Input Display** is a separate optional control, off by default. When reporting
 an issue, include the release version, stage, hero assignments and relevant
 diagnostics. Keep personal files and extracted game data out of public reports.
 
@@ -83,12 +84,15 @@ diagnostics. Keep personal files and extracted game data out of public reports.
 
 This is the game consumer repository. The shared engine and launcher are pinned
 Git submodules; initialize them with `git submodule update --init --recursive`.
-Windows builds use MSYS2/MinGW, CMake 3.20 or later and Python 3. Supply your own
+Windows builds use MSYS2/MinGW, CMake 3.20 or later and Python 3.11 or later. Supply your own
 verified USA disc as described in [DISC.md](DISC.md).
 
 Regenerate the game sources with `tools/regen.ps1`, then configure and build with
 CMake. `tools/package_release.ps1 --channel public --platform windows` runs the
-shared release packager. Generated game code, disc images, cards and build
+shared release packager. Use `--channel playtest` for a private playtest package,
+and `--platform linux` for an AppImage (WSL is supported on Windows). Both
+channels keep recording enabled and the optional input display disabled on a
+fresh profile. Generated game code, disc images, cards and build
 outputs remain outside Git. Engine changes belong in
 [psxrecomp](https://github.com/RetroPortingToolKit/psxrecomp); launcher changes
 belong in [recomp-ui](https://github.com/mstan/recomp-ui).

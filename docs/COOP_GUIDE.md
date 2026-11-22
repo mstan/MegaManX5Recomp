@@ -52,7 +52,9 @@ rendering options. Changes to co-op options require a fresh game boot.
 
 ## Reporting problems
 
-Input Display and Recording is enabled by default and can be disabled in Mods.
+Gameplay Input Recording is enabled by default and can be disabled in Mods.
+That saved choice applies offline and online. Input Display is a separate
+optional control and starts off.
 Keep the relevant local diagnostic recording if you find a problem. Include the
 release version, stage, hero assignments, what happened and what you expected.
 Never upload your disc image, extracted game code or personal files publicly.

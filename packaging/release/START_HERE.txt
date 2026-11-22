@@ -7,7 +7,8 @@ Mega Man X5 @VERSION@ - Stable
 
 Co-op uses OpenGL and starts with side-by-side views and Either-player doors.
 Custom Renderer fits the window using Adaptive aspect; each split pane is 4:3.
-Alia hint suppression and Input Display and Recording start enabled. Change
+Alia hint suppression and Gameplay Input Recording start enabled. Input Display
+is optional and starts off; the recording choice applies offline and online. Change
 these options in Mods. Your saved settings are retained when updating.
 
 Internal Resolution starts at 4x; larger choices depend on your GPU and memory.

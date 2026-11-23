@@ -1,3 +1,14 @@
+# v1.0.4
+
+- Training boss encounters now wait for both heroes to finish entering the room,
+  keeping the introduction and return to player control in sync.
+
+For separate button layouts, open Options > Button Configuration and press
+Select to switch players. The launcher also has per-player controller setup.
+
+Keep your native memory cards and launcher settings when updating. Online
+players should use the same release; save states are specific to a build.
+
 # v1.0.3
 
 - Gameplay Input Recording and the optional Input Display have separate Mods

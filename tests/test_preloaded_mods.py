@@ -26,6 +26,7 @@ EXPECTED = {
     },
     "mmx5.diagnostics": {
         "feature": "inputs", "plugin": "mmx5.diagnostics", "version": "1.0.0",
+        "format": 11,
     },
     "mmx5.enhancement.widescreen": {
         "feature": "widescreen",
@@ -75,6 +76,20 @@ def main() -> int:
                 f"{package_id}: disc hash")
 
         features = manifest.get("feature", [])
+        if package_id == "mmx5.diagnostics":
+            require(len(features) == 2 and
+                    {f["id"]: f["default_enabled"] for f in features} ==
+                    {"inputs": True, "osd": False},
+                    "recording and input display must retain independent defaults")
+            require(all(f["group"] == "Diagnostics" for f in features),
+                    "both diagnostic switches must be visible in Diagnostics")
+            require(manifest.get("save_compatibility") == "shared",
+                    "diagnostics must preserve native save compatibility")
+            require(manifest.get("plugin") == [
+                    {"feature": "inputs", "id": "mmx5.diagnostics", "netplay": "host_only"},
+                    {"feature": "osd", "id": "mmx5.diagnostics.osd", "netplay": "host_only"}],
+                    "recording/display must have separate local-only plugin bindings")
+            continue
         require(len(features) == 1, f"{package_id}: feature count")
         require(features[0]["id"] == expected["feature"],
                 f"{package_id}: feature id")

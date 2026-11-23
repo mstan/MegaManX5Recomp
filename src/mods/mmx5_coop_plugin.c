@@ -3858,12 +3858,25 @@ static void both_restore_control(CPUState *cpu,unsigned seat) {
     both_project(was);
     busy=old_busy;
 }
+static int training_boss_actor(uint32_t actor) {
+    /* Training's native Magma Dragoon uses class30 rather than a campaign
+     * boss class. Its initializer issues the same stand14 command before
+     * the original health fill and control release. Match the loaded module
+     * and its original dispatch, since class30 has other stage meanings. */
+    return psx_mod_read_byte(PLAY+12)==22 && !psx_mod_read_byte(PLAY+13) &&
+        psx_mod_read_byte(actor+1)==0x30 && !psx_mod_read_byte(actor+2) &&
+        psx_mod_read_word(0x800EE970u)==0x21u &&
+        psx_mod_read_word(0x800F8B38u)==0x800F4010u &&
+        psx_mod_read_word(0x800FA3ECu)==0x800F3444u &&
+        psx_mod_read_word(0x800F3558u)==0x0C00F4A7u;
+}
 static int both_door_pending_intro(void) {
     unsigned stage=psx_mod_read_byte(PLAY+12);
     for(uint32_t actor=0x80092090u;actor<0x80093DD0u;actor+=0x9Cu) {
         if(!psx_mod_read_byte(actor) || psx_mod_read_byte(actor+4))continue;
         unsigned kind=psx_mod_read_byte(actor+1);
-        if((!stage && kind==0x31u) || (stage>=1 && stage<=8 && kind>=0x32u && kind<=0x39u) ||
+        if(training_boss_actor(actor) || (!stage && kind==0x31u) ||
+           (stage>=1 && stage<=8 && kind>=0x32u && kind<=0x39u) ||
            (stage==16 && kind==0x3Au) ||
            (stage==17 && kind==0x3Cu) ||
            (stage==18 && (kind==0x40u || kind==0x41u)) || (stage==12 && kind==0x42u))return 1;
@@ -4293,6 +4306,7 @@ static int both_door_pending_boss(uint32_t actor) {
     if((!both_door_active() && !landing) || actor<0x80092090u || actor>=0x80093DD0u ||
        !psx_mod_read_byte(actor) || psx_mod_read_byte(actor+4))return 0;
     unsigned kind=psx_mod_read_byte(actor+1),subtype=psx_mod_read_byte(actor+2);
+    if(training_boss_actor(actor))return 1;
     /* BIN0's Sigma initializer also issues stand14. With Both doors its
      * placement is admitted before either body reaches the final clearance
      * at4552, freezing the door owner at4536 and preventing native closure.

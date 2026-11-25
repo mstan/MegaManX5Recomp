@@ -5,6 +5,7 @@
 #include "mod_plugins.h"
 #include "mod_snapshot.h"
 #include "mod_netplay.h"
+#include "mmx5_coop_host_profile.h"
 #include "mod_capcom_bg2d.h"
 #include "psx_netplay.h"
 #include "cpu_state.h"
@@ -8953,8 +8954,13 @@ PSX_MOD_CONSTRUCTOR(mmx5_register_coop) {
         snapshot_validate,snapshot_read,snapshot_ready};
     psx_mod_register_snapshot_provider(ID,&snapshot);
     psx_mod_register_savestate_plugin(ID,snapshot_restored);
-    static const PSXModNetplayProfile profile={ID,MMX5_COOP_NETPLAY_COMPATIBILITY,0,0,1,1u,
-        "mmx5.widescreen",state_digest,1,ID,"coop","cameras","split"};
+    static const PSXModNetplayProfile profile={
+        .plugin_id=ID,.compatibility_id=MMX5_COOP_NETPLAY_COMPATIBILITY,
+        .skip_bios_intro=1,.fixed_aspect_mask=1u,.widescreen_plugin_id="mmx5.widescreen",
+        .state_digest=state_digest,.requires_retained_texture_banks=1,
+        .settings_package_id=ID,.settings_feature_id="coop",
+        .renderer_option_id="cameras",.renderer_option_value="split",
+        .host_profiles=mmx5_coop_host_profiles};
     psx_mod_register_netplay_profile(&profile);
     psx_mod_register_activation_plugin(ID,activate);
     psx_mod_register_vblank_plugin(ID,observe_stage);

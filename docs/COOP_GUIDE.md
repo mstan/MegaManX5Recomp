@@ -38,6 +38,11 @@ revision and compatible gameplay mod choices. Each peer assigns their local
 input device; the room assigns the gameplay seat. The host selects the shared
 co-op rules. Local split-screen and online camera layout have separate settings.
 
+Windows x64 and Linux x64 each use their own native execution profile. Both
+peers must run the exact same platform executable; profiles do not authorize
+cross-platform or cross-build play. The session settles one common supported
+profile before the first game frame and keeps it fixed for the match.
+
 ## Progress and settings
 
 The pair shares one campaign and its rewards. Use the game's SAVE and LOAD with

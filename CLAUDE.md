@@ -16,11 +16,11 @@ This project inherits, in order:
    evidence, not authority; first-divergence; no guessing). Enhancement layer:
    `F:/Projects/recomp-template/ENHANCEMENTS.md` (default = byte-identical with
    the option off).
-2. The framework constitution at `psxrecomp-v4/CLAUDE.md` — a junction →
-   `F:/Projects/psxrecomp/psxrecomp` (the shared `master` checkout). Read it
-   first: no stubs, recompiled-BIOS-first,
-   fix the framework/runtime/config and **regenerate** — never hand-edit
-   `generated/`.
+2. The framework rules at `psxrecomp-v4/AGENTS.md` and `psxrecomp-v4/CLAUDE.md`.
+   The submodule is an independent checkout. Current owner policy selects the
+   host-native BIOS executive for all builds; older BIOS-first instructions
+   do not authorize firmware fallback. Fix the framework/runtime/config and
+   **regenerate**; never hand-edit `generated/`.
 3. `F:/Projects/recomp-template/HLE.md` governs performance replacements:
    keep a runnable LLE reference, choose ENHANCED/REFERENCE at build time,
    preserve real caller results/effects/order, and measure useful performance.
@@ -41,7 +41,6 @@ This project inherits, in order:
   `psxrecomp-v4` git submodule pointer (see `.gitmodules`); the former
   `psxrecomp-v4.pin` file was retired in favor of the submodule (its changelog
   is preserved in `docs/framework_pin_history.md`). Locally `psxrecomp-v4` is a
-  directory junction → `F:/Projects/psxrecomp/psxrecomp` (the shared `master`
-  checkout), same as TombaRecomp / MMX4 / MMX6.
+  normal independent Git checkout. Do not mutate another title's SDK checkout.
 - The source disc is the Redump USA dump — hashes recorded in `DISC.md`; verify
   a future dump is byte-identical before blaming a regression.

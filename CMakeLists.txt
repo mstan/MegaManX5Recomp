@@ -8,6 +8,8 @@ set(CMAKE_CXX_STANDARD 17)
 # The co-op title exposes both controller seats and the launcher Host/Join
 # flow on a fresh configure, just like X6's co-op branch.
 option(PSX_NETPLAY "Build the shared two-player netplay stack" ON)
+option(PSX_NATIVE_KERNEL "Use the host-native PlayStation BIOS executive" ON)
+set(PSX_EXECUTION_PROFILE "ENHANCED" CACHE STRING "Execution implementation: ENHANCED or REFERENCE")
 
 # Keep codegen, runtime and selective release PGO on one shared framework.
 # Direct title builds retain the established submodule default.
@@ -158,6 +160,31 @@ add_custom_command(TARGET psx-runtime POST_BUILD
     VERBATIM)
 
 if(BUILD_TESTING)
+    foreach(_host_variant release debug wrong-execution)
+        set(_host_test mmx5_coop_host_profile_${_host_variant}_test)
+        add_executable(${_host_test} tests/test_mmx5_coop_host_profile.c
+            "${PSXRECOMP_V4_ROOT}/runtime/src/netplay_host_profile.c"
+            "${PSXRECOMP_V4_ROOT}/runtime/src/psx_sha256.c")
+        target_include_directories(${_host_test} PRIVATE tests src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")
+        set(_host_expected 0)
+        if(_host_variant STREQUAL "release" AND WIN32 AND MINGW AND CMAKE_SIZEOF_VOID_P EQUAL 8
+            AND CMAKE_C_COMPILER_ID STREQUAL "GNU" AND CMAKE_C_COMPILER_VERSION VERSION_EQUAL "15.2.0")
+            set(_host_expected 1)
+        endif()
+        if(_host_variant STREQUAL "release" AND CMAKE_SYSTEM_NAME STREQUAL "Linux"
+            AND CMAKE_SIZEOF_VOID_P EQUAL 8 AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64)$"
+            AND CMAKE_C_COMPILER_ID STREQUAL "GNU" AND CMAKE_C_COMPILER_VERSION VERSION_EQUAL "13.3.0")
+            set(_host_expected 1)
+        endif()
+        if(NOT _host_variant STREQUAL "debug")
+            target_compile_definitions(${_host_test} PRIVATE PSX_NO_DEBUG_TOOLS)
+        endif()
+        if(_host_variant STREQUAL "wrong-execution")
+            target_compile_definitions(${_host_test} PRIVATE MMX5_HOST_TEST_BAD_EXECUTION=1)
+        endif()
+        target_compile_definitions(${_host_test} PRIVATE MMX5_HOST_TEST_EXPECT_OFFER=${_host_expected})
+        add_test(NAME ${_host_test} COMMAND ${_host_test})
+    endforeach()
     add_executable(mmx5_coop_armor_test tests/test_mmx5_coop_armor.c src/mods/mmx5_coop_armor.c)
     target_include_directories(mmx5_coop_armor_test PRIVATE src/mods)
     add_test(NAME mmx5_coop_armor_test COMMAND mmx5_coop_armor_test)

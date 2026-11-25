@@ -67,10 +67,13 @@ int memcard_is_present(int slot) {return slot==0;}
 int memcard_export_raw(int,uint8_t *out) {memset(out,0xAB,MEMCARD_SIZE);return 0;}
 const char *savestate_root_dir(void) {return save_root.c_str();}
 void host_osd_set_diagnostics(const char *a,const char *b) {shown[0]=a?a:"";shown[1]=b?b:"";}
+int psx_mod_feature_selected(const char* package,const char* feature) {
+    return !strcmp(package,"mmx5.diagnostics") &&
+           ((!strcmp(feature,"inputs") && diagnostics_active) || (!strcmp(feature,"osd") && display_active));
+}
 namespace PSXRecompV4 {
-bool mod_runtime_local_feature_enabled(const std::string& package,const std::string& feature) {
-    return package=="mmx5.diagnostics" &&
-           ((feature=="inputs" && diagnostics_active) || (feature=="osd" && display_active));
+bool mod_runtime_feature_host_only(const std::string& package,const std::string& feature) {
+    return package=="mmx5.diagnostics" && (feature=="inputs" || feature=="osd");
 }
 std::string mod_runtime_plan_fingerprint_portable() {return {};}
 const std::string& mod_runtime_fingerprint() {static const std::string fp="fixture-plan";return fp;}

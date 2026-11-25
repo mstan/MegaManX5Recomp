@@ -50,7 +50,7 @@ int main(void){
     REJECT(interpreted_overlays_sealed,0);REJECT(builtin_linked_bios,0);
     REJECT(builtin_bios_image_id,"SCPH-1001");REJECT(builtin_bios_image_wordsum,0);
     REJECT(actual_executable_sha256,NULL);uint8_t zero[32]={0};REJECT(actual_executable_sha256,zero);
-    REJECT(declared_build_manifest_schema,2);REJECT(declared_build_manifest_sha256,"bad");
+    REJECT(declared_build_manifest_schema,0);REJECT(declared_build_manifest_schema,2);REJECT(declared_build_manifest_sha256,"bad");
     REJECT(slot_count,3);REJECT(player_count,1);REJECT(occupied_mask,1);REJECT(rollback,1);
     REJECT(renderer,0);REJECT(retained_texture_banks,0);REJECT(aspect_index,1);REJECT(direct_loopback_scope,2);
     c=valid();title.plugin_id="other";refused(c);

@@ -308,3 +308,7 @@ if(PSX_BUILD_COSIM)
         CONTRACT_FILES src/mods/mmx5_resident_catalog.h
             "${PSXRECOMP_V4_ROOT}/runtime/include/mod_resident_sector.hpp")
 endif()
+
+# Required native host-profile input identity, separate from actual artifact SHA.
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/mmx5_build_manifest.cmake")
+mmx5_register_build_manifests()

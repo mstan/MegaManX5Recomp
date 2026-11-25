@@ -195,7 +195,7 @@ def main():
     parser.add_argument('--game', type=Path)
     parser.add_argument('--settings', type=Path, help='Settings used when recording')
     parser.add_argument('--output', type=Path, required=True, help='New isolated directory')
-    parser.add_argument('--timeout', type=float, default=120)
+    parser.add_argument('--timeout', type=float, help='Deprecated compatibility option; replay has no elapsed-time cutoff')
     parser.add_argument('--debug-port', type=int, help='Developer build TCP inspection port')
     args = parser.parse_args()
     bios, disc = args.bios.resolve(strict=True), args.disc.resolve(strict=True)
@@ -205,7 +205,7 @@ def main():
     baseline = output / 'diagnostic-baseline.pst'
     if baseline.is_file():
         env['MMX5_DIAGNOSTIC_BASELINE'] = str(baseline)
-    argv = [str(target), '--headless-opengl', '--no-launcher', '--game', str(output / 'game.toml'),
+    argv = [str(target), '--hidden-window', '--no-launcher', '--game', str(output / 'game.toml'),
             '--bios', str(bios), '--disc', str(disc), '--memcard-dir', str(output / 'saves')]
     if args.debug_port:
         argv += ['--debug-port', str(args.debug_port)]
@@ -214,9 +214,8 @@ def main():
     result = 1
     with log_path.open('wb') as log:
         process = subprocess.Popen(argv, cwd=output, env=env, stdout=log, stderr=log, creationflags=flags)
-        deadline = time.monotonic() + args.timeout
         try:
-            while time.monotonic() < deadline:
+            while True:
                 text = log_path.read_text(encoding='utf-8', errors='replace')
                 if 'mmx5.diagnostics: input replay complete (' in text:
                     if not baseline.is_file() or 'mmx5.diagnostics: replay baseline restored' in text:
@@ -227,9 +226,15 @@ def main():
                 time.sleep(.1)
         finally:
             if process.poll() is None:
-                process.terminate()
-                process.wait(timeout=15)
-    print(('Replay verified. ' if result == 0 else 'Replay failed or timed out. ') + f'Log: {log_path}')
+                if args.debug_port:
+                    from coop_debug import Runtime
+                    Runtime(args.debug_port).request('quit')
+                else:
+                    # The finite recording reached EOF or reported a concrete
+                    # verification failure. This process and profile are owned.
+                    process.terminate()
+                process.wait()
+    print(('Replay verified. ' if result == 0 else 'Replay failed. ') + f'Log: {log_path}')
     raise SystemExit(result)
 
 

@@ -54,7 +54,7 @@ label = "Side by side"
 feature = "coop"
 id = "local_cameras"
 label = "Local co-op display"
-description = "Unified shares one screen. Experimental side by side gives each local player a 4:3 camera and HUD in an 8:3 canvas. Each player controls their own pause menu. Shared story scenes appear in both panes. Requires a fresh boot. Online cameras use their separate setting."
+description = "Unified shares one screen. Experimental side by side gives each local player their own camera, HUD and pause menu. Shared story scenes appear in both panes. Requires a fresh boot. Online cameras use their separate setting."
 type = "choice"
 default = "split"
 [[option.choice]]
@@ -62,13 +62,27 @@ value = "unified"
 label = "Unified"
 [[option.choice]]
 value = "split"
-label = "Side by side 8:3"
+label = "Side by side"
 
 [[requirement]]
 feature = "coop"
 package = "mmx5.enhancement.widescreen"
 requires_feature = "widescreen"
 when = { local_cameras = "split" }
+
+[[option]]
+feature = "coop"
+id = "local_split_aspect"
+label = "Local split-screen aspect"
+description = "Applies to side-by-side local play. Two 16:9 views fit an already combined 32:9 display. Requires a fresh boot."
+type = "choice"
+default = "4:3"
+[[option.choice]]
+value = "4:3"
+label = "4:3 per player (8:3 total)"
+[[option.choice]]
+value = "16:9"
+label = "16:9 per player (32:9 total)"
 
 [[option]]
 feature = "coop"

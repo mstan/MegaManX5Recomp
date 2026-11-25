@@ -101,7 +101,7 @@ static SpriteBank view_banks[4096];
 static unsigned view_bank_count;
 static unsigned split_views,split_valid,split_owner,split_camera_call,split_scan_call,split_supplemental;
 static unsigned split_bounds_call,local_view_call,local_view_seat,local_hud_seat;
-static unsigned local_split,local_aspect_set;
+static unsigned local_split,local_split_wide,local_aspect_set;
 static unsigned spatial_call;
 static unsigned personal_effect_call;
 static unsigned personal_visual_call;
@@ -8567,6 +8567,13 @@ static int intro_reveal_full_white(void) {
         if(psx_mod_read_byte(channels[i]) || psx_mod_read_half(channels[i]+2)<full[i])return 0;
     return 1;
 }
+static unsigned apply_local_split_aspect(void) {
+    return (unsigned)psx_mod_set_fixed_display_aspect(local_split_wide?16u:4u,local_split_wide?9u:3u);
+}
+static void enable_local_pair_presentation(void) {
+    if(local_split_wide)psx_mod_set_local_pair_wide_presentation();
+    else psx_mod_set_local_pair_presentation(1);
+}
 static int present_local_view(CPUState *cpu,uint32_t address) {
     uint32_t buffer=psx_mod_read_word(0x8009E794u);
     if(!local_view_call && !projected && !busy && !psx_mod_local_view_scope() &&
@@ -8591,7 +8598,7 @@ static int present_local_view(CPUState *cpu,uint32_t address) {
     int local_menu=menu && !psx_mod_netplay_is_active();
     if(!local_split && !psx_mod_netplay_is_active())psx_mod_set_local_pair_presentation(local_menu);
     if(local_split && !local_aspect_set)
-        local_aspect_set=(unsigned)psx_mod_set_fixed_display_aspect(4,3);
+        local_aspect_set=apply_local_split_aspect();
     int paired_incoming=paired_stage_arrival();
     int shared_scene=shared_scene_pair_present() || duel_fill_pair_present();
     /* Native delayed health freezes the world, not either saved view.
@@ -8614,7 +8621,7 @@ static int present_local_view(CPUState *cpu,uint32_t address) {
     int committed;
     if(local_split || local_menu) {
         PSXModStereoFrame pair={sizeof pair,1,rectangle.x,rectangle.y,rectangle.w,rectangle.h};
-        psx_mod_set_local_pair_presentation(1);
+        enable_local_pair_presentation();
         committed=psx_mod_render_local_pair(cpu,&pair,draw_local_pair,&buffer);
         psx_mod_counter_add(committed?"mmx5.coop.local-pair-committed":"mmx5.coop.local-pair-refused",1);
         if(paired_incoming && committed)psx_mod_counter_add("mmx5.coop.spawn-pair-committed",1);
@@ -8659,9 +8666,13 @@ static void activate(void) {
     split_views=(unsigned)mmx5_coop_views_requested(psx_mod_netplay_is_active(),option);
     local_split=!psx_mod_netplay_is_active() &&
         psx_mod_current_option_value("local_cameras",option,sizeof option) && !strcmp(option,"split");
+    local_split_wide=local_split &&
+        psx_mod_current_option_value("local_split_aspect",option,sizeof option) && !strcmp(option,"16:9");
     split_views|=local_split;local_aspect_set=0;
-    if(local_split)(void)psx_mod_set_fixed_display_aspect(4,3);
-    psx_mod_set_local_pair_presentation((int)local_split);
+    if(local_split) {
+        (void)apply_local_split_aspect();
+        enable_local_pair_presentation();
+    }else psx_mod_set_local_pair_presentation(0);
     split_valid=split_owner=split_camera_call=split_scan_call=split_supplemental=split_bounds_call=0;
     local_view_call=local_view_seat=local_hud_seat=0;split_table=0;
     ai_pool_call=ai_call=ai_owner=ai_suspended=0;ai_pool=ai_pending=ai_function=0;ai_first_freeze=0;

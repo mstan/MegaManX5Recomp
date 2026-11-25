@@ -39,7 +39,11 @@ EXPECTED = {
         "version": "1.0.0",
     },
 }
-DISC_SHA256 = "be731bc4b9d3211b9267a34b8a68c769199a15479b14004ff25b67cdfebe8af4"
+DISC_FILES = {
+    "SLUS_013.34": "f61827043c9a4f4100154cf0489a11a1cd1aa056284551fd8b1c24a613a6769b",
+    "ROCK_X5.DAT": "5e0d1c49473ec502a7e517677ad0abdb6e9795e5dd6931ac8aa89fd4af0fa5bf",
+    "ROCK_X5.BIN": "277bae60b446693aaf8e868029f4de9e256496296d0c814991c7c4aedf762552",
+}
 
 
 def require(condition: bool, message: str) -> None:
@@ -61,7 +65,7 @@ def main() -> int:
         with manifest_path.open("rb") as stream:
             manifest = tomllib.load(stream)
 
-        require(manifest["format_version"] == expected.get("format",5), f"{package_id}: format")
+        require(manifest["format_version"] == 15, f"{package_id}: guarded file target format")
         require(manifest["id"] == package_id, f"{package_id}: id")
         require(manifest["version"] == expected["version"], f"{package_id}: version")
         require(manifest["resolver"] == "declarative", f"{package_id}: resolver")
@@ -72,8 +76,10 @@ def main() -> int:
         targets = manifest.get("target", [])
         require(len(targets) == 1, f"{package_id}: target count")
         require(targets[0]["game_id"] == "SLUS-01334", f"{package_id}: game id")
-        require(targets[0]["disc_sha256"] == DISC_SHA256,
-                f"{package_id}: disc hash")
+        require(targets[0].get("disc_files") == DISC_FILES,
+                f"{package_id}: exact original executable and archive identities")
+        require("disc_sha256" not in targets[0],
+                f"{package_id}: raw-sector bytes must not gate these file-based mods")
 
         features = manifest.get("feature", [])
         if package_id == "mmx5.diagnostics":

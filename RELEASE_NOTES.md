@@ -1,3 +1,9 @@
+# v1.0.5-mod-compat.1 - troubleshooting prerelease
+
+Game-specific mods now verify the original USA executable and the ROCK_X5.DAT/ROCK_X5.BIN files. Raw-sector error-correction differences no longer reject otherwise matching game files. Missing or changed files remain rejected, and errors name the file and its expected/observed SHA-256.
+
+This is a tentative Windows compatibility build on the current native HLE runtime. Extract it into a separate folder and select your original, unmodified USA BIN/CUE. Stable v1.0.4 remains unchanged. Existing native saves are not modified by image verification; save states are build-specific.
+
 # v1.0.5
 
 - Local side-by-side co-op now offers an optional 16:9 view for each player. Choose Local split-screen aspect under Mods > X + Zero Co-op and restart the game.

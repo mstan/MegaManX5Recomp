@@ -1,4 +1,4 @@
-format_version = 5
+format_version = 15
 id = "mmx5.cheat.ultimate-armor"
 version = "1.0.0"
 name = "Ultimate Armor X"
@@ -9,7 +9,10 @@ save_compatibility = "shared"
 
 [[target]]
 game_id = "SLUS-01334"
-disc_sha256 = "be731bc4b9d3211b9267a34b8a68c769199a15479b14004ff25b67cdfebe8af4"
+[target.disc_files]
+"SLUS_013.34" = "f61827043c9a4f4100154cf0489a11a1cd1aa056284551fd8b1c24a613a6769b"
+"ROCK_X5.DAT" = "5e0d1c49473ec502a7e517677ad0abdb6e9795e5dd6931ac8aa89fd4af0fa5bf"
+"ROCK_X5.BIN" = "277bae60b446693aaf8e868029f4de9e256496296d0c814991c7c4aedf762552"
 
 [[feature]]
 id = "ultimate-armor"

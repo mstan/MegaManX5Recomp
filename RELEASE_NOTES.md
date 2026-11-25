@@ -1,3 +1,9 @@
+# v1.0.5
+
+- Local side-by-side co-op now offers an optional 16:9 view for each player. Choose Local split-screen aspect under Mods > X + Zero Co-op and restart the game.
+- Two 16:9 views fill a 32:9 display that the operating system already presents as one combined drawable. The game uses one gameplay window.
+- The default remains 4:3 per player; shared scenes retain their original presentation.
+
 # v1.0.4
 
 - Training boss encounters now wait for both heroes to finish entering the room,

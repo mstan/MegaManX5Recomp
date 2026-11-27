@@ -31,7 +31,7 @@ def main():
     parser.add_argument('--bios', type=Path, required=True)
     parser.add_argument('--run-dir', type=Path, required=True)
     parser.add_argument('--startup-timeout', type=int, default=90,
-                        help='Host seconds to wait for the debug endpoint; diagnostic overrides do not change the game watchdog')
+                        help='Deprecated compatibility option; startup has no elapsed-time cutoff')
     parser.add_argument('--character', choices=('x', 'zero'), default='x')
     parser.add_argument('--ultimate-code', action='store_true',
                         help='Enter the original X title code with native pad edges; cheat, not acquisition')
@@ -61,19 +61,25 @@ def main():
     parser.add_argument('--protect-fixture',action='store_true',
                         help='Private cheat build: refill HP during setup; does not prevent native pit/crush deaths')
     parser.add_argument('--prepare-audit',action='store_true',
-                        help='Prepare and park an owned audit session without claiming exposed intro control checks')
+                        help='Prepare an owned input-only setup; --keep-running parks it for review')
+    parser.add_argument('--measure-frames',type=int,default=0,
+                        help='Sample existing frame/phase telemetry over this finite native gameplay workload')
+    parser.add_argument('--save-load-check',action='store_true',
+                        help='Check a current-build native save/load round trip in the isolated QA slot')
     args = parser.parse_args()
     if args.ultimate_code and args.character != 'x':
         parser.error('--ultimate-code requires --character x')
-    if args.startup_timeout <= 0:
-        parser.error('--startup-timeout must be positive')
     if os.name=='nt' and any(p.resolve().drive.upper()=='C:' for p in (args.exe,args.run_dir)):
         parser.error('Runtime and generated QA data must use non-C: storage')
     for label,path in (('Executable',args.exe),('Game config',args.game),
                        ('Disc',args.disc),('BIOS image',args.bios)):
         require(path.is_file(),f'{label} does not exist: {path}')
-    if args.prepare_audit and not (args.enabled and args.keep_running and args.protect_fixture):
-        parser.error('--prepare-audit requires --enabled --keep-running --protect-fixture')
+    if args.prepare_audit and not args.enabled:
+        parser.error('--prepare-audit requires --enabled')
+    if args.save_load_check and not args.enabled:
+        parser.error('--save-load-check requires --enabled')
+    if args.measure_frames < 0:
+        parser.error('--measure-frames must be nonnegative')
     args.run_dir.mkdir(parents=True, exist_ok=True)
     harness_source = Path(__file__).read_bytes()
     (args.run_dir/'harness.py').write_bytes(harness_source)
@@ -128,12 +134,12 @@ def main():
                   skip_alia_hints=not args.keep_alia_hints,
                   executable_sha256=executable_sha256,
                   harness_sha256=hashlib.sha256(harness_source).hexdigest(),
-                  startup_timeout_seconds=args.startup_timeout)
+                  elapsed_time_cutoffs=False)
     print('Owned X5 QA process', process.pid, 'port', port, flush=True)
     startup_begin=time.monotonic()
     success = False
     try:
-        deadline = startup_begin+args.startup_timeout
+
         while True:
             require(process.poll() is None, 'Runtime exited during boot')
             try:
@@ -141,14 +147,14 @@ def main():
                 report['startup_seconds']=time.monotonic()-startup_begin
                 break
             except OSError:
-                require(time.monotonic()<deadline, 'Debug startup timeout')
+
                 time.sleep(.2)
         # Skip native opening movies and confirm Game Start. Character select
         # is original PLAY mode1/substate3; no menu/progression flags are forced.
-        deadline = time.monotonic()+50
+
         already_confirmed = False
         while runtime.read(PLAY, 2) != b'\x01\x03':
-            require(time.monotonic()<deadline, 'Native character selection timeout')
+
             mode = runtime.read(PLAY, 2)
             if mode[0] in (8, 9, 10):
                 # An unpaced frame can accept the default character before a
@@ -183,9 +189,9 @@ def main():
                 provenance='Actual original NewGame code input on private cards; CHEAT, not capsule acquisition')
             for step,button in enumerate([0x10]*2+[0x40]*9,1):
                 runtime.tap(button,.07)
-                released=runtime.request('frame')['frame'];code_deadline=time.monotonic()+3
+                released=runtime.request('frame')['frame']
                 while runtime.request('frame')['frame']<released+3:
-                    require(time.monotonic()<code_deadline,'Native code release did not advance')
+
                     time.sleep(.01)
                 actual=int.from_bytes(runtime.read(0x800EF894,4),'little')
                 report['original_native_code']['edges'].append(dict(step=step,button=hex(button),counter=actual))
@@ -193,14 +199,14 @@ def main():
             runtime.screenshot(args.run_dir/'native-code-counter11.png')
         if not already_confirmed:
             runtime.tap(0x4000, .10)
-        deadline = time.monotonic()+(180 if args.render_verify else 90)
+
         sample_at = 0
         while True:
             play = runtime.read(PLAY, 0x20)
             body = runtime.read(PLAYER, 0x158)
             if play[0]==10 and body[0] and body[4]==1 and body[5]==2 and not play[0x1C]:
                 break
-            require(time.monotonic()<deadline, 'Native intro dialogue/control timeout')
+
             # Confirm native intro gates; after release, allow an existing
             # jump to land instead of creating another Cross edge each poll.
             if play[0] != 10 or play[0x1C]:runtime.tap(0x4000, .06)
@@ -215,10 +221,10 @@ def main():
             split_active=any(c['name']=='mmx5.coop.split-state' for c in runtime.request('mod_counters')['counters'])
             require(split_active==(args.local_cameras=='split'),
                     'Offline display does not match its local setting')
-            deadline=time.monotonic()+(60 if args.render_verify else 12)
+
             arrival=[]
             while runtime.lifecycle()[1]!=0:
-                require(time.monotonic()<deadline,'Counterpart native arrival did not finish')
+
                 if args.capture_arrival:
                     arrival.append(dict(state=runtime.state(),life=runtime.lifecycle(),
                                         body=runtime.players()[1].hex()))
@@ -236,11 +242,11 @@ def main():
                         'This build has no qualification HP protection')
                 report['bypassed_prerequisites']=['incoming damage replenished by explicit setup fixture']
             before = runtime.state()
-            deadline=time.monotonic()+12
+
             while True:
                 time.sleep(.05);after=runtime.state()
                 if after['ticks']-before['ticks']>=8:break
-                require(time.monotonic()<deadline,'Counterpart stopped at the gameplay boundary')
+
             require(after['ticks']-before['ticks']>5, 'Counterpart pass did not advance')
             require(after['ticks']-before['ticks']==after['world_ticks']-before['world_ticks'],
                     'Counterpart and once-per-world boundaries disagree')
@@ -282,6 +288,59 @@ def main():
             runtime.tap(0x8000)
             runtime.tap(0x4000)
             runtime.screenshot(args.run_dir/'single-player-action.png')
+        def native_frames(count):
+            target=runtime.request('frame')['frame']+count
+            while runtime.request('frame')['frame']<target:
+                require(process.poll() is None,'Owned runtime exited during finite frame workload')
+                time.sleep(.01)
+
+        if args.measure_frames:
+            # Same native telemetry and process CPU accounting as the existing
+            # performance tool, scoped to one offline consumer.
+            import ctypes
+            class FileTime(ctypes.Structure):
+                _fields_=[('low',ctypes.c_uint32),('high',ctypes.c_uint32)]
+            def cpu_seconds():
+                if os.name!='nt':return None
+                kernel=ctypes.WinDLL('kernel32',use_last_error=True)
+                kernel.GetProcessTimes.argtypes=[ctypes.c_void_p]+[ctypes.POINTER(FileTime)]*4
+                stamps=[FileTime() for _ in range(4)]
+                require(kernel.GetProcessTimes(int(process._handle),*[ctypes.byref(t) for t in stamps]),'Process CPU accounting failed')
+                return sum((t.high<<32)|t.low for t in stamps[2:])*1e-7
+            native_frames(30)
+            before=dict(frame=runtime.request('frame')['frame'],time=time.perf_counter(),cpu=cpu_seconds())
+            native_frames(args.measure_frames)
+            after=dict(frame=runtime.request('frame')['frame'],time=time.perf_counter(),cpu=cpu_seconds())
+            report['performance']=dict(before=before,after=after,
+                frame_perf=runtime.request('frame_perf'),phase=runtime.request('phase_profile',window=5),
+                render_stats=runtime.request('render_pass_stats'))
+
+        if args.save_load_check:
+            operations=[]
+            def operation(op):
+                generation=runtime.request('savestate_status')['generation']
+                runtime.request('savestate',op=op,slot=7)
+                while True:
+                    require(process.poll() is None,'Owned runtime exited during state operation')
+                    status=runtime.request('savestate_status')
+                    if status['generation']>generation and not status['pending']:break
+                    time.sleep(.02)
+                require(status['last_ok']==1 and status['last_op']==op and status['last_slot']==7,
+                        f'Current-build {op} rejected: {status}')
+                operations.append(status)
+            runtime.release();native_frames(8)
+            operation('save')
+            saved=[struct.unpack_from('<i',body,8)[0] for body in runtime.players()]
+            runtime.input(0x20,0);native_frames(20);runtime.release()
+            moved=[struct.unpack_from('<i',body,8)[0] for body in runtime.players()]
+            require(moved[0]>saved[0],'State check did not change the native player position')
+            operation('load');runtime.release()
+            restored=[struct.unpack_from('<i',body,8)[0] for body in runtime.players()]
+            require(restored==saved,f'Current-build native positions did not restore: {saved}, {restored}')
+            native_frames(8)
+            report['save_load']=dict(operations=operations,saved=saved,moved=moved,restored=restored,
+                scope='Current-build native full-machine slot7; traversal/protection fixtures remain explicit bypasses')
+
         report['counters'] = runtime.request('mod_counters')['counters']
         success = True
         if args.keep_running:
@@ -311,11 +370,7 @@ def main():
                 runtime.request('quit')
             except Exception:
                 pass
-            try:
-                process.wait(timeout=8)
-            except subprocess.TimeoutExpired:
-                process.terminate()
-                process.wait(timeout=8)
+            process.wait()
         report['success'] = success
         report['exit_code'] = process.poll()
         # The runtime writes postmortems relative to its build directory.

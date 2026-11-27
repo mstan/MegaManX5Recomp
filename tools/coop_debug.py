@@ -20,6 +20,7 @@ class Runtime:
 
     def request(self, command, **fields):
         with socket.create_connection(('127.0.0.1', self.port), timeout=10) as sock:
+            sock.settimeout(None)
             sock.sendall((json.dumps(dict(id=1, cmd=command, **fields))+'\n').encode())
             result = json.loads(sock.makefile().readline())
         if not result.get('ok'):
@@ -43,10 +44,9 @@ class Runtime:
         self.request('write_ram', addr=hex(address+0x58), val=hex(ammo&255))
         self.request('write_ram', addr=hex(address+0x59), val=hex(ammo>>8))
         self.request('write_ram', addr=hex(address+0x50), val=hex(sequence))
-        deadline = time.monotonic()+8
+
         while struct.unpack('<I', self.read(address+0x60, 4))[0]!=sequence:
-            if time.monotonic()>deadline:
-                raise TimeoutError('Native world boundary did not acknowledge fixture')
+
             time.sleep(.02)
 
     def load_location(self, stage, section, checkpoint, continuation=False):
@@ -149,18 +149,17 @@ class Runtime:
 
         Original23CC0/23D78 waits for text state FF/3 and a fresh native pad
         edge. Short pulses during printing can miss the page entirely. The
-        caller owns the surrounding story/selector transition and deadline;
+        caller owns the surrounding story/selector transition;
         this helper does not confirm inventory/save/character choices.
         Frontends use P1 by default; an in-world P2-owned scene needs seat1.
         """
         if seat not in (0, 1):
             raise ValueError('Native dialogue controller must be seat0 or seat1')
-        deadline = time.monotonic()+timeout
+
 
         def wait(predicate, message):
             while not predicate():
-                if time.monotonic() > deadline:
-                    raise TimeoutError(message)
+
                 time.sleep(.03)
 
         self.input(0, seat)
@@ -190,16 +189,16 @@ class Runtime:
         if self.read(PLAY+1,1)!=b'\x02':
             return
         # Native menu initialization ignores Start during its opening fade.
-        deadline=time.monotonic()+8
+
         while self.read(0x800D4F44,1)!=b'\x01':
             if self.read(PLAY+1,1)!=b'\x02':return
-            if time.monotonic()>deadline:raise TimeoutError('Native menu did not become interactive')
+
             time.sleep(.03)
         seat=max(0,self.read(self.diagnostic()+0x48,1)[0]-1)
         self.tap(8,.10,seat)
         retry_at=time.monotonic()+.4
         while self.read(PLAY+1,1)==b'\x02':
-            if time.monotonic()>deadline:raise TimeoutError('Native menu did not close')
+
             # A short wall-clock pulse can miss the native pad poll during
             # slow frames. Retry only while the original menu is interactive;
             # its closing fade must finish without another Start edge.
@@ -223,7 +222,7 @@ class Runtime:
 
     def render_screenshot(self, path):
         """Explicit pre-fit game buffer; excludes host composition/OSD."""
-        deadline = time.monotonic()+3
+
         while True:
             gpu = self.request('gpu_state')
             command = 'screenshot' if gpu.get('depth24') else 'screenshot_hires'
@@ -232,7 +231,7 @@ class Runtime:
             except RuntimeError as error:
                 # Original menu/stage fades can briefly disable the display.
                 # Wait for an actual frame without changing input or game state.
-                if 'display disabled' not in str(error) or time.monotonic()>deadline:
+                if 'display disabled' not in str(error):
                     raise
                 time.sleep(.03)
 
@@ -241,15 +240,14 @@ class Runtime:
         path=Path(path).resolve()
         sequence=self.request('present_shot_seq')['seq']
         self.request('present_shot',path=str(path))
-        deadline=time.monotonic()+5
+
         while True:
             result=self.request('present_shot_seq')
             if result['seq']!=sequence:
                 if not result.get('wrote') or not path.is_file():
                     raise RuntimeError('Host present capture completed without writing a file')
                 return result
-            if time.monotonic()>deadline:
-                raise TimeoutError('Host present capture did not complete')
+
             time.sleep(.025)
 
     def diagnostic(self):

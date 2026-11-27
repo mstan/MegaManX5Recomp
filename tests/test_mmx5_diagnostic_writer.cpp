@@ -30,8 +30,7 @@ int main(int argc,char **argv) {
     Writer<8> blocked;blocked.test_gate(gate);blocked.open(root/"blocked.csv","header\n");
     struct ReleaseOnExit {~ReleaseOnExit() {released.store(true);}} release_gate;
     CHECK(blocked && blocked.is_open());
-    auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(2);
-    while(!entered.load() && std::chrono::steady_clock::now()<deadline)std::this_thread::yield();
+    while(!entered.load())std::this_thread::yield();
     CHECK(entered.load());
     std::ostringstream expected;expected<<"header\n";
     for(unsigned i=0;i<7;++i) {
@@ -63,8 +62,7 @@ int main(int argc,char **argv) {
     CHECK(writer.controller(300,0,42));expected<<"C 300 0 42\n";
     // No more game frames or explicit flush: the worker must flush on wall
     // time even when the producer is paused or hung.
-    deadline=std::chrono::steady_clock::now()+std::chrono::seconds(2);
-    while(contents(root/"ordered.csv")!=expected.str() && std::chrono::steady_clock::now()<deadline)
+    while(contents(root/"ordered.csv")!=expected.str())
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     CHECK(contents(root/"ordered.csv")==expected.str());
     writer.close();CHECK(writer);

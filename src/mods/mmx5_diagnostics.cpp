@@ -401,8 +401,10 @@ int inputs(CPUState *cpu,uint32_t address) {
 void activate() {
     // The Mods editor persists next-launch preferences without changing the
     // active plan. Retain this launch's local choices until the next activation.
-    recording_choice=PSXRecompV4::mod_runtime_local_feature_enabled("mmx5.diagnostics","inputs");
-    display_choice=PSXRecompV4::mod_runtime_local_feature_enabled("mmx5.diagnostics","osd");
+    recording_choice=PSXRecompV4::mod_runtime_feature_host_only("mmx5.diagnostics","inputs") &&
+        psx_mod_feature_selected("mmx5.diagnostics","inputs");
+    display_choice=PSXRecompV4::mod_runtime_feature_host_only("mmx5.diagnostics","osd") &&
+        psx_mod_feature_selected("mmx5.diagnostics","osd");
     release_sources();
     close_recording();replay.close();recording.clear();replay.clear();
     started=inside=replaying=replay_failed=recording_failed=false;sequence=0;

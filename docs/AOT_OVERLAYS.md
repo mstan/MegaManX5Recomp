@@ -1,9 +1,14 @@
 # Original-disc AOT overlays
 
-Mega Man X5 USA (SLUS-01334) packages native code for 53 original-disc
-archive images. Every Windows and Linux release freshly extracts, compiles,
-audits and stages every configured image, including with `-SkipRegen` or
-`--skip-build`. Historical runtime captures and caches are not build inputs.
+The current Mega Man X5 release keeps original-disc overlays on the guarded
+interpreter route because its trusted co-op function and instruction hooks
+must observe every entry. It does not bundle an AOT bank or runtime compiler.
+The resident executable, audited waits, loading provider and BIOS executive
+use their selected native implementations. Unsupported BIOS services fail
+explicitly; they never dispatch firmware.
+
+The historical inventory below describes the original-disc extraction profile,
+not native coverage shipped by this release.
 
 The declarative [profile](../aot/overlays.json) consumes psxrecomp's reusable
 `sector_extent_members` method. Descriptors are little-endian pairs of
@@ -41,13 +46,11 @@ possible execution sources have been identified.
 
 ## Release checks and limits
 
-Each package includes `AOT_CACHE_AUDIT.json` with native-pair hashes. The audit
-requires nonempty guarded native coverage for every recipe, the current codegen
-ABI and matching original bytes. It does not establish that every indirect
-entry or execution path is covered. Interpreter and runtime compilation fallback
-remain enabled. Code-changing mods can invalidate stock guards and need fallback;
-this release does not claim AOT coverage for every mod combination.
+The release configuration selects `aot.mode = "none"`, disables overlay-cache
+execution and omits the overlay toolchain. Native save states remain specific
+to their executable and current serializer. In-game memory-card progress is
+persistent and separate from those snapshots.
 
-Release smoke checks disable runtime compilation. Gameplay validation remains
-a separate user check: opening stage, multiple selectable stages and bosses,
-X and Zero, menus, saves, movement, graphics, audio and performance.
+The original image remains read-only. Valid mod plans can change guest RAM and
+the loaded in-memory game image under expected-byte, identity, conflict and
+transactional rollback guards.

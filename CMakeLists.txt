@@ -8,7 +8,6 @@ set(CMAKE_CXX_STANDARD 17)
 # The co-op title exposes both controller seats and the launcher Host/Join
 # flow on a fresh configure, just like X6's co-op branch.
 option(PSX_NETPLAY "Build the shared two-player netplay stack" ON)
-option(PSX_NATIVE_KERNEL "Use the host-native PlayStation BIOS executive" ON)
 set(PSX_EXECUTION_PROFILE "ENHANCED" CACHE STRING "Execution implementation: ENHANCED or REFERENCE")
 
 # Keep codegen, runtime and selective release PGO on one shared framework.
